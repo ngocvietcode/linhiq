@@ -102,10 +102,10 @@ export class AiService {
 
     // 3. Build system prompt with RAG context
     const systemPrompt = SOCRATIC_SYSTEM_PROMPT
-      .replace('{{SUBJECT}}', subjectName)
-      .replace('{{CURRICULUM}}', curriculum)
-      .replace('{{HINT_LEVEL}}', String(hintLevel))
-      .replace('{{RAG_CONTEXT}}', ragContext);
+      .replaceAll('{{SUBJECT}}', subjectName)
+      .replaceAll('{{CURRICULUM}}', curriculum)
+      .replaceAll('{{HINT_LEVEL}}', String(hintLevel))
+      .replaceAll('{{RAG_CONTEXT}}', ragContext);
 
     // 4. Select model instance
     const model = this.resolveModel(activeProvider, complexity);
