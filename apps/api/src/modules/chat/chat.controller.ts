@@ -15,7 +15,6 @@ import { ChatService } from './chat.service';
 import { AiService } from '../ai/ai.service';
 import { AuthGuard } from '../../common/guards/auth.guard';
 import { createSessionSchema, sendMessageSchema } from '@javirs/validators';
-import { HintLevel } from '@javirs/database';
 
 @Controller('chat')
 @UseGuards(AuthGuard)
@@ -95,9 +94,9 @@ export class ChatController {
       content: m.content,
     }));
 
-    // Map HintLevel
-    const hintMap: Record<number, any> = { 1: HintLevel.L1, 2: HintLevel.L2, 3: HintLevel.L3, 4: HintLevel.L4, 5: HintLevel.L5 };
-    const dbHintLevel = hintMap[input.hintLevel ?? 1] ?? HintLevel.L1;
+    // Map HintLevel (string-cast to handle Prisma client cache)
+    const hintLevelMap: Record<number, string> = { 1: 'L1', 2: 'L2', 3: 'L3', 4: 'L4', 5: 'L5' };
+    const dbHintLevel = (hintLevelMap[input.hintLevel ?? 1] ?? 'L1') as any;
 
     // Stream AI response: Redirect > Open Chat > Socratic
     let aiResponse;

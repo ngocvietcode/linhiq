@@ -114,7 +114,7 @@ function DashboardContent() {
             Here's your learning progress. Consistency is key!
           </p>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+          <div className="grid grid-cols-3 gap-4 mt-6">
             <div className="bg-bg-card border border-border p-4 rounded-xl flex flex-col justify-center">
               <span className="text-text-muted text-xs uppercase tracking-wider mb-1">🔥 Current Streak</span>
               <span className="text-2xl font-bold text-accent">{overview?.streakDays || 0} Days</span>
@@ -131,16 +131,32 @@ function DashboardContent() {
                 {overview?.subjects?.reduce((sum, s) => sum + s.masteredTopics, 0) || 0}
               </span>
             </div>
-            <div className="bg-bg-card border border-border p-4 rounded-xl flex flex-col justify-center">
-              <span className="text-text-muted text-xs uppercase tracking-wider mb-1">🗣️ Open Chat</span>
-              <button 
-                onClick={() => startChat()} 
-                className="mt-1 text-sm bg-accent/20 text-accent font-medium py-1.5 px-3 rounded-lg hover:bg-accent/30 transition-colors w-max"
-              >
-                Chat with Linh →
-              </button>
-            </div>
           </div>
+
+          {/* Open Chat — Chat với Linh */}
+          <button
+            onClick={() => startChat()}
+            disabled={creating === 'open'}
+            className="mt-6 w-full bg-gradient-to-r from-accent/15 via-accent/10 to-purple-500/10
+                       border border-accent/30 rounded-2xl p-5 flex items-center gap-4
+                       hover:border-accent/60 hover:shadow-lg hover:shadow-accent/10
+                       transition-all duration-300 group text-left
+                       disabled:opacity-50 disabled:cursor-wait"
+          >
+            <div className="w-12 h-12 bg-accent/20 rounded-xl flex items-center justify-center text-2xl
+                            group-hover:scale-110 transition-transform duration-300">
+              💬
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-text-primary group-hover:text-accent transition-colors">
+                Chat với Linh
+              </h3>
+              <p className="text-sm text-text-muted mt-0.5">
+                Nói chuyện tự do về bất cứ điều gì — học tập, cuộc sống, sở thích...
+              </p>
+            </div>
+            <span className="text-accent opacity-0 group-hover:opacity-100 transition-opacity text-xl">→</span>
+          </button>
         </div>
 
         {/* Subjects Grid */}

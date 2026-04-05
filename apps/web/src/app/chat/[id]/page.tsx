@@ -16,7 +16,8 @@ interface Message {
 interface Session {
   id: string;
   title: string | null;
-  subject: { name: string; iconEmoji: string; curriculum: string };
+  mode: 'SUBJECT' | 'OPEN';
+  subject: { name: string; iconEmoji: string; curriculum: string } | null;
   messages: Message[];
 }
 
@@ -210,31 +211,64 @@ function ChatContent() {
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
         {messages.length === 0 && !streamingText && (
           <div className="text-center py-16">
-            <span className="text-4xl">{session.subject?.iconEmoji || "💬"}</span>
-            <h2 className="text-xl font-medium mt-4">
-              {session.subject?.name || "Open Chat"} — {session.subject?.curriculum || "LinhIQ AI"}
-            </h2>
-            <p className="text-text-secondary mt-2 max-w-md mx-auto">
-              Ask me anything! I&apos;ll guide you with Socratic questions
-              instead of giving direct answers.
-            </p>
-            <div className="flex flex-wrap gap-2 justify-center mt-6">
-              {[
-                "What is osmosis?",
-                "Explain photosynthesis",
-                "Compare mitosis and meiosis",
-              ].map((q) => (
-                <button
-                  key={q}
-                  onClick={() => { setInput(q); inputRef.current?.focus(); }}
-                  className="text-sm bg-bg-card border border-border px-3 py-1.5 rounded-full
-                             text-text-secondary hover:text-text-primary hover:border-accent
-                             transition-all"
-                >
-                  {q}
-                </button>
-              ))}
-            </div>
+            {session.mode === 'OPEN' ? (
+              /* ── Open Chat Welcome ── */
+              <>
+                <span className="text-5xl">💬</span>
+                <h2 className="text-xl font-medium mt-4">Chat với Linh</h2>
+                <p className="text-text-secondary mt-2 max-w-md mx-auto">
+                  Hey! Mình là Linh — bạn có thể nói chuyện với mình về bất cứ điều gì.
+                  Học tập, cuộc sống, sở thích, hay chỉ cần ai đó lắng nghe 😊
+                </p>
+                <div className="flex flex-wrap gap-2 justify-center mt-6">
+                  {[
+                    "Hôm nay mình mệt quá 😮‍💨",
+                    "Giới thiệu cho mình một cuốn sách hay",
+                    "Mình không biết nên chọn ngành gì",
+                    "Let's talk about gaming 🎮",
+                  ].map((q) => (
+                    <button
+                      key={q}
+                      onClick={() => { setInput(q); inputRef.current?.focus(); }}
+                      className="text-sm bg-bg-card border border-border px-3 py-1.5 rounded-full
+                                 text-text-secondary hover:text-text-primary hover:border-accent
+                                 transition-all"
+                    >
+                      {q}
+                    </button>
+                  ))}
+                </div>
+              </>
+            ) : (
+              /* ── Subject Study Welcome ── */
+              <>
+                <span className="text-4xl">{session.subject?.iconEmoji || "📚"}</span>
+                <h2 className="text-xl font-medium mt-4">
+                  {session.subject?.name || "Study"} — {session.subject?.curriculum || "Cambridge"}
+                </h2>
+                <p className="text-text-secondary mt-2 max-w-md mx-auto">
+                  Ask me anything! I&apos;ll guide you with Socratic questions
+                  instead of giving direct answers.
+                </p>
+                <div className="flex flex-wrap gap-2 justify-center mt-6">
+                  {[
+                    "What is osmosis?",
+                    "Explain photosynthesis",
+                    "Compare mitosis and meiosis",
+                  ].map((q) => (
+                    <button
+                      key={q}
+                      onClick={() => { setInput(q); inputRef.current?.focus(); }}
+                      className="text-sm bg-bg-card border border-border px-3 py-1.5 rounded-full
+                                 text-text-secondary hover:text-text-primary hover:border-accent
+                                 transition-all"
+                    >
+                      {q}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         )}
 

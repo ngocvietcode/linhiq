@@ -171,21 +171,22 @@ ACADEMIC | GENERAL | HOBBIES | LIFE | EMOTIONAL | MATURE_SOFT | AGE_BOUNDARY | H
 - [x] Topic stats tracking (SessionTopicStat)
 - [x] Textbook data (IGCSE Biology) ingested to markdown
 
-### Phase 3: Open Chat + Safety 🔄 IN PROGRESS
+### Phase 3: Open Chat + Safety ✅ DONE
 - [x] Open Chat prompt — `OPEN_CHAT_SYSTEM_PROMPT` (F3+F4)
 - [x] Gentle Redirect prompt — updated for LinhIQ
 - [x] HintLevel expanded to L1–L5
 - [x] Integrate `OPEN_CHAT_SYSTEM_PROMPT` into `AiService.streamOpenChat()`
 - [x] Route OPEN mode sessions to `streamOpenChat()` in `ChatController`
 - [x] Update PDD F1 section to reflect 5-level hint system
-- [ ] Anonymous Topic Analytics flush (WeeklyTopicStat aggregation)
+- [x] Anonymous Topic Analytics flush (WeeklyTopicStat aggregation + endpoints)
 
-### Phase 4: Frontend UI 🔜 NEXT
-- [ ] Chat UI redesign (dark mode, mobile-first)
-- [ ] Hint level selector in chat input
-- [ ] Study mode vs Open Chat mode toggle
-- [ ] Dashboard: subject list, continue learning
-- [ ] Progress visualization
+### Phase 4: Frontend UI 🔄 IN PROGRESS
+- [x] Hint level selector expanded to L1–L5 with tooltips
+- [x] Study mode vs Open Chat welcome screens separated
+- [x] Dashboard: Open Chat hero card with gradient
+- [ ] Chat UI redesign (dark mode polish, mobile responsive)
+- [ ] Dashboard: progress visualization
+- [ ] Mobile-first responsive adjustments
 
 ### Phase 5: Advanced Features ⬜ FUTURE
 - [ ] Photo Scanner (F5) — Vision AI integration
