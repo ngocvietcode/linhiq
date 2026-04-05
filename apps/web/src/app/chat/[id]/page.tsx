@@ -29,7 +29,7 @@ function ChatContent() {
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamingText, setStreamingText] = useState("");
-  const [hintLevel, setHintLevel] = useState<1 | 2 | 3>(1);
+  const [hintLevel, setHintLevel] = useState<1 | 2 | 3 | 4 | 5>(1);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -178,23 +178,32 @@ function ChatContent() {
           </div>
         </div>
 
-        {/* Hint Level Selector */}
+        {/* Hint Level Selector — only shown in Subject mode */}
+        {session.subject && (
         <div className="flex items-center gap-1">
           <span className="text-xs text-text-muted mr-1">Hint:</span>
-          {([1, 2, 3] as const).map((level) => (
+          {([
+            { level: 1 as const, label: 'L1', tip: 'Khơi gợi' },
+            { level: 2 as const, label: 'L2', tip: 'Cấu trúc' },
+            { level: 3 as const, label: 'L3', tip: 'Key Terms' },
+            { level: 4 as const, label: 'L4', tip: 'Ví dụ' },
+            { level: 5 as const, label: 'L5', tip: 'Đáp án' },
+          ]).map(({ level, label, tip }) => (
             <button
               key={level}
               onClick={() => setHintLevel(level)}
+              title={tip}
               className={`px-2 py-0.5 text-xs rounded-full transition-all
                 ${hintLevel === level
                   ? "bg-accent text-white"
                   : "bg-bg-card text-text-muted hover:text-text-secondary"
                 }`}
             >
-              L{level}
+              {label}
             </button>
           ))}
         </div>
+        )}
       </header>
 
       {/* Messages */}
