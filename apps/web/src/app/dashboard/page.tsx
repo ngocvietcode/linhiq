@@ -114,22 +114,73 @@ function DashboardContent() {
             Here's your learning progress. Consistency is key!
           </p>
 
-          <div className="grid grid-cols-3 gap-4 mt-6">
-            <div className="bg-bg-card border border-border p-4 rounded-xl flex flex-col justify-center">
-              <span className="text-text-muted text-xs uppercase tracking-wider mb-1">🔥 Current Streak</span>
-              <span className="text-2xl font-bold text-accent">{overview?.streakDays || 0} Days</span>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 mt-6">
+            <div className="bg-bg-card border border-border p-3 sm:p-5 rounded-2xl flex flex-col justify-center">
+              <span className="text-text-muted text-[10px] sm:text-xs uppercase tracking-wider mb-1 font-semibold">🔥 Current Streak</span>
+              <span className="text-2xl sm:text-3xl font-bold text-accent">{overview?.streakDays || 0}</span>
+              <span className="text-sm text-text-secondary mt-1">Days</span>
             </div>
-            <div className="bg-bg-card border border-border p-4 rounded-xl flex flex-col justify-center">
-              <span className="text-text-muted text-xs uppercase tracking-wider mb-1">⏱️ Study Time</span>
-              <span className="text-2xl font-bold text-success">
-                {overview?.studyTimeMin ? `${Math.floor(overview.studyTimeMin / 60)}h ${overview.studyTimeMin % 60}m` : '0m'}
+            <div className="bg-bg-card border border-border p-3 sm:p-5 rounded-2xl flex flex-col justify-center">
+              <span className="text-text-muted text-[10px] sm:text-xs uppercase tracking-wider mb-1 font-semibold">⏱️ Study Time</span>
+              <span className="text-2xl sm:text-3xl font-bold text-success">
+                {overview?.studyTimeMin ? Math.floor(overview.studyTimeMin / 60) : 0}
+                <span className="text-lg text-text-secondary font-medium ml-1 mr-1">h</span>
+                {overview?.studyTimeMin ? overview.studyTimeMin % 60 : 0}
+                <span className="text-lg text-text-secondary font-medium ml-1">m</span>
               </span>
             </div>
-            <div className="bg-bg-card border border-border p-4 rounded-xl flex flex-col justify-center">
-              <span className="text-text-muted text-xs uppercase tracking-wider mb-1">🏆 Topics Mastered</span>
-              <span className="text-2xl font-bold text-warning">
-                {overview?.subjects?.reduce((sum, s) => sum + s.masteredTopics, 0) || 0}
-              </span>
+            
+            {/* Progress Visualization Chart */}
+            <div className="bg-bg-card border border-border p-4 sm:p-5 rounded-2xl flex items-center justify-between col-span-2 sm:col-span-1">
+              <div className="flex flex-col">
+                <span className="text-text-muted text-[10px] sm:text-xs uppercase tracking-wider mb-1 font-semibold">🏆 Overall Mastery</span>
+                <span className="text-2xl sm:text-3xl font-bold text-warning">
+                  {(() => {
+                    const totalT = overview?.subjects?.reduce((sum, s) => sum + s.totalTopics, 0) || 0;
+                    const maxT = overview?.subjects?.reduce((sum, s) => sum + s.masteredTopics, 0) || 0;
+                    return totalT > 0 ? Math.round((maxT / totalT) * 100) : 0;
+                  })()}%
+                </span>
+                <span className="text-sm text-text-secondary mt-1 max-w-[120px] truncate">
+                  {overview?.subjects?.reduce((sum, s) => sum + s.masteredTopics, 0) || 0} topics mastered
+                </span>
+              </div>
+              
+              <div className="relative w-20 h-20 flex-shrink-0">
+                <svg className="w-full h-full -rotate-90" viewBox="0 0 80 80">
+                  {/* Background Circle */}
+                  <circle
+                    cx="40"
+                    cy="40"
+                    r="32"
+                    className="stroke-bg-elevated"
+                    strokeWidth="8"
+                    fill="none"
+                  />
+                  {/* Progress Circle */}
+                  <circle
+                    cx="40"
+                    cy="40"
+                    r="32"
+                    className="stroke-warning"
+                    strokeWidth="8"
+                    fill="none"
+                    strokeLinecap="round"
+                    strokeDasharray={2 * Math.PI * 32}
+                    strokeDashoffset={(() => {
+                      const totalT = overview?.subjects?.reduce((sum, s) => sum + s.totalTopics, 0) || 0;
+                      const maxT = overview?.subjects?.reduce((sum, s) => sum + s.masteredTopics, 0) || 0;
+                      const pct = totalT > 0 ? Math.round((maxT / totalT) * 100) : 0;
+                      const circumference = 2 * Math.PI * 32;
+                      return circumference - (pct / 100) * circumference;
+                    })()}
+                    style={{ transition: "stroke-dashoffset 1s ease-out" }}
+                  />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <span className="text-lg">🎯</span>
+                </div>
+              </div>
             </div>
           </div>
 
