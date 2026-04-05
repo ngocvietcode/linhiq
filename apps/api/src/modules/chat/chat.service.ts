@@ -125,4 +125,78 @@ export class ChatService {
       data: { title },
     });
   }
+
+  /**
+   * F8: Flush SessionTopicStat → WeeklyTopicStat (aggregate, anonymous)
+   * Should be called periodically (e.g. daily cron or on session end)
+   */
+  async flushWeeklyStats(): Promise<{ flushed: number }> {
+    // Get Monday of current week
+    const now = new Date();
+    const day = now.getDay();
+    const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+    const weekStart = new Date(now.setDate(diff));
+    weekStart.setHours(0, 0, 0, 0);
+
+    // Get all session stats with their session's userId
+    const sessionStats = await this.db.sessionTopicStat.findMany({
+      include: { session: { select: { userId: true } } },
+    });
+
+    if (sessionStats.length === 0) return { flushed: 0 };
+
+    // Group by userId and aggregate
+    const userAgg: Record<string, { academic: number; general: number; hobbies: number; life: number; redirected: number; totalMsg: number }> = {};
+
+    for (const stat of sessionStats) {
+      const uid = stat.session.userId;
+      if (!userAgg[uid]) {
+        userAgg[uid] = { academic: 0, general: 0, hobbies: 0, life: 0, redirected: 0, totalMsg: 0 };
+      }
+      userAgg[uid].academic += stat.academic;
+      userAgg[uid].general += stat.general;
+      userAgg[uid].hobbies += stat.hobbies;
+      userAgg[uid].life += stat.life;
+      userAgg[uid].redirected += stat.redirected;
+      userAgg[uid].totalMsg += stat.totalMsg;
+    }
+
+    // Upsert into WeeklyTopicStat
+    for (const [userId, counts] of Object.entries(userAgg)) {
+      await this.db.weeklyTopicStat.upsert({
+        where: { userId_weekStart: { userId, weekStart } },
+        update: {
+          academic: { increment: counts.academic },
+          general: { increment: counts.general },
+          hobbies: { increment: counts.hobbies },
+          life: { increment: counts.life },
+          redirected: { increment: counts.redirected },
+          totalMsg: { increment: counts.totalMsg },
+        },
+        create: {
+          userId,
+          weekStart,
+          ...counts,
+        },
+      });
+    }
+
+    // Clear flushed session stats
+    await this.db.sessionTopicStat.deleteMany({
+      where: { id: { in: sessionStats.map((s) => s.id) } },
+    });
+
+    return { flushed: sessionStats.length };
+  }
+
+  /**
+   * Get weekly topic stats for a user (used by parent dashboard F7)
+   */
+  async getWeeklyStats(userId: string, weeks = 4) {
+    return this.db.weeklyTopicStat.findMany({
+      where: { userId },
+      orderBy: { weekStart: 'desc' },
+      take: weeks,
+    });
+  }
 }

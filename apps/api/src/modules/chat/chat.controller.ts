@@ -170,4 +170,19 @@ export class ChatController {
       }
     }
   }
+
+  // ── F8: Analytics ──────────────────────────────
+
+  @Post('analytics/flush')
+  @UseGuards(AuthGuard)
+  async flushAnalytics() {
+    return this.chat.flushWeeklyStats();
+  }
+
+  @Get('analytics/weekly')
+  @UseGuards(AuthGuard)
+  async getWeeklyStats(@Req() req: any) {
+    const userId = req.user.sub;
+    return this.chat.getWeeklyStats(userId);
+  }
 }
