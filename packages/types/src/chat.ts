@@ -4,7 +4,7 @@
 
 export type MessageRole = 'user' | 'assistant' | 'system';
 export type QueryComplexity = 'simple' | 'complex' | 'grading';
-export type HintLevel = 1 | 2 | 3;
+export type HintLevel = 1 | 2 | 3 | 4 | 5;
 
 export interface ChatMessage {
   id: string;

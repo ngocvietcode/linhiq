@@ -96,7 +96,8 @@ export class ChatController {
     }));
 
     // Map HintLevel
-    const dbHintLevel = input.hintLevel === 3 ? HintLevel.L3 : input.hintLevel === 2 ? HintLevel.L2 : HintLevel.L1;
+    const hintMap: Record<number, any> = { 1: HintLevel.L1, 2: HintLevel.L2, 3: HintLevel.L3, 4: HintLevel.L4, 5: HintLevel.L5 };
+    const dbHintLevel = hintMap[input.hintLevel ?? 1] ?? HintLevel.L1;
 
     // Stream AI response or Redirect
     let aiResponse;

@@ -35,9 +35,11 @@ enum SourceType {
 }
 
 enum HintLevel {
-  L1 // Nudge
-  L2 // Structure
-  L3 // Near-answer
+  L1 // Conceptual Nudge (Khơi gợi)
+  L2 // Structural Scaffold (Gợi ý cấu trúc)
+  L3 // Key Term Bridge (Thuật ngữ chìa khóa)
+  L4 // Worked Example Parallel (Ví dụ tương tự)
+  L5 // Full Model Answer (Đáp án mẫu)
 }
 
 enum ChatMode {
