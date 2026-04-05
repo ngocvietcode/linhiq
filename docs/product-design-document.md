@@ -169,7 +169,7 @@ LINHIQ — Feature Map
 ├── F1 · Socratic Tutor Engine         [P0 — MVP Core]
 │     ├── Query classification (simple/complex/grading)
 │     ├── RAG-grounded responses
-│     ├── Hint level system (L1/L2/L3)
+│     ├── Hint level system (L1–L5, Cambridge pedagogy)
 │     ├── KEY TERM detection & highlighting
 │     └── Streaming SSE responses
 │
@@ -245,23 +245,45 @@ LINHIQ — Feature Map
 - Đánh dấu KEY TERMS của chương trình tương ứng khi học sinh dùng đúng (earn mechanism)
 - Kết thúc mỗi turn bằng một câu hỏi dẫn tiếp
 
-**Hint Levels:**
-| Level | Tên | Hành vi |
-|---|---|---|
-| L1 | Nudge | Gợi ý khái niệm, không tiết lộ cấu trúc |
-| L2 | Structure | Chỉ ra cấu trúc câu trả lời cần có (3 phần: ...) |
-| L3 | Near-Answer | Gần như trả lời — học sinh tự hoàn thành |
+**Hint Levels (Cambridge IGCSE/A-Level Aligned):**
+| Level | Tên | Tên Việt | Hành vi |
+|---|---|---|---|
+| L1 | Conceptual Nudge | Khơi gợi | Hỏi học sinh đã biết gì, gợi hướng khái niệm, kết nối kiến thức cũ |
+| L2 | Structural Scaffold | Gợi ý cấu trúc | Chỉ ra cấu trúc đáp án (bao nhiêu phần, command word), cho framework để điền |
+| L3 | Key Term Bridge | Thuật ngữ chìa khóa | Cung cấp key terms từ Mark Scheme, chỉ ra thuật ngữ nào còn thiếu |
+| L4 | Worked Example | Ví dụ tương tự | Đưa worked example của câu hỏi tương tự, học sinh tự pattern-match |
+| L5 | Full Model Answer | Đáp án mẫu | Đáp án đầy đủ theo chuẩn Mark Scheme, chỉ sau khi học sinh đã thử ≥2 lần |
+
+**Command Word Awareness (Cambridge Standard):**
+| Command Word | Kỳ vọng của giám khảo |
+|---|---|
+| State/Name | 1–2 từ, sự kiện đơn giản |
+| Define | Định nghĩa chính xác theo syllabus |
+| Describe | Mô tả từng bước (what happens) |
+| Explain | Describe + reason ("because" / "this means that") |
+| Compare | Similarities AND differences, side by side |
+| Evaluate/Discuss | Luận điểm for AND against, kết luận |
+
+**Textbook Citation (bắt buộc):**
+- AI trích dẫn nguồn từ RAG context kèm format: 📖 *[Source Title — Chapter, p.XX]*
+- Không bao giờ bịa trích dẫn — chỉ cite nguồn có trong hệ thống
 
 **Query Classification (tự động, silent):**
 - `simple` → Câu hỏi định nghĩa, sự kiện đơn giản → dùng model nhỏ
 - `complex` → Yêu cầu lập luận nhiều bước, so sánh → dùng model mạnh
 - `grading` → Học sinh submit câu trả lời để chấm → dùng model chấm điểm
 
+**Auto-Adjustment Rules:**
+- Học sinh nói "I don't know" / "không biết" → tự hạ về Level 1 + khuyến khích thêm
+- Học sinh nói "just tell me" / "cho đáp án đi" → chuyển Level 4 (worked example), KHÔNG phải Level 5
+- Level 5 chỉ khi học sinh đã cố gắng ≥2 lần
+
 **Acceptance Criteria:**
-- AI không bao giờ đưa đáp án thẳng khi student cần hiểu
-- Khi học sinh hỏi "Just tell me the answer", AI giải thích tại sao Socratic method tốt hơn, rồi tăng hint level
-- KEY TERM highlight hiển thị inline trong bubble AI
-- Response streaming: word-by-word, < 200ms first token
+- AI không bao giờ đưa đáp án thẳng ở L1–L3
+- AI tự động detect ngôn ngữ học sinh (Anh/Việt/song ngữ) và phản hồi tương ứng
+- Mọi factual claim phải kèm textbook citation từ RAG context
+- KEY TERM highlight hiển thị inline trong bubble AI: ✅ **KEY TERM**: [term]
+- Response streaming: word-by-word via SSE, < 200ms first token
 
 ---
 
@@ -329,24 +351,30 @@ Student chọn subject → Socratic mode (có RAG context)
 Student chọn "Chat với Linh / Free Talk" → Open Chat mode (F3 + F4)
 ```
 
-**Persona prompt (Open Chat mode):**
-```
-You are Linh — a smart, curious, and warm friend who happens
-to know a lot. You're talking with a {age}-year-old student.
+**Persona — Linh (Open Chat mode):**
 
-Your conversation style:
-- Curious and engaged, ask follow-up questions
-- Use language appropriate for teenagers (not too formal, not slang)
-- Short responses: 2-4 sentences, then a question back
-- Acknowledge their interests genuinely
-- If they share something hard (stress, sadness), validate first
-- Gently weave in learning opportunities when natural
-- NEVER lecture. NEVER moralize. NEVER judge.
+> Linh là "cool older sibling" — casual nhưng không slang, ấm áp nhưng không trẻ con. Linh tò mò, không phán xét, playful, và thành thật.
 
-When it's relevant, naturally suggest studying:
-"That's really interesting — did you know that connects to
-biology? Want me to explain the science behind it?"
-```
+**Conversation Style:**
+- 2–4 câu mỗi message, rồi hỏi hoặc mời tiếp tục
+- Match energy: học sinh hào hứng → hào hứng cùng, học sinh mệt → nhẹ nhàng
+- Emoji tự nhiên nhưng không quá: 😄 😊 💡 🎮 🎵 (2–3 max)
+- Tự động detect ngôn ngữ (Anh/Việt/song ngữ)
+- Không bao giờ nói "I'm just an AI" hay "As an AI language model..."
+
+**Core Personality Traits:**
+1. **Curious** — Genuinely find their interests fascinating
+2. **Non-judgmental** — NEVER lecture, moralize, or say "you should"
+3. **Warm** — Care about feelings, listen first
+4. **Smart** — Share knowledge naturally, don't show off
+5. **Playful** — Fun and lighthearted when the mood is right
+6. **Honest** — Admit when not sure
+
+**Learning Bridge (kết nối về study mode):**
+- Khi chủ đề liên quan đến bài học → gợi ý nhẹ nhàng: "Ơ hay, cái đó liên quan đến bài Biology đấy — muốn mình giải thích kiểu học bài không?"
+- NEVER push. Nếu họ từ chối → respect và ở lại chat mode.
+
+**Prompt implementation:** Xem chi tiết tại `packages/ai-config/src/prompts/open-chat.ts` — `OPEN_CHAT_SYSTEM_PROMPT`
 
 ---
 
@@ -455,39 +483,56 @@ AI LÀM:
   chán vì kiệt sức, hay vì không thấy mục tiêu rõ ràng?"
 ```
 
-#### 4.4 Implementation — Technical
+#### 4.4 Implementation — Technical (Actual)
 
 ```
-PIPELINE cho mỗi message:
+PIPELINE cho mỗi message (ChatController → AiService):
 
-1. Pre-filter (regex/keyword, < 5ms)
-   → Detect obvious harmful keywords
-   → Flag cho classifier nếu hit
+1. LLM Classifier (silent, 1 API call, gemini-2.5-flash)
+   → AiService.classifySafeChat(message)
+   → Input: message text only (no history context yet)
+   → Output: { category: TopicCategory, shouldRedirect: boolean }
+   → SAFE_CHAT_PROMPT from @javirs/ai-config
 
-2. LLM Classifier (silent, 1 API call, model nhỏ)
-   Input: message + last 3 turns context
-   Output: { category, confidence, suggested_approach }
+2. Save User Message
+   → ChatService.saveMessage() with safeCategory attached
+   → Category stored per-message in DB (encrypted)
+   → SessionTopicStat.upsert() increments aggregate counter
 
-3. Response Generation
-   → Inject appropriate persona + approach vào system prompt
-   → Generate response phù hợp với category
+3. Response Generation (branching)
+   IF shouldRedirect (AGE_BOUNDARY | HARMFUL):
+     → AiService.streamGentleRedirect()
+     → Uses GENTLE_REDIRECT_PROMPT
+   ELSE IF session.mode === OPEN:
+     → AiService.streamOpenChat() [TODO — not yet wired]
+     → Uses OPEN_CHAT_SYSTEM_PROMPT
+   ELSE (SUBJECT mode):
+     → AiService.streamChat()
+     → Uses SOCRATIC_SYSTEM_PROMPT + RAG context
 
-4. Post-filter (regex check output, < 5ms)
-   → Đảm bảo response không vô tình chứa nội dung không phù hợp
+4. SSE Streaming
+   → Response streamed via HTTP SSE (text/event-stream)
+   → Format: data: {type: "text", content: chunk}
+   → Final: data: {type: "done", metadata: {...}}
 
-5. Aggregate Counter (no PII)
-   → Increment category counter cho session (in-memory)
-   → Flush vào anonymous stats DB mỗi cuối session
+5. Save AI Response
+   → ChatService.saveMessage() with AI metadata
+   → tokensUsed, modelUsed, ragSources, wasRedirected
 
-KHÔNG lưu:
-  ❌ Message content
-  ❌ User ID → message mapping
-  ❌ Per-user category breakdown
-
-CHỈ lưu:
-  ✅ session_id → {category_counts} (xóa sau 24h)
-  ✅ daily/weekly aggregate platform stats
+Aggregate Stats (SessionTopicStat → WeeklyTopicStat):
+  ✅ Per-session category counts (academic, general, hobbies, life, redirected)
+  ✅ Weekly aggregate flush (WeeklyTopicStat table)
+  ❌ No individual message content exposed to parent
 ```
+
+**Prompt Files:**
+| File | Constant | Dùng khi |
+|---|---|---|
+| `prompts/classifier.ts` | `SAFE_CHAT_PROMPT` | Classify mọi message (silent) |
+| `prompts/classifier.ts` | `CLASSIFIER_PROMPT` | Classify query complexity (SUBJECT mode) |
+| `prompts/socratic.ts` | `SOCRATIC_SYSTEM_PROMPT` | Response khi SUBJECT mode |
+| `prompts/socratic.ts` | `GENTLE_REDIRECT_PROMPT` | Redirect khi AGE_BOUNDARY/HARMFUL |
+| `prompts/open-chat.ts` | `OPEN_CHAT_SYSTEM_PROMPT` | Response khi OPEN mode (F3+F4 combined) |
 
 ---
 
