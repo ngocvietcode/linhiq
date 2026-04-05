@@ -1,0 +1,375 @@
+// ══════════════════════════════════════
+// LinhIQ — Prisma Schema v2.0
+// ══════════════════════════════════════
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [vector]
+}
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+enum Role {
+  STUDENT
+  PARENT
+  ADMIN
+}
+
+enum Curriculum {
+  IGCSE
+  A_LEVEL
+  THPT_VN
+  IB
+  AP
+}
+
+enum SourceType {
+  TEXTBOOK
+  MARK_SCHEME
+  PAST_PAPER
+  SYLLABUS
+}
+
+enum HintLevel {
+  L1 // Nudge
+  L2 // Structure
+  L3 // Near-answer
+}
+
+enum ChatMode {
+  SUBJECT // Socratic + RAG
+  OPEN // Open Chat (F3)
+}
+
+enum TopicCategory {
+  ACADEMIC
+  GENERAL
+  HOBBIES
+  LIFE
+  EMOTIONAL
+  MATURE_SOFT
+  AGE_BOUNDARY
+  HARMFUL
+}
+
+// ── USERS & AUTH ─────────────────────────────
+
+model User {
+  id           String  @id @default(cuid())
+  email        String  @unique
+  passwordHash String?
+  name         String
+  avatarUrl    String?
+  role         Role    @default(STUDENT)
+  isActive     Boolean @default(true)
+
+  // Student profile
+  studentProfile StudentProfile?
+  // Parent relationship
+  parentLinks    ParentChild[]   @relation("ParentLinks")
+  childLinks     ParentChild[]   @relation("ChildLinks")
+
+  chatSessions   ChatSession[]
+  keyTermsEarned KeyTermEarned[]
+  studySessions  StudySession[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email])
+  @@index([role])
+}
+
+model StudentProfile {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  curriculum  Curriculum @default(IGCSE)
+  timezone    String     @default("Asia/Ho_Chi_Minh")
+  studyGoal   Int        @default(60) // minutes/day target
+  streakDays  Int        @default(0)
+  lastStudyAt DateTime?
+
+  enrollments SubjectEnrollment[]
+  diagnostics DiagnosticResult[]
+
+  updatedAt DateTime @updatedAt
+}
+
+model ParentChild {
+  id       String   @id @default(cuid())
+  parentId String
+  childId  String
+  parent   User     @relation("ParentLinks", fields: [parentId], references: [id])
+  child    User     @relation("ChildLinks", fields: [childId], references: [id])
+  linkedAt DateTime @default(now())
+
+  @@unique([parentId, childId])
+}
+
+// ── CURRICULUM & SUBJECTS ──────────────────────
+
+model Subject {
+  id          String     @id @default(cuid())
+  name        String // "Biology", "Mathematics"
+  nameVi      String? // "Sinh học", "Toán học"
+  curriculum  Curriculum
+  description String?
+  iconEmoji   String     @default("📚")
+  isActive    Boolean    @default(true)
+  orderIndex  Int        @default(0)
+
+  topics       Topic[]
+  documents    Document[]
+  enrollments  SubjectEnrollment[]
+  chatSessions ChatSession[]
+
+  @@unique([name, curriculum])
+  @@index([curriculum])
+}
+
+model Topic {
+  id          String  @id @default(cuid())
+  subjectId   String
+  subject     Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  name        String
+  nameVi      String?
+  chapter     String?
+  orderIndex  Int     @default(0)
+  description String?
+
+  chunks      DocumentChunk[]
+  progress    TopicProgress[]
+  diagnostics DiagnosticQuestion[]
+
+  @@unique([subjectId, name])
+  @@index([subjectId])
+}
+
+model SubjectEnrollment {
+  id         String         @id @default(cuid())
+  profileId  String
+  profile    StudentProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  subjectId  String
+  subject    Subject        @relation(fields: [subjectId], references: [id])
+  enrolledAt DateTime       @default(now())
+
+  @@unique([profileId, subjectId])
+}
+
+// ── RAG KNOWLEDGE BASE ─────────────────────────
+
+model Document {
+  id          String     @id @default(cuid())
+  subjectId   String
+  subject     Subject    @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  title       String
+  sourceType  SourceType
+  filePath    String?
+  fileSize    Int? // bytes
+  pageCount   Int?
+  isProcessed Boolean    @default(false)
+  processedAt DateTime?
+
+  chunks DocumentChunk[]
+
+  createdAt DateTime @default(now())
+
+  @@index([subjectId])
+  @@index([isProcessed])
+}
+
+model DocumentChunk {
+  id         String                       @id @default(cuid())
+  documentId String
+  document   Document                     @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  topicId    String?
+  topic      Topic?                       @relation(fields: [topicId], references: [id])
+  content    String                       @db.Text
+  keywords   String[] // extracted key terms
+  chunkIndex Int
+  metadata   Json? // { page, section, chapter }
+  embedding  Unsupported("vector(3072)")?
+
+  createdAt DateTime @default(now())
+
+  @@index([documentId])
+  @@index([topicId])
+}
+
+// ── CHAT ──────────────────────────────────────
+
+model ChatSession {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subjectId String? // null for Open Chat mode
+  subject   Subject?  @relation(fields: [subjectId], references: [id])
+  mode      ChatMode  @default(SUBJECT)
+  title     String?
+  hintLevel HintLevel @default(L1)
+
+  messages   ChatMessage[]
+  topicStats SessionTopicStat?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  endedAt   DateTime?
+
+  @@index([userId])
+  @@index([subjectId])
+  @@index([createdAt])
+}
+
+model ChatMessage {
+  id         String      @id @default(cuid())
+  sessionId  String
+  session    ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  role       String // "user" | "assistant"
+  content    String      @db.Text
+  imageUrl   String? // for photo uploads
+  hintLevel  HintLevel? // hint level at time of message
+  tokensUsed Int?
+  modelUsed  String?
+  ragSources String[] // chunk IDs used
+
+  // Safe Chat (NOT logged to parent — only aggregate stats)
+  safeCategory  TopicCategory? // silent classification, not exposed in API
+  wasRedirected Boolean        @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@index([sessionId])
+  @@index([createdAt])
+}
+
+// ── PROGRESS & LEARNING ────────────────────────
+
+model StudySession {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subjectId   String?
+  durationMin Int // minutes studied
+  date        DateTime @default(now())
+
+  @@index([userId])
+  @@index([date])
+}
+
+model TopicProgress {
+  id             String    @id @default(cuid())
+  userId         String
+  topicId        String
+  topic          Topic     @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  masteryLevel   Float     @default(0) // 0.0–1.0
+  questionsAsked Int       @default(0)
+  correctAnswers Int       @default(0)
+  lastStudiedAt  DateTime?
+
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, topicId])
+  @@index([userId])
+}
+
+model KeyTermEarned {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  term      String
+  subjectId String
+  earnedAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([subjectId])
+}
+
+// ── DIAGNOSTICS ────────────────────────────────
+
+model DiagnosticQuestion {
+  id          String  @id @default(cuid())
+  topicId     String
+  topic       Topic   @relation(fields: [topicId], references: [id])
+  question    String  @db.Text
+  options     Json // ["A", "B", "C", "D"]
+  correct     Int // 0-indexed correct option
+  explanation String? @db.Text
+
+  results DiagnosticResult[]
+}
+
+model DiagnosticResult {
+  id          String             @id @default(cuid())
+  profileId   String
+  profile     StudentProfile     @relation(fields: [profileId], references: [id])
+  questionId  String
+  question    DiagnosticQuestion @relation(fields: [questionId], references: [id])
+  answeredIdx Int
+  isCorrect   Boolean
+
+  createdAt DateTime @default(now())
+}
+
+// ── ANONYMOUS ANALYTICS (F8) ───────────────────
+
+model WeeklyTopicStat {
+  id         String   @id @default(cuid())
+  userId     String // joined to parent account, never exposed individually
+  weekStart  DateTime
+  academic   Int      @default(0)
+  general    Int      @default(0)
+  hobbies    Int      @default(0)
+  life       Int      @default(0)
+  // harmful/age_boundary are NOT stored, only redirected count
+  redirected Int      @default(0)
+  totalMsg   Int      @default(0)
+
+  @@unique([userId, weekStart])
+  @@index([weekStart])
+}
+
+// Used for per-session running tally before flush
+model SessionTopicStat {
+  id         String      @id @default(cuid())
+  sessionId  String      @unique
+  session    ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  academic   Int         @default(0)
+  general    Int         @default(0)
+  hobbies    Int         @default(0)
+  life       Int         @default(0)
+  redirected Int         @default(0)
+  totalMsg   Int         @default(0)
+}
+
+// ── SYSTEM & ADMIN ──────────────────────────────
+
+model SystemSetting {
+  id                String  @id @default("global")
+  defaultAiProvider String  @default("gemini")
+  rateLimitFree     Int     @default(10) // questions/day
+  rateLimitPro      Int     @default(999)
+  maintenanceMode   Boolean @default(false)
+  onboardingEnabled Boolean @default(true)
+  safeChatEnabled   Boolean @default(true)
+  safeChatModel     String  @default("gemini-2.5-flash")
+
+  updatedAt DateTime @updatedAt
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  adminId   String
+  action    String
+  target    String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([adminId])
+  @@index([createdAt])
+}

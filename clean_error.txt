@@ -1,0 +1,23 @@
+
+Invalid `this.db.chatMessage.create()` invocation in
+D:\Projects\Javirs\apps\api\dist\main.js:1218:51
+
+  1215     });
+  1216 }
+  1217 async saveMessage(sessionId, role, content, metadata) {
+ΓåÆ 1218     const message = await this.db.chatMessage.create({
+             data: {
+               sessionId: "cmnlb11ga0001lai8aumat7t7",
+               role: "user",
+               content: "hello",
+               hintLevel: undefined,
+               tokensUsed: undefined,
+               modelUsed: undefined,
+               ragSources: undefined,
+               safeCategory: "",
+                             ~~
+               wasRedirected: undefined
+             }
+           })
+
+Invalid value for argument `safeCategory`. Expected TopicCategory.

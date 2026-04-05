@@ -1,0 +1,4 @@
+{
+  "status": 201,
+  "body": "data: {\"type\":\"text\",\"content\":\"That's a great question to start with! This topic isn't in my current materials, so please verify with your textbook.\\n\\nTo begin, what comes to mind when you hear the word \\\"\"}\n\ndata: {\"type\":\"text\",\"content\":\"osmosis,\\\" or perhaps its close relative, \\\"diffusion\\\"? What do you think might be moving?\"}\n\ndata: {\"type\":\"done\",\"metadata\":{\"provider\":\"gemini\",\"complexity\":\"simple\",\"ragSources\":[]}}\n\n"
+}
