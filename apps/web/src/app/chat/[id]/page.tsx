@@ -5,6 +5,8 @@ import { useRouter, useParams } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { AuthProvider } from "@/lib/auth-context";
 import { api } from "@/lib/api";
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface Message {
   id: string;
@@ -155,26 +157,32 @@ function ChatContent() {
       </div>
     );
   }
+  const isOpenMode = session.mode === 'OPEN';
+  const chatAvatar = isOpenMode ? '💬' : (session.subject?.iconEmoji || '📚');
+  const chatTitle = isOpenMode ? 'Chat với Linh' : (session.title || session.subject?.name || 'Study');
+  const chatSubtitle = isOpenMode ? 'LinhIQ — Open Chat' : (session.subject?.curriculum || 'Cambridge');
 
   return (
     <div className="min-h-screen bg-bg-primary flex flex-col">
       {/* Header */}
-      <header className="border-b border-border px-4 py-3 flex items-center justify-between flex-shrink-0">
-        <div className="flex items-center gap-3">
+      <header className="border-b border-border px-3 sm:px-4 py-3 flex items-center justify-between flex-shrink-0 bg-bg-primary/80 backdrop-blur-sm sticky top-0 z-10">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <button
             onClick={() => router.push("/dashboard")}
-            className="text-text-muted hover:text-text-primary transition-colors"
+            className="text-text-muted hover:text-text-primary transition-colors flex-shrink-0"
           >
-            ← Back
+            ←
           </button>
-          <div className="h-5 w-px bg-border" />
-          <span className="text-lg">{session.subject?.iconEmoji || "💬"}</span>
-          <div>
-            <h1 className="text-sm font-medium">
-              {session.title || session.subject?.name || "Open Chat"}
+          <div className="h-5 w-px bg-border flex-shrink-0" />
+          <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center text-lg flex-shrink-0">
+            {chatAvatar}
+          </div>
+          <div className="min-w-0">
+            <h1 className="text-sm font-medium truncate">
+              {chatTitle}
             </h1>
-            <p className="text-xs text-text-muted">
-              {session.subject?.curriculum || "LinhIQ AI"}
+            <p className="text-xs text-text-muted truncate">
+              {chatSubtitle}
             </p>
           </div>
         </div>
@@ -208,126 +216,148 @@ function ChatContent() {
       </header>
 
       {/* Messages */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
-        {messages.length === 0 && !streamingText && (
-          <div className="text-center py-16">
-            {session.mode === 'OPEN' ? (
-              /* ── Open Chat Welcome ── */
-              <>
-                <span className="text-5xl">💬</span>
-                <h2 className="text-xl font-medium mt-4">Chat với Linh</h2>
-                <p className="text-text-secondary mt-2 max-w-md mx-auto">
-                  Hey! Mình là Linh — bạn có thể nói chuyện với mình về bất cứ điều gì.
-                  Học tập, cuộc sống, sở thích, hay chỉ cần ai đó lắng nghe 😊
-                </p>
-                <div className="flex flex-wrap gap-2 justify-center mt-6">
-                  {[
-                    "Hôm nay mình mệt quá 😮‍💨",
-                    "Giới thiệu cho mình một cuốn sách hay",
-                    "Mình không biết nên chọn ngành gì",
-                    "Let's talk about gaming 🎮",
-                  ].map((q) => (
-                    <button
-                      key={q}
-                      onClick={() => { setInput(q); inputRef.current?.focus(); }}
-                      className="text-sm bg-bg-card border border-border px-3 py-1.5 rounded-full
-                                 text-text-secondary hover:text-text-primary hover:border-accent
-                                 transition-all"
-                    >
-                      {q}
-                    </button>
-                  ))}
-                </div>
-              </>
-            ) : (
-              /* ── Subject Study Welcome ── */
-              <>
-                <span className="text-4xl">{session.subject?.iconEmoji || "📚"}</span>
-                <h2 className="text-xl font-medium mt-4">
-                  {session.subject?.name || "Study"} — {session.subject?.curriculum || "Cambridge"}
-                </h2>
-                <p className="text-text-secondary mt-2 max-w-md mx-auto">
-                  Ask me anything! I&apos;ll guide you with Socratic questions
-                  instead of giving direct answers.
-                </p>
-                <div className="flex flex-wrap gap-2 justify-center mt-6">
-                  {[
-                    "What is osmosis?",
-                    "Explain photosynthesis",
-                    "Compare mitosis and meiosis",
-                  ].map((q) => (
-                    <button
-                      key={q}
-                      onClick={() => { setInput(q); inputRef.current?.focus(); }}
-                      className="text-sm bg-bg-card border border-border px-3 py-1.5 rounded-full
-                                 text-text-secondary hover:text-text-primary hover:border-accent
-                                 transition-all"
-                    >
-                      {q}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-        )}
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-6">
+        <div className="max-w-3xl mx-auto space-y-5 w-full pb-8">
+          {messages.length === 0 && !streamingText && (
+            <div className="text-center py-16">
+              {session.mode === 'OPEN' ? (
+                /* ── Open Chat Welcome ── */
+                <>
+                  <span className="text-5xl">💬</span>
+                  <h2 className="text-xl font-medium mt-4">Chat với Linh</h2>
+                  <p className="text-text-secondary mt-2 max-w-md mx-auto">
+                    Hey! Mình là Linh — bạn có thể nói chuyện với mình về bất cứ điều gì.
+                    Học tập, cuộc sống, sở thích, hay chỉ cần ai đó lắng nghe 😊
+                  </p>
+                  <div className="flex flex-wrap gap-2 justify-center mt-6">
+                    {[
+                      "Hôm nay mình mệt quá 😮‍💨",
+                      "Giới thiệu cho mình một cuốn sách hay",
+                      "Mình không biết nên chọn ngành gì",
+                      "Let's talk about gaming 🎮",
+                    ].map((q) => (
+                      <button
+                        key={q}
+                        onClick={() => { setInput(q); inputRef.current?.focus(); }}
+                        className="text-sm bg-bg-card border border-border px-3 py-1.5 rounded-full
+                                   text-text-secondary hover:text-text-primary hover:border-accent
+                                   transition-all"
+                      >
+                        {q}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                /* ── Subject Study Welcome ── */
+                <>
+                  <span className="text-4xl">{session.subject?.iconEmoji || "📚"}</span>
+                  <h2 className="text-xl font-medium mt-4">
+                    {session.subject?.name || "Study"} — {session.subject?.curriculum || "Cambridge"}
+                  </h2>
+                  <p className="text-text-secondary mt-2 max-w-md mx-auto">
+                    Ask me anything! I&apos;ll guide you with Socratic questions
+                    instead of giving direct answers.
+                  </p>
+                  <div className="flex flex-wrap gap-2 justify-center mt-6">
+                    {[
+                      "What is osmosis?",
+                      "Explain photosynthesis",
+                      "Compare mitosis and meiosis",
+                    ].map((q) => (
+                      <button
+                        key={q}
+                        onClick={() => { setInput(q); inputRef.current?.focus(); }}
+                        className="text-sm bg-bg-card border border-border px-3 py-1.5 rounded-full
+                                   text-text-secondary hover:text-text-primary hover:border-accent
+                                   transition-all"
+                      >
+                        {q}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
 
-        {messages.map((msg) => (
-          <div
-            key={msg.id}
-            className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-          >
+          {messages.map((msg) => (
             <div
-              className={`max-w-[75%] rounded-2xl px-4 py-3 whitespace-pre-wrap text-sm leading-relaxed
-                ${msg.role === "user"
-                  ? "bg-accent text-white rounded-br-md"
-                  : "bg-bg-card border border-border text-text-primary rounded-bl-md"
-                }`}
+              key={msg.id}
+              className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
             >
-              {msg.content}
-            </div>
-          </div>
-        ))}
-
-        {/* Streaming indicator */}
-        {streamingText && (
-          <div className="flex justify-start">
-            <div className="max-w-[75%] bg-bg-card border border-border rounded-2xl rounded-bl-md px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap">
-              {streamingText}
-              <span className="inline-block w-1.5 h-4 bg-accent animate-pulse ml-0.5 -mb-0.5 rounded-sm" />
-            </div>
-          </div>
-        )}
-
-        {isStreaming && !streamingText && (
-          <div className="flex justify-start">
-            <div className="bg-bg-card border border-border rounded-2xl rounded-bl-md px-4 py-3">
-              <div className="flex gap-1">
-                <div className="w-2 h-2 bg-text-muted rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                <div className="w-2 h-2 bg-text-muted rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                <div className="w-2 h-2 bg-text-muted rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+              {msg.role === "assistant" && (
+                <div className="w-8 h-8 rounded-xl bg-accent/15 flex items-center justify-center flex-shrink-0 mt-1 shadow-sm">
+                  {isOpenMode ? '😊' : chatAvatar}
+                </div>
+              )}
+              <div
+                className={`max-w-[85%] sm:max-w-[75%] rounded-2xl px-5 py-3.5 text-[15px] leading-relaxed
+                  ${msg.role === "user"
+                    ? "bg-accent text-white rounded-tr-sm shadow-md shadow-accent/10 whitespace-pre-wrap"
+                    : "bg-bg-card border border-border/60 text-text-primary rounded-tl-sm shadow-sm prose prose-invert prose-p:leading-relaxed prose-pre:bg-bg-elevated prose-pre:border prose-pre:border-border max-w-none"
+                  }`}
+              >
+                {msg.role === "user" ? (
+                  msg.content
+                ) : (
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {msg.content}
+                  </ReactMarkdown>
+                )}
               </div>
             </div>
-          </div>
-        )}
+          ))}
+
+          {/* Streaming indicator */}
+          {streamingText && (
+            <div className="flex gap-3 justify-start">
+              <div className="w-8 h-8 rounded-xl bg-accent/15 flex items-center justify-center flex-shrink-0 mt-1 shadow-sm">
+                {isOpenMode ? '😊' : chatAvatar}
+              </div>
+              <div className="max-w-[85%] sm:max-w-[75%] bg-bg-card border border-border/60 rounded-2xl rounded-tl-sm px-5 py-3.5 text-[15px] leading-relaxed shadow-sm prose prose-invert prose-p:leading-relaxed prose-pre:bg-bg-elevated max-w-none">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {streamingText}
+                </ReactMarkdown>
+                <span className="inline-block w-1.5 h-4 bg-accent animate-pulse ml-1 -mb-0.5 rounded-sm" />
+              </div>
+            </div>
+          )}
+
+          {isStreaming && !streamingText && (
+            <div className="flex gap-3 justify-start">
+              <div className="w-8 h-8 rounded-xl bg-accent/15 flex items-center justify-center flex-shrink-0 mt-1 shadow-sm">
+                {isOpenMode ? '😊' : chatAvatar}
+              </div>
+              <div className="bg-bg-card border border-border/60 rounded-2xl rounded-tl-sm px-5 py-3.5 shadow-sm">
+                <div className="flex gap-1.5 items-center">
+                  <div className="w-2 h-2 bg-accent/60 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                  <div className="w-2 h-2 bg-accent/60 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                  <div className="w-2 h-2 bg-accent/60 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                  <span className="text-xs text-text-muted ml-2 font-medium">{isOpenMode ? 'Linh đang gõ...' : 'LinhIQ is typing...'}</span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Input */}
-      <div className="border-t border-border p-4 flex-shrink-0">
+      <div className="border-t border-border p-3 sm:p-4 flex-shrink-0 bg-bg-primary/80 backdrop-blur-sm">
         <div className="max-w-3xl mx-auto flex gap-2 items-end">
           <textarea
             ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask your question..."
+            placeholder={isOpenMode ? "Nói gì với Linh đi..." : "Hỏi bài tập của bạn..."}
             disabled={isStreaming}
             rows={1}
             className="flex-1 px-4 py-3 bg-bg-card border border-border rounded-xl
                        text-text-primary placeholder:text-text-muted resize-none
-                       focus:border-accent focus:ring-1 focus:ring-accent
-                       disabled:opacity-50 transition-colors
-                       min-h-[48px] max-h-[120px]"
+                       focus:border-accent focus:ring-1 focus:ring-accent/50
+                       disabled:opacity-50 transition-all
+                       min-h-[48px] max-h-[120px] text-sm"
             style={{ height: "auto" }}
             onInput={(e) => {
               const target = e.target as HTMLTextAreaElement;
@@ -338,9 +368,10 @@ function ChatContent() {
           <button
             onClick={sendMessage}
             disabled={!input.trim() || isStreaming}
-            className="px-4 py-3 bg-accent hover:bg-accent-hover text-white rounded-xl
-                       transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed
-                       active:scale-95 flex-shrink-0"
+            className="p-3 bg-accent hover:bg-indigo-500 text-white rounded-xl
+                       transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed
+                       active:scale-95 flex-shrink-0 shadow-lg shadow-accent/20
+                       hover:shadow-accent/30"
           >
             <svg
               className="w-5 h-5"

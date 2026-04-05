@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
 
 /* ═══════════════════════════════════════════
    LinhIQ Design System v2 — Calm Studio

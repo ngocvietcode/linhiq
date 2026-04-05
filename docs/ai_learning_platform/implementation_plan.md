@@ -184,9 +184,9 @@ ACADEMIC | GENERAL | HOBBIES | LIFE | EMOTIONAL | MATURE_SOFT | AGE_BOUNDARY | H
 - [x] Hint level selector expanded to L1–L5 with tooltips
 - [x] Study mode vs Open Chat welcome screens separated
 - [x] Dashboard: Open Chat hero card with gradient
-- [ ] Chat UI redesign (dark mode polish, mobile responsive)
+- [x] Chat UI redesign (Markdown rendering, avatars, mobile max-width, placeholder logic)
 - [ ] Dashboard: progress visualization
-- [ ] Mobile-first responsive adjustments
+- [ ] Mobile-first responsive adjustments (Navigation/Layout)
 
 ### Phase 5: Advanced Features ⬜ FUTURE
 - [ ] Photo Scanner (F5) — Vision AI integration
