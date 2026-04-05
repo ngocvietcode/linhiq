@@ -127,6 +127,7 @@ model Subject {
   orderIndex  Int        @default(0)
 
   topics       Topic[]
+  milestones   Milestone[]
   documents    Document[]
   enrollments  SubjectEnrollment[]
   chatSessions ChatSession[]
@@ -135,14 +136,29 @@ model Subject {
   @@index([curriculum])
 }
 
-model Topic {
-  id          String  @id @default(cuid())
+model Milestone {
+  id          String   @id @default(cuid())
   subjectId   String
-  subject     Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  subject     Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  name        String
+  orderIndex  Int      @default(0)
+  description String?
+
+  topics      Topic[]
+
+  @@unique([subjectId, name])
+  @@index([subjectId])
+}
+
+model Topic {
+  id          String     @id @default(cuid())
+  subjectId   String
+  subject     Subject    @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  milestoneId String?
+  milestone   Milestone? @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
   name        String
   nameVi      String?
-  chapter     String?
-  orderIndex  Int     @default(0)
+  orderIndex  Int        @default(0)
   description String?
 
   chunks      DocumentChunk[]
@@ -151,6 +167,7 @@ model Topic {
 
   @@unique([subjectId, name])
   @@index([subjectId])
+  @@index([milestoneId])
 }
 
 model SubjectEnrollment {

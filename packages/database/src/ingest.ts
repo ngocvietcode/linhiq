@@ -3,8 +3,9 @@ import { Pool } from 'pg';
 import { resolve, basename } from 'path';
 import * as dotenv from 'dotenv';
 import * as fs from 'fs/promises';
-import { embed, generateText } from 'ai';
+import { embed, generateText, generateObject } from 'ai';
 import { google } from '@ai-sdk/google';
+import { z } from 'zod';
 
 // Load environment variables
 dotenv.config({ path: resolve(__dirname, '../../../.env') });
@@ -13,7 +14,6 @@ if (process.env.GEMINI_API_KEY) {
 }
 const prisma = new PrismaClient();
 
-// Word-count proxy chunking (800 token approx -> 600 words)
 const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
 
 function chunkText(text: string, maxWords: number = 600, overlapWords: number = 100): string[] {
@@ -28,30 +28,6 @@ function chunkText(text: string, maxWords: number = 600, overlapWords: number = 
     i += maxWords - overlapWords;
   }
   return chunks;
-}
-
-// Markdown Header Splitter
-function splitMarkdown(markdownText: string): { chapter: string, content: string }[] {
-    const lines = markdownText.split('\n');
-    const sections: { chapter: string, content: string }[] = [];
-    let currentChapter = 'General';
-    let currentContent: string[] = [];
-    
-    for (const line of lines) {
-        if (line.trim().startsWith('## ')) {
-            if (currentContent.length > 0) {
-                sections.push({ chapter: currentChapter, content: currentContent.join('\n').trim() });
-            }
-            currentChapter = line.replace('## ', '').trim();
-            currentContent = [line];
-        } else {
-            currentContent.push(line);
-        }
-    }
-    if (currentContent.length > 0) {
-        sections.push({ chapter: currentChapter, content: currentContent.join('\n').trim() });
-    }
-    return sections;
 }
 
 // Extract keywords for fallback ILIKE search
@@ -106,8 +82,38 @@ function formatVector(values: number[]): string {
   return `[${values.join(',')}]`;
 }
 
+// --- NEW AI PARSING LOGIC ---
+
+const roadmapSchema = z.object({
+  milestones: z.array(z.object({
+    name: z.string().describe('Tên chương/mốc lớn đã được làm sạch để hiện UI'),
+    topics: z.array(z.object({
+      name: z.string().describe('Tên bài học con đã làm sạch'),
+      originalHeading: z.string().describe('Ghi lại chính xác 100% dòng heading nguyên bản trong Markdown (ví dụ: "# Characteristics of ...") để làm marker ghép nối data.')
+    }))
+  }))
+});
+
+type RoadmapType = z.infer<typeof roadmapSchema>;
+
+async function extractRoadmapFromAI(markdownText: string): Promise<RoadmapType> {
+  const lines = markdownText.split('\n');
+  const headings = lines.filter(line => line.trim().startsWith('#'));
+  const headingsText = headings.join('\n');
+
+  console.log('🤖 Sending Table of Contents to Gemini to infer curriculum structure...');
+  const { object } = await generateObject({
+    model: google('gemini-2.5-flash'),
+    schema: roadmapSchema,
+    prompt: `Dưới đây là danh sách các thẻ heading trích xuất từ sách giáo khoa. Hãy dùng kiến thức của bạn để phân tích và nhóm chúng thành các Mốc Lớn (Milestones/Chapters) và các Bài Học (Topics) nằm bên trong.\nLưu ý: Không phải thẻ nào cũng là Milestone, hãy gom cẩn thận.\n\n${headingsText}`
+  });
+  return object;
+}
+
+// --- MAIN INGESTION ---
+
 async function main() {
-  console.log('📚 Starting fully-automated RAG Ingestion Pipeline...\n');
+  console.log('📚 Starting fully-automated AI-Roadmap RAG Ingestion Pipeline...\n');
 
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });
   await pool.query('CREATE EXTENSION IF NOT EXISTS vector');
@@ -115,18 +121,13 @@ async function main() {
   const bioSubject = await prisma.subject.findFirst({ where: { name: 'Biology' } });
   if (!bioSubject) throw new Error('Biology subject not found.');
 
-  console.log('🧹 Purging previous TEXTBOOK documents for Biology to prepare overwrite...');
-  await prisma.document.deleteMany({
-    where: { subjectId: bioSubject.id, sourceType: SourceType.TEXTBOOK }
-  });
-
   const rawDir = resolve(__dirname, '../../../apps/data/curriculum/igcse/biology/textbook');
   let mdFiles: string[] = [];
   try {
     const files = await fs.readdir(rawDir);
     mdFiles = files.filter(f => f.endsWith('.md'));
   } catch (err) {
-     console.log(`No textbook directory found at ${rawDir}. Exiting.`, err);
+     console.log(`No textbook directory found at ${rawDir}. Exiting.`);
      process.exit(0);
   }
 
@@ -136,6 +137,46 @@ async function main() {
     const filepath = resolve(rawDir, filename);
     const textContent = await fs.readFile(filepath, 'utf-8');
     
+    // 1. Dùng AI phân tích mục lục
+    const roadmap = await extractRoadmapFromAI(textContent);
+    console.log(`✅ Extracted Roadmap: ${roadmap.milestones.length} Milestones found.`);
+
+    // 2. Ghi Milestones & Topics xuống Database
+    let globalMilestoneCounter = 1;
+    let globalTopicCounter = 1;
+
+    // Để mapping từ originalHeading -> topicId trong lúc cắt text
+    const headingToTopicIdMap = new Map<string, string>();
+
+    for (const ms of roadmap.milestones) {
+      const milestone = await prisma.milestone.upsert({
+        where: { subjectId_name: { subjectId: bioSubject.id, name: ms.name } },
+        update: { orderIndex: globalMilestoneCounter },
+        create: { subjectId: bioSubject.id, name: ms.name, orderIndex: globalMilestoneCounter }
+      });
+      globalMilestoneCounter++;
+
+      for (const t of ms.topics) {
+        const topic = await prisma.topic.upsert({
+          where: { subjectId_name: { subjectId: bioSubject.id, name: t.name } },
+          update: { milestoneId: milestone.id, orderIndex: globalTopicCounter },
+          create: { 
+            subjectId: bioSubject.id, 
+            milestoneId: milestone.id,
+            name: t.name, 
+            orderIndex: globalTopicCounter 
+          }
+        });
+        headingToTopicIdMap.set(t.originalHeading.trim(), topic.id);
+        globalTopicCounter++;
+      }
+    }
+
+    // Xoá document cũ
+    await prisma.document.deleteMany({
+      where: { subjectId: bioSubject.id, sourceType: SourceType.TEXTBOOK, title: basename(filename, '.md') }
+    });
+
     const document = await prisma.document.create({
       data: {
         subjectId: bioSubject.id,
@@ -144,27 +185,43 @@ async function main() {
       }
     });
 
-    const sections = splitMarkdown(textContent);
-    console.log(`\n📄 Processing file: ${filename} (${sections.length} headings found)`);
+    // 3. Quét Markdown theo từng dòng để gộp text theo Topic
+    const sections: { topicId: string | null, content: string }[] = [];
+    let currentTopicId: string | null = null;
+    let currentContent: string[] = [];
+
+    const lines = textContent.split('\n');
+    for (const line of lines) {
+      const trimmedLine = line.trim();
+      const matchedTopicId = headingToTopicIdMap.get(trimmedLine);
+      
+      if (matchedTopicId) {
+        if (currentContent.length > 0) {
+          sections.push({ topicId: currentTopicId, content: currentContent.join('\n').trim() });
+        }
+        currentTopicId = matchedTopicId;
+        currentContent = [line];
+      } else {
+        currentContent.push(line);
+      }
+    }
+    if (currentContent.length > 0) {
+      sections.push({ topicId: currentTopicId, content: currentContent.join('\n').trim() });
+    }
+
+    console.log(`\n📄 Processing file: ${filename} (${sections.length} content chunks mapped)`);
 
     for (const section of sections) {
       if (section.content.trim().length === 0) continue;
-
-      const topicMatch = await prisma.topic.findFirst({
-         where: { subjectId: bioSubject.id, name: { contains: section.chapter.replace(/^[0-9.]+\s*/, ''), mode: 'insensitive' } }
-      });
       
       const textChunks = chunkText(section.content);
       
       for (let i = 0; i < textChunks.length; i++) {
         const chunkContent = textChunks[i];
+        console.log(`  ⚙️ Processing Topic [${section.topicId || 'Intro'}] Part ${i+1}/${textChunks.length}`);
         
-        console.log(`  ⚙️ Processing Chunk [${section.chapter}] Part ${i+1}/${textChunks.length}`);
-        
-        // Optional slight delay between chunks to help smooth out rate limits
         await delay(500);
 
-        // Concurrent AI calls to speed up ingestion
         const [keywords, vector] = await Promise.all([
            extractKeywords(chunkContent),
            generateEmbedding(chunkContent)
@@ -175,11 +232,11 @@ async function main() {
         const chunk = await prisma.documentChunk.create({
           data: {
             documentId: document.id,
-            topicId: topicMatch?.id,
+            topicId: section.topicId,
             content: chunkContent,
             keywords: keywords,
             chunkIndex: i,
-            metadata: { chapter: section.chapter, source: filename }
+            metadata: { source: filename }
           }
         });
 
@@ -189,7 +246,6 @@ async function main() {
         );
 
         totalChunksIngested++;
-        console.log(`  ✅ Ingested successfully (Words: ${chunkContent.split(' ').length}, Keywords: ${keywords.length})`);
       }
     }
     

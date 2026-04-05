@@ -8,6 +8,7 @@ import { RagModule } from './modules/rag/rag.module';
 import { AiModule } from './modules/ai/ai.module';
 
 import { AdminModule } from './modules/admin/admin.module';
+import { SubjectModule } from './modules/subject/subject.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { AdminModule } from './modules/admin/admin.module';
     ChatModule,
     ProgressModule,
     AdminModule,
+    SubjectModule,
   ],
 })
 export class AppModule {}

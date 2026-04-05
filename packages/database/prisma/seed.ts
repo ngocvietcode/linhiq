@@ -43,18 +43,18 @@ async function main() {
 
   // ── Biology Topics ────────────────────────
   const bioTopics = [
-    { name: 'Characteristics of Living Organisms', chapter: 'Chapter 1', orderIndex: 1 },
-    { name: 'Cells', chapter: 'Chapter 2', orderIndex: 2 },
-    { name: 'Enzymes', chapter: 'Chapter 3', orderIndex: 3 },
-    { name: 'Nutrition in Plants', chapter: 'Chapter 4', orderIndex: 4 },
-    { name: 'Nutrition in Humans', chapter: 'Chapter 5', orderIndex: 5 },
-    { name: 'Transport in Plants', chapter: 'Chapter 6', orderIndex: 6 },
-    { name: 'Transport in Humans', chapter: 'Chapter 7', orderIndex: 7 },
-    { name: 'Gas Exchange and Respiration', chapter: 'Chapter 8', orderIndex: 8 },
-    { name: 'Coordination and Response', chapter: 'Chapter 9', orderIndex: 9 },
-    { name: 'Reproduction', chapter: 'Chapter 10', orderIndex: 10 },
-    { name: 'Inheritance', chapter: 'Chapter 11', orderIndex: 11 },
-    { name: 'Organisms and their Environment', chapter: 'Chapter 12', orderIndex: 12 },
+    { name: 'Characteristics of Living Organisms', orderIndex: 1 },
+    { name: 'Cells', orderIndex: 2 },
+    { name: 'Enzymes', orderIndex: 3 },
+    { name: 'Nutrition in Plants', orderIndex: 4 },
+    { name: 'Nutrition in Humans', orderIndex: 5 },
+    { name: 'Transport in Plants', orderIndex: 6 },
+    { name: 'Transport in Humans', orderIndex: 7 },
+    { name: 'Gas Exchange and Respiration', orderIndex: 8 },
+    { name: 'Coordination and Response', orderIndex: 9 },
+    { name: 'Reproduction', orderIndex: 10 },
+    { name: 'Inheritance', orderIndex: 11 },
+    { name: 'Organisms and their Environment', orderIndex: 12 },
   ];
 
   for (const topic of bioTopics) {

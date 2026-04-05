@@ -180,24 +180,33 @@ ACADEMIC | GENERAL | HOBBIES | LIFE | EMOTIONAL | MATURE_SOFT | AGE_BOUNDARY | H
 - [x] Update PDD F1 section to reflect 5-level hint system
 - [x] Anonymous Topic Analytics flush (WeeklyTopicStat aggregation + endpoints)
 
-### Phase 4: Frontend UI 🔄 IN PROGRESS
+### Phase 4: Frontend UI ✅ DONE
 - [x] Hint level selector expanded to L1–L5 with tooltips
 - [x] Study mode vs Open Chat welcome screens separated
 - [x] Dashboard: Open Chat hero card with gradient
 - [x] Chat UI redesign (Markdown rendering, avatars, mobile max-width, placeholder logic)
-- [ ] Dashboard: progress visualization
-- [ ] Mobile-first responsive adjustments (Navigation/Layout)
+- [x] Dashboard: progress visualization
+- [x] Mobile-first responsive adjustments (Navigation/Layout)
 
-### Phase 5: Advanced Features ⬜ FUTURE
-- [ ] Photo Scanner (F5) — Vision AI integration
-- [ ] Progress Tracking (F6) — mastery algorithm
-- [ ] Parent Portal (F7) — dashboard, weekly reports
-- [ ] Anonymous Analytics (F8) — wellness signals
-- [ ] Onboarding flow (3-step)
+### Phase 5: Advanced Features 🔄 IN PROGRESS
+
+**[F5] Photo Scanner (Vision AI)**
+- [ ] Add image upload button (file input) in `chat/[id]/page.tsx` input area
+- [ ] Convert image to Base64 in frontend and send alongside `content` in `sendMessageSchema`
+- [ ] Update `sendMessageSchema` to accept optional `image: z.string().base64()`
+- [ ] Modify `AiService.streamChat()` to pass `[{ type: "image_url", image_url: { url: ... }}]` to LiteLLM / Gemini proxy
+
+**[F6 & F7] Progress Tracking & Analytics**
+- [ ] Implement `masteryAlgorithm` logic (based on correct AI responses / Key Terms used)
+- [ ] Scaffold `/parent-portal` dashboard component fetching `getWeeklyStats()`
+- [ ] Visualization charts in Parent Dashboard
 
 ---
 
 ## Open Questions (Updated)
+
+1. **Photo Scanner Storage**: Do you prefer to use lightweight Base64 passing directly to the LLM without saving the actual images permanently (cheaper/simpler for MVP), or should we provision an S3 / cloud storage bucket to store chat image history?
+2. **Vision Provider**: We will use Gemini Flash 2.5/Pro vision capabilities via the existing LiteLLM proxy config for multimodal requests in Socratic mode.
 
 1. ~~Chuẩn bị Dữ liệu~~ → **Đã giải quyết**: IGCSE Biology textbook đã parse sang Markdown, sẵn sàng ingest.
 2. ~~LLM nào cho MVP~~ → **Đã giải quyết**: Gemini (gemini-2.5-flash/pro) là mặc định, hỗ trợ switching qua Admin.

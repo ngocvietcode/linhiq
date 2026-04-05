@@ -48,11 +48,12 @@ export class RagService {
         1 - (dc.embedding <=> ${embedding}::vector) as similarity,
         d.title as "documentTitle",
         (dc.metadata->>'page')::int as page,
-        t.chapter,
+        m.name as chapter,
         t.name as "topicName"
       FROM "DocumentChunk" dc
       JOIN "Document" d ON dc."documentId" = d.id
       LEFT JOIN "Topic" t ON dc."topicId" = t.id
+      LEFT JOIN "Milestone" m ON t."milestoneId" = m.id
       WHERE d."subjectId" = ${subjectId}
         AND dc.embedding IS NOT NULL
       ORDER BY dc.embedding <=> ${embedding}::vector
@@ -83,18 +84,18 @@ export class RagService {
       },
       include: {
         document: { select: { title: true } },
-        topic: { select: { name: true, chapter: true } },
+        topic: { select: { name: true, milestone: { select: { name: true } } } },
       },
       take: topK,
     });
 
-    return chunks.map((chunk) => ({
+    return chunks.map((chunk: any) => ({
       chunkId: chunk.id,
       content: chunk.content,
       similarity: 0.5, // Keyword matches get a fixed score
       documentTitle: chunk.document.title,
       page: (chunk.metadata as any)?.page ?? null,
-      chapter: chunk.topic?.chapter ?? null,
+      chapter: chunk.topic?.milestone?.name ?? null,
       topicName: chunk.topic?.name ?? null,
     }));
   }
