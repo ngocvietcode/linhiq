@@ -7,7 +7,7 @@ export const sendMessageSchema = z.object({
     .string()
     .min(1, 'Message cannot be empty')
     .max(4000, 'Message too long (max 4000 characters)'),
-  hintLevel: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
+  hintLevel: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5)]).optional(),
 });
 
 export const createSessionSchema = z.object({
