@@ -2,9 +2,20 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/lib/auth-context";
-import { AuthProvider } from "@/lib/auth-context";
+import { useAuth, AuthProvider } from "@/lib/auth-context";
 import { api } from "@/lib/api";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { 
+  Bell, 
+  Home, 
+  MessageSquare, 
+  TrendingUp, 
+  Settings, 
+  ChevronRight,
+  Flame,
+  ArrowRight
+} from "lucide-react";
 
 interface SubjectProgress {
   id: string;
@@ -48,7 +59,6 @@ function DashboardContent() {
 
   useEffect(() => {
     if (!token) return;
-    // Fetch overview and assign to object
     api<ProgressOverview>("/progress/overview", { token }).then(setOverview).catch(console.error);
     api<SessionPreview[]>("/chat/sessions", { token }).then(setSessions).catch(console.error);
   }, [token]);
@@ -72,233 +82,213 @@ function DashboardContent() {
 
   if (isLoading || !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-bg-primary">
-        <div className="animate-spin h-8 w-8 border-2 border-accent border-t-transparent rounded-full" />
+      <div className="min-h-screen flex items-center justify-center bg-bg-void">
+        <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
-  const subjectColors: Record<string, string> = {
-    Biology: "bg-success/10 border-success/30 hover:border-success/60 text-success",
-    Mathematics: "bg-accent/10 border-accent/30 hover:border-accent/60 text-accent",
-    Chemistry: "bg-warning/10 border-warning/30 hover:border-warning/60 text-warning",
-  };
+  const firstName = user.name?.split(" ")[0] || "Student";
+  const hours = new Date().getHours();
+  const greeting = hours < 12 ? "Good morning" : hours < 18 ? "Good afternoon" : "Good evening";
+  const greetingEmoji = hours < 18 ? "☀️" : "🌙";
 
   return (
-    <div className="min-h-screen bg-bg-primary font-sans">
-      {/* Top Nav */}
-      <nav className="border-b border-border px-6 py-4 flex items-center justify-between sticky top-0 bg-bg-primary/80 backdrop-blur z-10">
-        <h1 className="text-xl font-bold tracking-tight">
-          <span className="text-accent">Linh</span>IQ
-        </h1>
-        <div className="flex items-center gap-4">
-          <span className="text-sm font-medium text-text-secondary">
-            {user.name || user.email}
-          </span>
-          <button
-            onClick={logout}
-            className="text-sm text-text-muted hover:text-red-400 transition-colors px-3 py-1.5 rounded-md hover:bg-red-500/10"
-          >
+    <div className="min-h-screen bg-bg-void flex flex-col md:flex-row font-sans">
+      
+      {/* SIDEBAR (Desktop) */}
+      <aside className="hidden md:flex flex-col w-64 border-r border-border-subtle bg-bg-base/50 p-6 sticky top-0 h-screen">
+        <div className="flex items-center gap-3 text-text-primary mb-12">
+          <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center font-bold text-accent">L</div>
+          <span className="font-semibold text-lg tracking-tight">LinhIQ</span>
+        </div>
+        
+        <nav className="flex-1 space-y-2">
+          <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-accent text-white font-medium shadow-accent-glow">
+            <Home className="w-5 h-5" /> Home
+          </button>
+          <button onClick={() => startChat()} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-text-secondary hover:text-text-primary hover:bg-bg-surface transition-colors font-medium">
+            <MessageSquare className="w-5 h-5" /> Chat
+          </button>
+          <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-text-secondary hover:text-text-primary hover:bg-bg-surface transition-colors font-medium">
+            <TrendingUp className="w-5 h-5" /> Progress
+          </button>
+          <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-text-secondary hover:text-text-primary hover:bg-bg-surface transition-colors font-medium">
+            <Settings className="w-5 h-5" /> Settings
+          </button>
+        </nav>
+
+        <div className="mt-auto">
+          <button onClick={logout} className="w-full text-left px-4 py-2 text-sm text-text-muted hover:text-danger transition-colors">
             Sign out
           </button>
         </div>
-      </nav>
+      </aside>
 
-      <main className="max-w-5xl mx-auto px-6 py-10">
-        {/* Header & Stats Banner */}
-        <div className="mb-10">
-          <h2 className="text-3xl font-semibold mb-2">
-            Welcome back, {user.name?.split(" ")[0] || "Student"} 👋
-          </h2>
-          <p className="text-text-secondary">
-            Here's your learning progress. Consistency is key!
-          </p>
+      {/* TOP NAV (Mobile + Shared) */}
+      <div className="flex-1 flex flex-col pb-20 md:pb-0 relative">
+        <nav className="md:hidden flex items-center justify-between p-4 sticky top-0 bg-bg-void/80 backdrop-blur-md z-10 border-b border-border-subtle">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-full bg-accent/20 flex items-center justify-center font-bold text-accent text-xs">L</div>
+            <span className="font-semibold text-text-primary">LinhIQ</span>
+          </div>
+          <div className="flex items-center gap-4">
+            <Bell className="w-5 h-5 text-text-secondary" />
+            <div className="text-sm font-medium text-text-secondary">{firstName} ▾</div>
+          </div>
+        </nav>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 mt-6">
-            <div className="bg-bg-card border border-border p-3 sm:p-5 rounded-2xl flex flex-col justify-center">
-              <span className="text-text-muted text-[10px] sm:text-xs uppercase tracking-wider mb-1 font-semibold">🔥 Current Streak</span>
-              <span className="text-2xl sm:text-3xl font-bold text-accent">{overview?.streakDays || 0}</span>
-              <span className="text-sm text-text-secondary mt-1">Days</span>
-            </div>
-            <div className="bg-bg-card border border-border p-3 sm:p-5 rounded-2xl flex flex-col justify-center">
-              <span className="text-text-muted text-[10px] sm:text-xs uppercase tracking-wider mb-1 font-semibold">⏱️ Study Time</span>
-              <span className="text-2xl sm:text-3xl font-bold text-success">
-                {overview?.studyTimeMin ? Math.floor(overview.studyTimeMin / 60) : 0}
-                <span className="text-lg text-text-secondary font-medium ml-1 mr-1">h</span>
-                {overview?.studyTimeMin ? overview.studyTimeMin % 60 : 0}
-                <span className="text-lg text-text-secondary font-medium ml-1">m</span>
-              </span>
+        {/* MAIN CONTENT RUNWAY */}
+        <main className="flex-1 p-4 md:p-8 max-w-4xl mx-auto w-full space-y-8">
+          
+          {/* GREETING */}
+          <header className="pt-2 md:pt-4">
+            <h1 className="text-text-primary text-2xl md:text-3xl font-semibold tracking-tight">
+              {greeting}, {firstName}. {greetingEmoji}
+            </h1>
+            <p className="text-text-secondary mt-1 max-w-md">
+              Ready to crush those exams? Let&apos;s pick up where you left off.
+            </p>
+          </header>
+
+          {/* CONTINUE HERO BLOCK */}
+          {overview?.subjects && overview.subjects.length > 0 && (
+            <section>
+              <h2 className="text-sm font-medium text-text-secondary uppercase tracking-wider mb-3">Continue learning</h2>
+              <div 
+                onClick={() => startChat(overview.subjects[0]?.id)}
+                className="group relative overflow-hidden bg-bg-surface border border-border-subtle rounded-2xl p-6 cursor-pointer hover:border-accent/40 transition-all hover:-translate-y-0.5 hover:shadow-glow"
+              >
+                <div className="absolute top-0 left-0 w-full h-1 bg-bg-elevated">
+                  <div className="h-full bg-accent" style={{ width: '78%' }} />
+                </div>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-xl">{overview.subjects[0]?.iconEmoji || "📚"}</span>
+                      <span className="text-sm font-medium px-2 py-0.5 rounded bg-bg-base text-text-secondary">
+                        {overview.subjects[0]?.name} · {overview.subjects[0]?.curriculum}
+                      </span>
+                    </div>
+                    <h3 className="text-lg font-semibold text-text-primary mb-1">Chapter 7: Transport in Humans</h3>
+                    <p className="text-sm text-text-muted">78% complete</p>
+                  </div>
+                  <Button variant="ghost" className="text-text-primary mt-2">
+                    Continue <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* SUBJECTS GRID */}
+          <section>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-sm font-medium text-text-secondary uppercase tracking-wider">Your Subjects</h2>
+              <Button variant="ghost" size="sm" className="text-accent text-xs p-0 px-2 h-auto hover:bg-transparent">See all <ChevronRight className="w-3 h-3 ml-1" /></Button>
             </div>
             
-            {/* Progress Visualization Chart */}
-            <div className="bg-bg-card border border-border p-4 sm:p-5 rounded-2xl flex items-center justify-between col-span-2 sm:col-span-1">
-              <div className="flex flex-col">
-                <span className="text-text-muted text-[10px] sm:text-xs uppercase tracking-wider mb-1 font-semibold">🏆 Overall Mastery</span>
-                <span className="text-2xl sm:text-3xl font-bold text-warning">
-                  {(() => {
-                    const totalT = overview?.subjects?.reduce((sum, s) => sum + s.totalTopics, 0) || 0;
-                    const maxT = overview?.subjects?.reduce((sum, s) => sum + s.masteredTopics, 0) || 0;
-                    return totalT > 0 ? Math.round((maxT / totalT) * 100) : 0;
-                  })()}%
-                </span>
-                <span className="text-sm text-text-secondary mt-1 max-w-[120px] truncate">
-                  {overview?.subjects?.reduce((sum, s) => sum + s.masteredTopics, 0) || 0} topics mastered
-                </span>
-              </div>
-              
-              <div className="relative w-20 h-20 flex-shrink-0">
-                <svg className="w-full h-full -rotate-90" viewBox="0 0 80 80">
-                  {/* Background Circle */}
-                  <circle
-                    cx="40"
-                    cy="40"
-                    r="32"
-                    className="stroke-bg-elevated"
-                    strokeWidth="8"
-                    fill="none"
-                  />
-                  {/* Progress Circle */}
-                  <circle
-                    cx="40"
-                    cy="40"
-                    r="32"
-                    className="stroke-warning"
-                    strokeWidth="8"
-                    fill="none"
-                    strokeLinecap="round"
-                    strokeDasharray={2 * Math.PI * 32}
-                    strokeDashoffset={(() => {
-                      const totalT = overview?.subjects?.reduce((sum, s) => sum + s.totalTopics, 0) || 0;
-                      const maxT = overview?.subjects?.reduce((sum, s) => sum + s.masteredTopics, 0) || 0;
-                      const pct = totalT > 0 ? Math.round((maxT / totalT) * 100) : 0;
-                      const circumference = 2 * Math.PI * 32;
-                      return circumference - (pct / 100) * circumference;
-                    })()}
-                    style={{ transition: "stroke-dashoffset 1s ease-out" }}
-                  />
-                </svg>
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <span className="text-lg">🎯</span>
-                </div>
-              </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {overview?.subjects?.slice(0, 3).map((subject) => {
+                const masteryPct = Math.round((subject.overallMastery || 0) * 100);
+                return (
+                  <Card 
+                    key={subject.id} 
+                    onClick={() => startChat(subject.id)}
+                    className="cursor-pointer hover:border-accent/40 transition-colors group p-5 bg-bg-base"
+                  >
+                    <div className="text-3xl mb-3 bg-bg-surface w-12 h-12 flex items-center justify-center rounded-xl shadow-sm border border-border-subtle">
+                      {subject.iconEmoji}
+                    </div>
+                    <h3 className="font-semibold text-text-primary">{subject.name}</h3>
+                    
+                    <div className="mt-4 flex items-center gap-2">
+                      <div className="flex-1 bg-border-subtle h-1.5 rounded-full overflow-hidden">
+                        <div className="bg-text-secondary h-full rounded-full transition-all" style={{ width: `${masteryPct}%` }} />
+                      </div>
+                      <span className="text-xs font-mono text-text-muted">{masteryPct}%</span>
+                    </div>
+                    <div className="mt-3 text-xs text-accent font-medium opacity-0 group-hover:opacity-100 transition-opacity flex items-center">
+                      Start <ArrowRight className="w-3 h-3 ml-1" />
+                    </div>
+                  </Card>
+                );
+              })}
             </div>
+          </section>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* RECENT SESSIONS */}
+            <section>
+              <h2 className="text-sm font-medium text-text-secondary uppercase tracking-wider mb-4">Recent Sessions</h2>
+              <div className="space-y-3">
+                {sessions.slice(0, 3).map((s) => (
+                  <button
+                    key={s.id}
+                    onClick={() => router.push(`/chat/${s.id}`)}
+                    className="w-full flex items-center gap-4 p-3 rounded-xl hover:bg-bg-surface border border-transparent hover:border-border-subtle transition-all text-left"
+                  >
+                    <div className="text-2xl w-10 h-10 flex items-center justify-center bg-bg-base rounded-lg border border-border-subtle">
+                      {s.subject?.iconEmoji || "💬"}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-sm font-medium text-text-primary truncate">
+                        {s.title || "Open Conversation"}
+                      </h4>
+                      <p className="text-xs text-text-muted mt-0.5 border-b border-transparent inline-block">
+                        {s.subject?.name || "General"} · {new Date(s.updatedAt).toLocaleDateString(undefined, { weekday: 'short' })}
+                      </p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </section>
+
+            {/* STREAK */}
+            <section>
+              <h2 className="text-sm font-medium text-text-secondary uppercase tracking-wider mb-4">Today&apos;s Streak</h2>
+              <Card className="p-5 bg-gradient-to-br from-bg-base to-bg-surface">
+                <div className="flex items-center gap-3 text-warning mb-4">
+                  <Flame className="w-6 h-6 fill-warning" />
+                  <span className="font-semibold">{overview?.streakDays || 0}-day streak · Keep it up!</span>
+                </div>
+                <div className="flex justify-between items-center px-1">
+                  {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, i) => {
+                    const isActive = i < (overview?.streakDays || 0);
+                    return (
+                      <div key={i} className="flex flex-col items-center gap-2">
+                        <span className="text-xs text-text-muted font-medium">{day}</span>
+                        <div className={`w-3 h-3 rounded-full ${isActive ? 'bg-warning shadow-[0_0_8px_rgba(245,158,11,0.5)]' : 'bg-border-subtle'}`} />
+                      </div>
+                    );
+                  })}
+                </div>
+              </Card>
+            </section>
           </div>
 
-          {/* Open Chat — Chat với Linh */}
-          <button
-            onClick={() => startChat()}
-            disabled={creating === 'open'}
-            className="mt-6 w-full bg-gradient-to-r from-accent/15 via-accent/10 to-purple-500/10
-                       border border-accent/30 rounded-2xl p-5 flex items-center gap-4
-                       hover:border-accent/60 hover:shadow-lg hover:shadow-accent/10
-                       transition-all duration-300 group text-left
-                       disabled:opacity-50 disabled:cursor-wait"
-          >
-            <div className="w-12 h-12 bg-accent/20 rounded-xl flex items-center justify-center text-2xl
-                            group-hover:scale-110 transition-transform duration-300">
-              💬
-            </div>
-            <div className="flex-1">
-              <h3 className="font-semibold text-text-primary group-hover:text-accent transition-colors">
-                Chat với Linh
-              </h3>
-              <p className="text-sm text-text-muted mt-0.5">
-                Nói chuyện tự do về bất cứ điều gì — học tập, cuộc sống, sở thích...
-              </p>
-            </div>
-            <span className="text-accent opacity-0 group-hover:opacity-100 transition-opacity text-xl">→</span>
+        </main>
+
+        {/* BOTTOM NAV (Mobile Only) */}
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-bg-surface/90 backdrop-blur-md border-t border-border-subtle p-3 flex justify-around items-center z-20 pb-safe">
+          <button className="flex flex-col items-center gap-1 text-accent">
+            <Home className="w-5 h-5" />
+            <span className="text-[10px] font-medium">Home</span>
           </button>
-        </div>
-
-        {/* Subjects Grid */}
-        <h3 className="text-lg font-medium mb-4 text-text-primary">Target Subjects</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-12">
-          {overview?.subjects?.map((subject) => {
-            const masteryPct = Math.round((subject.overallMastery || 0) * 100);
-            return (
-              <button
-                key={subject.id}
-                onClick={() => startChat(subject.id)}
-                disabled={creating === subject.id}
-                className={`bg-bg-card border ${subjectColors[subject.name]?.split(' ')[1] || "border-border"} 
-                           rounded-2xl p-5 text-left transition-all duration-300 relative group
-                           hover:scale-[1.02] hover:-translate-y-1 hover:shadow-xl hover:shadow-accent/5 active:scale-[0.98]
-                           disabled:opacity-50 disabled:cursor-wait`}
-              >
-                <div className="flex justify-between items-start mb-4">
-                  <span className="text-4xl bg-bg-primary p-2 rounded-xl border border-border shadow-sm">{subject.iconEmoji}</span>
-                  <span className="text-xs font-semibold px-2 py-1 rounded-full bg-bg-primary border border-border text-text-secondary">
-                    {subject.curriculum}
-                  </span>
-                </div>
-                
-                <h3 className="text-xl font-bold mb-1">{subject.name}</h3>
-                <p className="text-sm text-text-muted mb-5 line-clamp-2 min-h-[40px]">{subject.description}</p>
-                
-                {/* Progress Bar Container */}
-                <div className="w-full bg-bg-primary rounded-full h-2 mb-2 overflow-hidden border border-border/50">
-                  <div 
-                    className="bg-accent h-2 rounded-full transition-all duration-1000 ease-out" 
-                    style={{ width: `${masteryPct}%` }}
-                  ></div>
-                </div>
-                
-                <div className="flex justify-between items-center mt-2">
-                  <span className="text-xs font-medium text-text-secondary">
-                    {subject.masteredTopics}/{subject.totalTopics} Mastered
-                  </span>
-                  <span className="text-sm font-bold text-accent">
-                    {masteryPct}%
-                  </span>
-                </div>
-
-                <div className={`absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-accent/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-b-2xl`} />
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Recent Sessions */}
-        {sessions.length > 0 && (
-          <div className="mb-12">
-            <h3 className="text-lg font-medium mb-4 text-text-primary flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-success animate-pulse"></span>
-              Recent Activity
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {sessions.slice(0, 4).map((s) => (
-                <button
-                  key={s.id}
-                  onClick={() => router.push(`/chat/${s.id}`)}
-                  className="bg-bg-card border border-border rounded-xl px-4 py-4
-                             flex items-center gap-4 hover:border-accent/40 hover:bg-accent/5 transition-all
-                             text-left group"
-                >
-                  <div className="bg-bg-primary w-10 h-10 rounded-full flex items-center justify-center text-xl border border-border group-hover:border-accent/20">
-                    {s.subject?.iconEmoji || "💬"}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold truncate text-text-primary group-hover:text-accent transition-colors">
-                      {s.title || (s.subject ? s.subject.name : "Open Chat")}
-                    </p>
-                    <p className="text-xs text-text-muted truncate mt-0.5">
-                      {s.messages[0]?.content || "Started a new session"}
-                    </p>
-                  </div>
-                  <div className="flex flex-col items-end">
-                    <span className="text-[10px] uppercase text-text-muted font-medium mb-1">
-                      {new Date(s.updatedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                    </span>
-                    <span className="text-accent opacity-0 group-hover:opacity-100 transition-opacity transform translate-x-2 group-hover:translate-x-0">
-                      →
-                    </span>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-      </main>
+          <button onClick={() => startChat()} className="flex flex-col items-center gap-1 text-text-muted hover:text-text-primary">
+            <MessageSquare className="w-5 h-5" />
+            <span className="text-[10px] font-medium">Chat</span>
+          </button>
+          <button className="flex flex-col items-center gap-1 text-text-muted hover:text-text-primary">
+            <TrendingUp className="w-5 h-5" />
+            <span className="text-[10px] font-medium">Progress</span>
+          </button>
+          <button className="flex flex-col items-center gap-1 text-text-muted hover:text-text-primary">
+            <Settings className="w-5 h-5" />
+            <span className="text-[10px] font-medium">Settings</span>
+          </button>
+        </nav>
+      </div>
     </div>
   );
 }

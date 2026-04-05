@@ -31,6 +31,7 @@
   /* Border */
   --color-border-subtle:  #1E293B;
   --color-border-default: #334155;
+  --color-border-focus:   #6366F1;
 
   /* Basic variables mapped */
   --color-bg-primary: var(--color-bg-base);
@@ -38,7 +39,7 @@
   --color-foreground: var(--color-text-primary);
 
   /* Typography */
-  --font-sans: 'var(--font-jakarta)', system-ui, sans-serif;
+  --font-sans: 'var(--font-geist)', system-ui, sans-serif;
   --font-mono: 'var(--font-mono)', monospace;
 
   /* Radius */
@@ -46,16 +47,21 @@
   --radius-md: 10px;
   --radius-lg: 16px;
   --radius-xl: 24px;
+  --radius-full: 9999px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.5);
+  --shadow-glow: 0 0 20px rgba(99,102,241,0.15);
+
+  /* Easing and Durations */
+  --ease-default: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-body {
-  background: var(--color-bg-base);
-  color: var(--color-text-primary);
-  font-family: var(--font-sans);
-}
-
-/* Parent (Light) mode */
 html.parent-mode {
+  /* Parent (Light) mode */
   --color-bg-void:      #F8FAFC;
   --color-bg-base:      #FFFFFF;
   --color-bg-surface:   #F1F5F9;
@@ -70,11 +76,21 @@ html.parent-mode {
   
   --color-background: var(--color-bg-base);
   --color-foreground: var(--color-text-primary);
+
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.10);
+  --shadow-card: 0 1px 2px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.06);
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
 }
 
 /* Base styles */
 *:focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--color-border-focus);
   outline-offset: 2px;
 }
 
@@ -83,7 +99,7 @@ html.parent-mode {
   width: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--color-bg-base);
+  background: var(--color-background);
 }
 ::-webkit-scrollbar-thumb {
   background: var(--color-bg-elevated);

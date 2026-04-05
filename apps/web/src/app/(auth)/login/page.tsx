@@ -4,12 +4,16 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { ArrowRight, Eye, EyeOff } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
   const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -29,103 +33,99 @@ export default function LoginPage() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
-      <div className="bg-bg-card rounded-xl p-6 shadow-lg border border-border space-y-4">
-        <h2 className="text-xl font-semibold text-text-primary">
-          Welcome back
-        </h2>
+    <div className="w-full max-w-[400px] mx-auto">
+      <div className="mb-8 text-center">
+        <div className="flex items-center justify-center gap-2 mb-6">
+          <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center font-bold text-accent">L</div>
+          <span className="font-semibold text-lg text-text-primary tracking-tight">LinhIQ</span>
+        </div>
+        <h1 className="text-2xl font-semibold tracking-tight text-text-primary">Welcome back</h1>
+        <p className="text-sm text-text-secondary mt-2">Enter your credentials to continue</p>
+      </div>
 
+      <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
-          <div className="bg-danger/10 border border-danger/30 text-danger text-sm rounded-lg px-4 py-2.5">
+          <div className="p-3 bg-danger/10 text-danger border border-danger/30 rounded-xl text-sm font-medium text-center">
             {error}
           </div>
         )}
 
-        <div>
-          <label
-            htmlFor="email"
-            className="block text-sm font-medium text-text-secondary mb-1.5"
-          >
-            Email
-          </label>
-          <input
-            id="email"
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium text-text-secondary px-1">Email</label>
+          <Input
             type="email"
-            required
+            placeholder="you@example.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full px-3.5 py-2.5 bg-bg-primary border border-border rounded-lg
-                       text-text-primary placeholder:text-text-muted
-                       focus:border-accent focus:ring-1 focus:ring-accent
-                       transition-colors"
-            placeholder="you@example.com"
-          />
-        </div>
-
-        <div>
-          <label
-            htmlFor="password"
-            className="block text-sm font-medium text-text-secondary mb-1.5"
-          >
-            Password
-          </label>
-          <input
-            id="password"
-            type="password"
             required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-3.5 py-2.5 bg-bg-primary border border-border rounded-lg
-                       text-text-primary placeholder:text-text-muted
-                       focus:border-accent focus:ring-1 focus:ring-accent
-                       transition-colors"
-            placeholder="••••••••"
+            className="h-12 bg-bg-surface"
           />
         </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full py-2.5 px-4 bg-accent hover:bg-accent-hover text-white font-medium
-                     rounded-lg transition-all duration-200
-                     disabled:opacity-50 disabled:cursor-not-allowed
-                     active:scale-[0.98]"
-        >
-          {loading ? (
-            <span className="flex items-center justify-center gap-2">
-              <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                  fill="none"
-                />
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                />
-              </svg>
-              Signing in...
-            </span>
-          ) : (
-            "Sign in"
-          )}
-        </button>
-      </div>
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium text-text-secondary px-1">Password</label>
+          <div className="relative">
+            <Input
+              type={showPassword ? "text" : "password"}
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className="h-12 bg-bg-surface pr-10"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary transition-colors focus:outline-none"
+            >
+              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
+          <div className="flex justify-end pt-1">
+            <button type="button" className="text-[13px] font-medium text-text-muted hover:text-text-primary transition-colors">
+              Forgot password?
+            </button>
+          </div>
+        </div>
 
-      <p className="text-center text-sm text-text-secondary">
-        Don&apos;t have an account?{" "}
-        <Link
-          href="/register"
-          className="text-accent hover:text-accent-hover font-medium transition-colors"
-        >
-          Create one
-        </Link>
-      </p>
-    </form>
+        <Button type="submit" className="w-full h-12 text-[15px]" disabled={loading}>
+          {loading ? "Signing in..." : "Sign in"}
+          {!loading && <ArrowRight className="w-4 h-4 ml-2 opacity-70" />}
+        </Button>
+
+        <div className="relative my-6">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-border-subtle"></div>
+          </div>
+          <div className="relative flex justify-center text-xs">
+            <span className="bg-bg-void px-3 text-text-muted">or continue with</span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <Button variant="secondary" className="w-full h-11 bg-bg-surface" type="button">
+            Google
+          </Button>
+          <Button variant="secondary" className="w-full h-11 bg-bg-surface" type="button">
+            Apple
+          </Button>
+        </div>
+      </form>
+
+      <div className="mt-8 text-center space-y-3">
+        <p className="text-sm text-text-secondary">
+          Don&apos;t have an account?{" "}
+          <Link href="/register" className="text-accent font-medium hover:underline">
+            Create one →
+          </Link>
+        </p>
+        <p className="text-sm text-text-secondary">
+          Are you a parent?{" "}
+          <button className="text-accent font-medium hover:underline focus:outline-none">
+            Parent sign in →
+          </button>
+        </p>
+      </div>
+    </div>
   );
 }
