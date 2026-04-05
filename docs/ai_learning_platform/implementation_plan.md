@@ -141,8 +141,8 @@ ACADEMIC | GENERAL | HOBBIES | LIFE | EMOTIONAL | MATURE_SOFT | AGE_BOUNDARY | H
 | Module | Files | Status | Notes |
 |---|---|---|---|
 | `auth` | controller, service, module | ✅ Done | Custom JWT, bcrypt, register/login |
-| `chat` | controller, service, module | ✅ Done (Partial) | SSE streaming, safe chat classify, topic stats. **Chưa route OPEN mode đến prompt riêng** |
-| `ai` | service, module | ✅ Done (Partial) | Multi-provider (Gemini/OpenAI/Anthropic), streamChat, classifySafeChat, streamGentleRedirect. **Chưa có `streamOpenChat` method** |
+| `chat` | controller, service, module | ✅ Done | SSE streaming, safe chat classify, topic stats. **OPEN mode → `streamOpenChat()`, SUBJECT → `streamChat()`** |
+| `ai` | service, module | ✅ Done | Multi-provider, `streamChat`, `streamOpenChat`, `classifySafeChat`, `streamGentleRedirect` |
 | `rag` | service, module | ✅ Done | Vector search (pgvector) + keyword fallback, RAG context formatting with source attribution |
 | `admin` | controller, service, module | ✅ Done | Provider switching, subject/curriculum CRUD |
 | `database` | service, module | ✅ Done | Prisma client wrapper |
@@ -175,9 +175,9 @@ ACADEMIC | GENERAL | HOBBIES | LIFE | EMOTIONAL | MATURE_SOFT | AGE_BOUNDARY | H
 - [x] Open Chat prompt — `OPEN_CHAT_SYSTEM_PROMPT` (F3+F4)
 - [x] Gentle Redirect prompt — updated for LinhIQ
 - [x] HintLevel expanded to L1–L5
-- [ ] **TODO: Integrate `OPEN_CHAT_SYSTEM_PROMPT` into `AiService.streamOpenChat()`**
-- [ ] **TODO: Route OPEN mode sessions to `streamOpenChat()` in `ChatController`**
-- [ ] **TODO: Update PDD F1 section to reflect 5-level hint system**
+- [x] Integrate `OPEN_CHAT_SYSTEM_PROMPT` into `AiService.streamOpenChat()`
+- [x] Route OPEN mode sessions to `streamOpenChat()` in `ChatController`
+- [x] Update PDD F1 section to reflect 5-level hint system
 - [ ] Anonymous Topic Analytics flush (WeeklyTopicStat aggregation)
 
 ### Phase 4: Frontend UI 🔜 NEXT

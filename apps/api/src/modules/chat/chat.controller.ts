@@ -99,11 +99,19 @@ export class ChatController {
     const hintMap: Record<number, any> = { 1: HintLevel.L1, 2: HintLevel.L2, 3: HintLevel.L3, 4: HintLevel.L4, 5: HintLevel.L5 };
     const dbHintLevel = hintMap[input.hintLevel ?? 1] ?? HintLevel.L1;
 
-    // Stream AI response or Redirect
+    // Stream AI response: Redirect > Open Chat > Socratic
     let aiResponse;
     if (shouldRedirect) {
+      // Safety redirect takes priority in ALL modes
       aiResponse = await this.ai.streamGentleRedirect(input.content, category);
+    } else if (session.mode === 'OPEN') {
+      // F3: Open Chat — "Chat với Linh" companion mode
+      aiResponse = await this.ai.streamOpenChat({
+        userMessage: input.content,
+        chatHistory: history,
+      });
     } else {
+      // F1: Socratic Tutor — subject study mode
       aiResponse = await this.ai.streamChat({
         userMessage: input.content,
         chatHistory: history,

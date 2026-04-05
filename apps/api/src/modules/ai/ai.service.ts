@@ -10,6 +10,7 @@ import {
   CLASSIFIER_PROMPT,
   SAFE_CHAT_PROMPT,
   GENTLE_REDIRECT_PROMPT,
+  OPEN_CHAT_SYSTEM_PROMPT,
   MODEL_ROUTES,
 } from '@javirs/ai-config';
 import type { QueryComplexity } from '@javirs/ai-config';
@@ -209,6 +210,39 @@ export class AiService {
       this.logger.warn('Safe chat classification failed, defaulting to ACADEMIC', error);
       return { category: 'ACADEMIC' as any, shouldRedirect: false };
     }
+  }
+
+  /**
+   * Stream Open Chat (F3 — "Chat với Linh")
+   * Uses the companion persona, no RAG, no Socratic method.
+   */
+  async streamOpenChat(options: {
+    userMessage: string;
+    chatHistory: ChatHistoryMessage[];
+  }): Promise<{ stream: any; metadata: any }> {
+    const { userMessage, chatHistory } = options;
+    const activeProvider = await this.getGlobalProvider();
+    const model = this.resolveModel(activeProvider, 'simple');
+
+    const result = streamText({
+      model,
+      system: OPEN_CHAT_SYSTEM_PROMPT,
+      messages: [
+        ...chatHistory.slice(-10),
+        { role: 'user' as const, content: userMessage },
+      ],
+      // @ts-ignore
+      maxTokens: 300,
+      temperature: 0.6,
+    } as any);
+
+    return {
+      stream: result,
+      metadata: {
+        provider: activeProvider,
+        mode: 'open-chat',
+      },
+    };
   }
 
   /**
