@@ -1,177 +1,317 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft, Home, MessageSquare, TrendingUp, Settings } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useRouter, usePathname } from "next/navigation";
+import Link from "next/link";
+import { useAuth } from "@/lib/auth-context";
+import { AuthProvider } from "@/lib/auth-context";
+import { api } from "@/lib/api";
+import { Home, MessageSquare, TrendingUp, Settings, ChevronRight, AlertTriangle } from "lucide-react";
 
-export default function ProgressPage() {
+interface TopicMastery {
+  topicName: string;
+  mastery: number; // 0.0–1.0
+  questionsAsked: number;
+}
+
+interface SubjectProgress {
+  id: string;
+  name: string;
+  iconEmoji: string;
+  curriculum: string;
+  overallMastery: number;
+  topics: TopicMastery[];
+}
+
+interface ProgressOverview {
+  streakDays: number;
+  studyTimeMin: number;
+  subjects: SubjectProgress[];
+}
+
+const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+// Mock weekly distribution since API doesn't have daily breakdown yet
+function mockWeekly(total: number) {
+  const base = [0.15, 0.05, 0.2, 0.12, 0.2, 0.03, 0.12].map((r) => Math.round(r * total));
+  return base;
+}
+
+const NAV_ITEMS = [
+  { href: "/dashboard", icon: Home, label: "Home" },
+  { href: "/chat", icon: MessageSquare, label: "Chat" },
+  { href: "/progress", icon: TrendingUp, label: "Progress" },
+  { href: "/settings", icon: Settings, label: "Settings" },
+];
+
+function MasteryBadge({ pct }: { pct: number }) {
+  if (pct >= 80) return <span style={{ color: "var(--color-success)" }}>✅</span>;
+  if (pct >= 50) return <span>⚠️</span>;
+  return <span style={{ color: "var(--color-text-muted)" }}>──</span>;
+}
+
+function ProgressContent() {
   const router = useRouter();
+  const pathname = usePathname();
+  const { user, token, isLoading } = useAuth();
+  const [overview, setOverview] = useState<ProgressOverview | null>(null);
+  const [activeSubject, setActiveSubject] = useState<string>("");
+
+  useEffect(() => {
+    if (!isLoading && !user) router.push("/login");
+  }, [user, isLoading, router]);
+
+  useEffect(() => {
+    if (!token) return;
+    api<ProgressOverview>("/progress/overview", { token })
+      .then((data) => {
+        setOverview(data);
+        if (data.subjects?.length) setActiveSubject(data.subjects[0].id);
+      })
+      .catch(console.error);
+  }, [token]);
+
+  if (isLoading || !user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--color-base)" }}>
+        <div className="w-10 h-10 rounded-full border-2 animate-spin" style={{ borderColor: "var(--color-accent)", borderTopColor: "transparent" }} />
+      </div>
+    );
+  }
+
+  const studyH = overview?.studyTimeMin ? Math.floor(overview.studyTimeMin / 60) : 0;
+  const studyM = overview?.studyTimeMin ? overview.studyTimeMin % 60 : 0;
+  const weeklyMins = mockWeekly(overview?.studyTimeMin || 0);
+  const maxMins = Math.max(...weeklyMins, 60);
+  const currentSubject = overview?.subjects?.find((s) => s.id === activeSubject);
+
+  // Weak areas: topics below 60%
+  const weakTopics = currentSubject?.topics?.filter((t) => t.mastery < 0.6) || [];
+
+  // Key terms earned (mock — would come from API)
+  const KEY_TERMS = ["osmosis", "semi-permeable", "concentration gradient", "chlorophyll", "photosynthesis", "active transport"];
 
   return (
-    <div className="min-h-screen bg-bg-void flex flex-col md:flex-row font-sans">
-      
-      {/* SIDEBAR (Desktop) */}
-      <aside className="hidden md:flex flex-col w-64 border-r border-border-subtle bg-bg-base/50 p-6 sticky top-0 h-screen">
-        <div className="flex items-center gap-3 text-text-primary mb-12">
-          <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center font-bold text-accent">L</div>
-          <span className="font-semibold text-lg tracking-tight">LinhIQ</span>
+    <div className="min-h-screen flex" style={{ background: "var(--color-base)" }}>
+      {/* ── Sidebar ── */}
+      <aside
+        className="hidden md:flex flex-col w-56 border-r fixed inset-y-0 left-0 z-20"
+        style={{ background: "var(--color-void)", borderColor: "var(--color-border-subtle)" }}
+      >
+        <div className="px-5 py-6 border-b" style={{ borderColor: "var(--color-border-subtle)" }}>
+          <span className="text-xl font-bold">
+            <span style={{ color: "var(--color-accent)" }}>Linh</span>IQ
+          </span>
         </div>
-        
-        <nav className="flex-1 space-y-2">
-          <button onClick={() => router.push("/dashboard")} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-text-secondary hover:text-text-primary hover:bg-bg-surface transition-colors font-medium">
-            <Home className="w-5 h-5" /> Home
-          </button>
-          <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-text-secondary hover:text-text-primary hover:bg-bg-surface transition-colors font-medium">
-            <MessageSquare className="w-5 h-5" /> Chat
-          </button>
-          <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-accent text-white font-medium shadow-accent-glow">
-            <TrendingUp className="w-5 h-5" /> Progress
-          </button>
-          <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-text-secondary hover:text-text-primary hover:bg-bg-surface transition-colors font-medium">
-            <Settings className="w-5 h-5" /> Settings
-          </button>
+        <nav className="flex-1 p-3 space-y-1">
+          {NAV_ITEMS.map(({ href, icon: Icon, label }) => {
+            const active = pathname === href;
+            return (
+              <Link key={href} href={href} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all"
+                style={{ background: active ? "var(--color-accent-soft)" : "transparent", color: active ? "var(--color-accent)" : "var(--color-text-secondary)" }}>
+                <Icon size={18} />{label}
+              </Link>
+            );
+          })}
         </nav>
       </aside>
 
-      {/* TOP NAV (Mobile + Shared) */}
-      <div className="flex-1 flex flex-col pb-20 md:pb-0 relative">
-        
-        <nav className="md:hidden flex items-center justify-between p-4 sticky top-0 bg-bg-void/80 backdrop-blur-md z-10 border-b border-border-subtle">
-          <span className="font-semibold text-text-primary text-lg">Progress</span>
-        </nav>
+      {/* ── Content ── */}
+      <div className="flex-1 md:ml-56">
+        {/* Mobile header */}
+        <header className="md:hidden sticky top-0 z-10 px-5 py-4 flex items-center justify-between border-b"
+          style={{ background: "rgba(15,23,42,0.85)", backdropFilter: "blur(16px)", borderColor: "var(--color-border-subtle)" }}>
+          <h1 className="text-lg font-bold">Progress</h1>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium px-3 py-1.5 rounded-full"
+              style={{ background: "var(--color-accent-soft)", color: "var(--color-text-hint)" }}>
+              This week ▾
+            </span>
+          </div>
+        </header>
 
-        <main className="flex-1 p-4 md:p-8 max-w-4xl mx-auto w-full space-y-8">
-          
-          <header className="flex items-center justify-between pt-2">
-            <h1 className="text-2xl font-semibold text-text-primary">Progress</h1>
-            <select className="bg-bg-surface border border-border-default rounded-lg px-3 py-2 text-sm font-medium text-text-secondary outline-none focus:border-accent">
-              <option>This week ▾</option>
-              <option>Last week</option>
-            </select>
-          </header>
+        <main className="px-5 md:px-8 py-8 pb-24 md:pb-8 max-w-3xl mx-auto">
+          <div className="hidden md:flex items-center justify-between mb-8">
+            <h1 className="text-2xl font-bold">Progress</h1>
+            <span className="text-sm font-medium px-3 py-1.5 rounded-full border"
+              style={{ background: "var(--color-surface)", borderColor: "var(--color-border-default)", color: "var(--color-text-secondary)" }}>
+              This week ▾
+            </span>
+          </div>
 
-          <section className="bg-bg-base border border-border-subtle rounded-2xl p-6">
-            <h2 className="text-sm font-medium text-text-secondary uppercase tracking-wider mb-6">Study time this week</h2>
-            
-            <div className="h-40 flex items-end gap-2 justify-between mt-8 relative">
-              {/* Lines */}
-              <div className="absolute inset-x-0 bottom-0 border-t border-border-subtle w-full" />
-              <div className="absolute inset-x-0 bottom-10 border-t border-border-subtle/50 w-full" />
-              <div className="absolute inset-x-0 bottom-20 border-t border-border-subtle/50 w-full" />
-              
-              {/* Labels y-axis */}
-              <span className="absolute bottom-20 -left-6 text-[10px] text-text-muted">2h</span>
-              <span className="absolute bottom-10 -left-6 text-[10px] text-text-muted">1h</span>
-              <span className="absolute bottom-0 -left-6 text-[10px] text-text-muted">0h</span>
-
-              {/* Bars */}
-              {[
-                { day: 'Mon', h: '40%' },
-                { day: 'Tue', h: '5%' },
-                { day: 'Wed', h: '60%' },
-                { day: 'Thu', h: '25%' },
-                { day: 'Fri', h: '80%' },
-                { day: 'Sat', h: '0%' },
-                { day: 'Sun', h: '30%' },
-              ].map(d => (
-                <div key={d.day} className="flex-1 max-w-[40px] flex flex-col items-center gap-3 z-10">
-                  <div className="w-full bg-accent/20 rounded-sm relative group hover:bg-accent/40" style={{ height: d.h }}>
-                    <div className="absolute bottom-0 left-0 right-0 bg-accent rounded-sm transition-all" style={{ height: '70%' }} />
-                    <div className="opacity-0 group-hover:opacity-100 absolute -top-8 left-1/2 -translate-x-1/2 bg-bg-elevated px-2 py-1 rounded text-xs font-medium text-text-primary">
-                      {d.h}
-                    </div>
-                  </div>
-                  <span className="text-[11px] font-medium text-text-muted">{d.day}</span>
-                </div>
-              ))}
-            </div>
-            
-            <div className="text-center mt-6">
-              <span className="text-[15px] font-medium text-text-primary">Total: 8h 20min</span>
-              <span className="text-[13px] font-medium text-success ml-2">↑ +23% from last week</span>
-            </div>
-          </section>
-
-          <section className="bg-bg-base border border-border-subtle rounded-2xl p-6">
-            <h2 className="text-sm font-medium text-text-secondary uppercase tracking-wider mb-4 flex items-center justify-between">
-              Topic mastery — Biology
-              <div className="text-xs text-text-primary px-2 py-1 bg-bg-surface rounded-lg">🧬</div>
+          {/* ── Study time chart ── */}
+          <section className="rounded-2xl border p-5 mb-6"
+            style={{ background: "var(--color-surface)", borderColor: "var(--color-border-subtle)" }}>
+            <h2 className="text-sm font-medium mb-4" style={{ color: "var(--color-text-muted)" }}>
+              STUDY TIME THIS WEEK
             </h2>
-            <div className="space-y-4">
-              {[
-                { name: 'Characteristics of Living... ', pct: 95, status: '✅' },
-                { name: 'Cells', pct: 84, status: '✅' },
-                { name: 'Enzymes', pct: 78, status: '✅' },
-                { name: 'Nutrition in Plants', pct: 55, status: '⚠️' },
-                { name: 'Nutrition in Humans', pct: 44, status: '⚠️' },
-                { name: 'Transport in Plants', pct: 32, status: '──' },
-                { name: 'Transport in Humans', pct: 18, status: '──' },
-                { name: 'Gas Exchange', pct: 0, status: '──' },
-              ].map(t => (
-                <div key={t.name} className="flex items-center gap-4 group">
-                  <span className="w-6 text-center text-sm shrink-0">{t.status}</span>
-                  <span className="w-48 text-[13px] font-medium text-text-primary truncate">{t.name}</span>
-                  <div className="flex-1 bg-border-subtle h-2 rounded-full overflow-hidden shrink-1 max-w-[200px]">
-                    <div 
-                      className={`h-full rounded-full ${t.pct > 70 ? 'bg-success' : t.pct > 40 ? 'bg-warning' : 'bg-text-muted'}`}
-                      style={{ width: `${t.pct}%` }}
+            <div className="flex items-end gap-2 h-28">
+              {DAYS.map((day, i) => {
+                const mins = weeklyMins[i];
+                const pctH = (mins / maxMins) * 100;
+                return (
+                  <div key={day} className="flex-1 flex flex-col items-center gap-1">
+                    <div
+                      className="w-full rounded-md transition-all duration-700"
+                      style={{
+                        height: `${Math.max(pctH, 4)}%`,
+                        background: mins > 0 ? "linear-gradient(to top, var(--color-accent), #818CF8)" : "var(--color-elevated)",
+                        opacity: mins > 0 ? 1 : 0.5,
+                      }}
                     />
+                    <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>{day}</span>
                   </div>
-                  <span className="w-10 text-right text-[13px] font-mono text-text-muted">{t.pct}%</span>
-                </div>
-              ))}
+                );
+              })}
             </div>
+            <p className="text-sm mt-3" style={{ color: "var(--color-text-secondary)" }}>
+              Total:{" "}
+              <span className="font-semibold" style={{ color: "var(--color-text-primary)" }}>
+                {studyH}h {studyM}min
+              </span>
+            </p>
           </section>
 
-          <div className="grid md:grid-cols-2 gap-6">
-            <section className="bg-bg-surface border border-warning/40 rounded-2xl p-6 shadow-[0_0_20px_rgba(245,158,11,0.05)] border-l-4 border-l-warning">
-              <h2 className="text-sm font-medium text-text-secondary uppercase tracking-wider mb-2">Weak areas to focus on</h2>
-              <div className="flex items-start gap-3 mt-4">
-                <span className="text-xl">⚠️</span>
-                <div>
-                  <h3 className="font-semibold text-text-primary mb-1">Nutrition in Plants</h3>
-                  <p className="text-sm text-text-secondary leading-relaxed mb-4">
-                    You&apos;ve asked 8 questions but still getting 45% correct. Let&apos;s drill photosynthesis.
-                  </p>
-                  <Button variant="secondary" size="sm" className="bg-bg-base">Study this now →</Button>
-                </div>
+          {/* ── Subject tabs ── */}
+          {overview?.subjects && overview.subjects.length > 0 && (
+            <>
+              <div className="flex gap-2 mb-5">
+                {overview.subjects.map((s) => (
+                  <button
+                    key={s.id}
+                    onClick={() => setActiveSubject(s.id)}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium border transition-all"
+                    style={{
+                      background: activeSubject === s.id ? "var(--color-accent-soft)" : "var(--color-surface)",
+                      borderColor: activeSubject === s.id ? "var(--color-accent)" : "var(--color-border-subtle)",
+                      color: activeSubject === s.id ? "var(--color-accent)" : "var(--color-text-secondary)",
+                    }}
+                  >
+                    {s.iconEmoji} {s.name}
+                  </button>
+                ))}
               </div>
-            </section>
 
-            <section className="bg-bg-base border border-border-subtle rounded-2xl p-6">
-              <h2 className="text-sm font-medium text-text-secondary uppercase tracking-wider mb-4">Key terms earned (this week)</h2>
-              <div className="flex flex-wrap gap-2">
-                {['osmosis', 'semi-permeable', 'concentration gradient', 'chlorophyll', 'photosynthesis', 'active transport', '+14 more'].map(term => (
-                  <span key={term} className="px-3 py-1.5 bg-success/10 text-success border border-success/20 rounded-md text-[13px] font-medium">
-                    {term.startsWith('+') ? term : `[${term}]`}
-                  </span>
+              {/* Topic mastery list */}
+              {currentSubject && (
+                <section className="rounded-2xl border p-5 mb-6"
+                  style={{ background: "var(--color-surface)", borderColor: "var(--color-border-subtle)" }}>
+                  <h2 className="text-sm font-medium mb-4" style={{ color: "var(--color-text-muted)" }}>
+                    TOPIC MASTERY — {currentSubject.name.toUpperCase()}
+                  </h2>
+                  {currentSubject.topics && currentSubject.topics.length > 0 ? (
+                    <div className="space-y-4">
+                      {currentSubject.topics.map((topic) => {
+                        const pct = Math.round(topic.mastery * 100);
+                        return (
+                          <div key={topic.topicName}>
+                            <div className="flex items-center justify-between mb-1.5">
+                              <div className="flex items-center gap-2">
+                                <MasteryBadge pct={pct} />
+                                <span className="text-sm">{topic.topicName}</span>
+                              </div>
+                              <span className="text-sm font-bold mono" style={{ color: pct >= 80 ? "var(--color-success)" : pct >= 50 ? "var(--color-warning)" : "var(--color-text-muted)" }}>
+                                {pct}%
+                              </span>
+                            </div>
+                            <div className="progress-bar">
+                              <div
+                                className="progress-fill"
+                                style={{
+                                  width: `${pct}%`,
+                                  background: pct >= 80
+                                    ? "linear-gradient(90deg, var(--color-success), #34d399)"
+                                    : pct >= 50
+                                    ? "linear-gradient(90deg, var(--color-warning), #fbbf24)"
+                                    : "linear-gradient(90deg, var(--color-text-muted), var(--color-border-default))",
+                                }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-sm py-4 text-center" style={{ color: "var(--color-text-muted)" }}>
+                      Start studying {currentSubject.name} to track your progress!
+                    </p>
+                  )}
+                </section>
+              )}
+            </>
+          )}
+
+          {/* ── Weak areas ── */}
+          {weakTopics.length > 0 && (
+            <section className="mb-6">
+              <h2 className="text-sm font-medium mb-3" style={{ color: "var(--color-text-muted)" }}>
+                WEAK AREAS TO FOCUS ON
+              </h2>
+              <div className="space-y-3">
+                {weakTopics.slice(0, 3).map((t) => (
+                  <div
+                    key={t.topicName}
+                    className="rounded-xl p-4 border flex items-start justify-between gap-4"
+                    style={{ background: "rgba(245,158,11,0.05)", borderColor: "rgba(245,158,11,0.2)" }}
+                  >
+                    <div className="flex items-start gap-3">
+                      <AlertTriangle size={16} style={{ color: "var(--color-warning)", flexShrink: 0, marginTop: 2 }} />
+                      <div>
+                        <p className="font-medium text-sm">{t.topicName}</p>
+                        <p className="text-xs mt-0.5" style={{ color: "var(--color-text-secondary)" }}>
+                          {t.questionsAsked} questions asked · {Math.round(t.mastery * 100)}% correct
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      className="text-xs font-medium flex-shrink-0 flex items-center gap-1"
+                      style={{ color: "var(--color-accent)" }}
+                    >
+                      Study <ChevronRight size={12} />
+                    </button>
+                  </div>
                 ))}
               </div>
             </section>
-          </div>
+          )}
+
+          {/* ── Key terms earned ── */}
+          <section>
+            <h2 className="text-sm font-medium mb-3" style={{ color: "var(--color-text-muted)" }}>
+              KEY TERMS EARNED THIS WEEK
+            </h2>
+            <div className="flex flex-wrap gap-2">
+              {KEY_TERMS.map((term) => (
+                <span key={term} className="key-term text-sm">
+                  {term}
+                </span>
+              ))}
+              <span className="tag text-sm">+14 more</span>
+            </div>
+          </section>
         </main>
-
-        {/* BOTTOM NAV (Mobile Only) */}
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-bg-surface/90 backdrop-blur-md border-t border-border-subtle p-3 flex justify-around items-center z-20 pb-safe">
-          <button onClick={() => router.push("/dashboard")} className="flex flex-col items-center gap-1 text-text-muted hover:text-text-primary">
-            <Home className="w-5 h-5" />
-            <span className="text-[10px] font-medium">Home</span>
-          </button>
-          <button className="flex flex-col items-center gap-1 text-text-muted hover:text-text-primary">
-            <MessageSquare className="w-5 h-5" />
-            <span className="text-[10px] font-medium">Chat</span>
-          </button>
-          <button className="flex flex-col items-center gap-1 text-accent">
-            <TrendingUp className="w-5 h-5" />
-            <span className="text-[10px] font-medium">Progress</span>
-          </button>
-          <button className="flex flex-col items-center gap-1 text-text-muted hover:text-text-primary">
-            <Settings className="w-5 h-5" />
-            <span className="text-[10px] font-medium">Settings</span>
-          </button>
-        </nav>
-
       </div>
+
+      {/* ── Bottom Nav ── */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-20 flex items-center justify-around h-16 border-t"
+        style={{ background: "rgba(8,12,20,0.9)", backdropFilter: "blur(16px)", borderColor: "var(--color-border-subtle)" }}>
+        {NAV_ITEMS.map(({ href, icon: Icon, label }) => {
+          const active = pathname === href;
+          return (
+            <Link key={href} href={href} className="flex flex-col items-center gap-1 px-4 py-2"
+              style={{ color: active ? "var(--color-accent)" : "var(--color-text-muted)" }}>
+              <Icon size={20} /><span className="text-[10px] font-medium">{label}</span>
+            </Link>
+          );
+        })}
+      </nav>
     </div>
+  );
+}
+
+export default function ProgressPage() {
+  return (
+    <AuthProvider>
+      <ProgressContent />
+    </AuthProvider>
   );
 }

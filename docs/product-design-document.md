@@ -279,7 +279,7 @@ LINHIQ — Feature Map
 - Level 5 chỉ khi học sinh đã cố gắng ≥2 lần
 
 **Acceptance Criteria:**
-- AI không bao giờ đưa đáp án thẳng ở L1–L3
+- AI không bao giờ đưa đáp án thẳng ở L1–L4
 - AI tự động detect ngôn ngữ học sinh (Anh/Việt/song ngữ) và phản hồi tương ứng
 - Mọi factual claim phải kèm textbook citation từ RAG context
 - KEY TERM highlight hiển thị inline trong bubble AI: ✅ **KEY TERM**: [term]
@@ -570,18 +570,65 @@ Student upload photo
 | Streak | Consecutive study days | Streak counter |
 | Weak areas | Topics với mastery < 50% | "Focus" card |
 
-**Mastery algorithm (đơn giản):**
-```
-masteryLevel = (correctAnswers / totalQuestions) * recencyWeight
+**Mastery Algorithm — Confidence-Weighted v1.1 (AI-Evaluated):**
 
-recencyWeight: câu hỏi gần đây (7 ngày) có trọng số cao hơn
-
-Thresholds:
-  ≥ 80% → Mastered (✅ xanh)
-  50–79% → Learning (🔵 xanh dương)
-  < 50% → Needs work (⚠️ vàng)
-  0% → Not started (⬜ xám)
 ```
+─── Pipeline (per SUBJECT mode exchange) ─────────────────────────────────────
+
+  1. Student sends message
+  2. AI Socratic response streams to student
+  3. [SILENT] Answer Evaluator (Gemini Flash, max 5 tokens) rates the message:
+        NOT_ANSWER → student hỏi câu mới, không phải trả lời → SKIP, không tính điểm
+        CORRECT    → học sinh trả lời đúng  → wasSuccessful = true
+        PARTIAL    → trả lời chưa đủ/rõ    → wasSuccessful = false (câu hỏi được tính)
+        INCORRECT  → trả lời sai           → wasSuccessful = false
+  4. Nếu NOT_ANSWER → không update mastery
+  5. Nếu CORRECT/PARTIAL/INCORRECT → update TopicProgress
+
+─── Mastery Formula (Confidence-Weighted) ────────────────────────────────────
+
+  accuracy     = correctAnswers / questionsAsked       ← chất lượng
+  confidence   = min(1.0, questionsAsked / 5)          ← đủ dữ liệu chưa?
+  masteryLevel = accuracy × confidence
+
+─── Ví dụ progression ────────────────────────────────────────────────────────
+
+  Trả lời 1 CORRECT   → acc=1.0, conf=0.20  → mastery = 20%  (Average)
+  Trả lời 2 CORRECT   → acc=1.0, conf=0.40  → mastery = 40%  (Average)
+  Trả lời 3 CORRECT   → acc=1.0, conf=0.60  → mastery = 60%  (Good)
+  4 CORRECT / 5 total → acc=0.8, conf=1.00  → mastery = 80%  (Excellent)
+  5 CORRECT / 5 total → acc=1.0, conf=1.00  → mastery = 100%
+  3 CORRECT / 5 total → acc=0.6, conf=1.00  → mastery = 60%  (Good)
+  Hỏi câu mới (NOT_ANSWER) → không tính gì cả.
+
+─── Ghi chú về PARTIAL ───────────────────────────────────────────────────────
+
+  PARTIAL: questionsAsked++, correctAnswers KHÔNG tăng
+  → Mastery giảm nhẹ nếu đang ở mức cao (accuracy kéo xuống)
+  → Khuyến khích học sinh trả lời đầy đủ, chính xác
+
+─── Tier thresholds ──────────────────────────────────────────────────────────
+
+  >= 80%  → ✓  Excellent  (xanh lá)
+  50-79%  → ●  Good       (xanh dương)
+  1-49%   → ◐  Average    (vàng)
+  0%      → ○  Not started (xám)
+
+─── Tại sao MIN_QUESTIONS = 5? ───────────────────────────────────────────────
+
+  Cần ít nhất 5 lần thực sự TRẢ LỜI (không phải hỏi) để đánh giá
+  chính xác. Tránh đạt Excellent chỉ từ 1-2 câu may mắn.
+```
+
+**Implementation files:**
+- `packages/ai-config/src/prompts/classifier.ts` → `ANSWER_EVAL_PROMPT`
+- `apps/api/src/modules/ai/ai.service.ts` → `evaluateAnswer()`
+- `apps/api/src/modules/progress/progress.service.ts` → `updateTopicMastery()`
+- `apps/api/src/modules/chat/chat.controller.ts` → pipeline kết nối sau stream
+
+**Trigger:** Sau khi AI hoàn tất stream trong SUBJECT mode. Kết quả `masteryUpdate` gửi qua SSE `done` event để Frontend cập nhật sidebar ngay (optimistic update).
+
+
 
 ---
 

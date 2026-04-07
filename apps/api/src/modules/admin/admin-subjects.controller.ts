@@ -3,7 +3,7 @@ import { AdminSubjectsService } from './admin-subjects.service';
 import { AuthGuard } from '../../common/guards/auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
-import { Curriculum } from '@prisma/client';
+import { Curriculum } from '@javirs/database';
 
 @Controller('admin/subjects')
 @UseGuards(AuthGuard, RolesGuard)

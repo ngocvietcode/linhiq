@@ -78,6 +78,7 @@ model User {
   chatSessions   ChatSession[]
   keyTermsEarned KeyTermEarned[]
   studySessions  StudySession[]
+  quizAttempts   QuizAttempt[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -131,6 +132,7 @@ model Subject {
   documents    Document[]
   enrollments  SubjectEnrollment[]
   chatSessions ChatSession[]
+  quizAttempts QuizAttempt[]
 
   @@unique([name, curriculum])
   @@index([curriculum])
@@ -144,7 +146,8 @@ model Milestone {
   orderIndex  Int      @default(0)
   description String?
 
-  topics      Topic[]
+  topics       Topic[]
+  quizAttempts QuizAttempt[] @relation("MilestoneQuizAttempts")
 
   @@unique([subjectId, name])
   @@index([subjectId])
@@ -164,6 +167,7 @@ model Topic {
   chunks      DocumentChunk[]
   progress    TopicProgress[]
   diagnostics DiagnosticQuestion[]
+  quizAttempts QuizAttempt[]
 
   @@unique([subjectId, name])
   @@index([subjectId])
@@ -391,4 +395,50 @@ model AuditLog {
 
   @@index([adminId])
   @@index([createdAt])
+}
+
+// ── QUIZ (F8) ────────────────────────────────────────────────
+
+enum QuizType {
+  TOPIC     // 5 questions for a single topic
+  MILESTONE // 15 questions across all topics in a milestone
+}
+
+model QuizAttempt {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subjectId   String
+  subject     Subject   @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  quizType    QuizType
+  topicId     String?
+  topic       Topic?    @relation(fields: [topicId], references: [id])
+  milestoneId String?
+  milestone   Milestone? @relation("MilestoneQuizAttempts", fields: [milestoneId], references: [id])
+  score       Int       @default(0)
+  total       Int       @default(0)
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  questions   QuizQuestion[]
+
+  @@index([userId])
+  @@index([topicId])
+  @@index([milestoneId])
+}
+
+model QuizQuestion {
+  id            String  @id @default(cuid())
+  attemptId     String
+  attempt       QuizAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  topicId       String? // which topic this question belongs to (for mastery mapping)
+  orderIndex    Int
+  question      String  @db.Text
+  options       Json    // ["A. ...", "B. ...", "C. ...", "D. ..."]
+  correctAnswer String  // "A" | "B" | "C" | "D"
+  explanation   String  @db.Text
+  studentAnswer String? // null until answered
+  isCorrect     Boolean?
+
+  @@index([attemptId])
 }

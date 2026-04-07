@@ -1,4 +1,5 @@
 import { PrismaClient, SourceType } from '@prisma/client';
+
 import { Pool } from 'pg';
 import { resolve, basename } from 'path';
 import * as dotenv from 'dotenv';
@@ -113,15 +114,17 @@ async function extractRoadmapFromAI(markdownText: string): Promise<RoadmapType> 
 // --- MAIN INGESTION ---
 
 async function main() {
-  console.log('📚 Starting fully-automated AI-Roadmap RAG Ingestion Pipeline...\n');
+  const subjectName = process.argv[2] || 'Biology';
+  console.log(`📚 Starting fully-automated AI-Roadmap RAG Ingestion Pipeline for ${subjectName}...\n`);
 
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });
   await pool.query('CREATE EXTENSION IF NOT EXISTS vector');
 
-  const bioSubject = await prisma.subject.findFirst({ where: { name: 'Biology' } });
-  if (!bioSubject) throw new Error('Biology subject not found.');
+  const subject = await prisma.subject.findFirst({ where: { name: subjectName } });
+  if (!subject) throw new Error(`${subjectName} subject not found.`);
 
-  const rawDir = resolve(__dirname, '../../../apps/data/curriculum/igcse/biology/textbook');
+  const folderName = subjectName === 'Mathematics' ? 'maths' : subjectName.toLowerCase();
+  const rawDir = resolve(__dirname, `../../../apps/data/curriculum/igcse/${folderName}/textbook`);
   let mdFiles: string[] = [];
   try {
     const files = await fs.readdir(rawDir);
@@ -150,18 +153,18 @@ async function main() {
 
     for (const ms of roadmap.milestones) {
       const milestone = await prisma.milestone.upsert({
-        where: { subjectId_name: { subjectId: bioSubject.id, name: ms.name } },
+        where: { subjectId_name: { subjectId: subject.id, name: ms.name } },
         update: { orderIndex: globalMilestoneCounter },
-        create: { subjectId: bioSubject.id, name: ms.name, orderIndex: globalMilestoneCounter }
+        create: { subjectId: subject.id, name: ms.name, orderIndex: globalMilestoneCounter }
       });
       globalMilestoneCounter++;
 
       for (const t of ms.topics) {
         const topic = await prisma.topic.upsert({
-          where: { subjectId_name: { subjectId: bioSubject.id, name: t.name } },
+          where: { subjectId_name: { subjectId: subject.id, name: t.name } },
           update: { milestoneId: milestone.id, orderIndex: globalTopicCounter },
           create: { 
-            subjectId: bioSubject.id, 
+            subjectId: subject.id, 
             milestoneId: milestone.id,
             name: t.name, 
             orderIndex: globalTopicCounter 
@@ -174,12 +177,12 @@ async function main() {
 
     // Xoá document cũ
     await prisma.document.deleteMany({
-      where: { subjectId: bioSubject.id, sourceType: SourceType.TEXTBOOK, title: basename(filename, '.md') }
+      where: { subjectId: subject.id, sourceType: SourceType.TEXTBOOK, title: basename(filename, '.md') }
     });
 
     const document = await prisma.document.create({
       data: {
-        subjectId: bioSubject.id,
+        subjectId: subject.id,
         title: basename(filename, '.md'),
         sourceType: SourceType.TEXTBOOK,
       }
@@ -193,8 +196,18 @@ async function main() {
     const lines = textContent.split('\n');
     for (const line of lines) {
       const trimmedLine = line.trim();
-      const matchedTopicId = headingToTopicIdMap.get(trimmedLine);
+      let matchedTopicId = headingToTopicIdMap.get(trimmedLine);
       
+      if (!matchedTopicId && trimmedLine.startsWith('#')) {
+        const cleanLine = trimmedLine.replace(/^#+\s*/, '').toLowerCase().trim();
+        for (const [key, id] of headingToTopicIdMap.entries()) {
+          if (key.replace(/^#+\s*/, '').toLowerCase().trim() === cleanLine) {
+            matchedTopicId = id;
+            break;
+          }
+        }
+      }
+
       if (matchedTopicId) {
         if (currentContent.length > 0) {
           sections.push({ topicId: currentTopicId, content: currentContent.join('\n').trim() });

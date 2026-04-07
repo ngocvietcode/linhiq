@@ -1,186 +1,387 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { useAuth, AuthProvider } from "@/lib/auth-context";
+import { useEffect, useState, useCallback } from "react";
+import { useAuth } from "@/lib/auth-context";
 import { api } from "@/lib/api";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft, Check, Sparkles, Brain, Cpu, AlertTriangle } from "lucide-react";
+import {
+  Settings2, Zap, Globe, Shield, Bell, Database,
+  Save, Check, X, RefreshCw, ChevronRight, AlertCircle,
+  Brain, Key, Sliders, Server, CheckCircle
+} from "lucide-react";
 
-function AdminSettingsContent() {
-  const router = useRouter();
-  const { user, token, isLoading, logout } = useAuth();
-  const [provider, setProvider] = useState<string | null>(null);
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+interface SystemSetting {
+  id: string;
+  defaultAiProvider: string;
+  updatedAt?: string;
+}
 
-  useEffect(() => {
-    if (!isLoading && (!user || user.role !== "ADMIN")) {
-      router.push("/dashboard");
-    }
-  }, [user, isLoading, router]);
+const PROVIDERS = [
+  { value: "gemini",    label: "Google Gemini",    icon: "✨", desc: "Gemini Pro / Flash" },
+  { value: "openai",   label: "OpenAI",            icon: "🤖", desc: "GPT-4o / GPT-4 Turbo" },
+  { value: "anthropic",label: "Anthropic Claude",  icon: "🧠", desc: "Claude 3.5 Sonnet" },
+];
 
-  useEffect(() => {
-    if (!token) return;
-    
-    api<{ success: boolean; data: { activeGlobalAiProvider: string } }>("/admin/settings", { token })
-      .then((res) => {
-        setProvider(res.data.activeGlobalAiProvider);
-      })
-      .catch((err) => {
-        console.error("Failed to load settings:", err);
-        setError("Failed to load global AI settings from server.");
-      });
-  }, [token]);
+const HINT_LEVELS = [
+  { level: "L1", label: "Nudge",       desc: "Minimal guidance — just a gentle push toward the right direction.", color: "#22D3A3" },
+  { level: "L2", label: "Approach",    desc: "Suggest the problem-solving approach without giving steps.",       color: "#6366F1" },
+  { level: "L3", label: "Partial",     desc: "Guide through key steps, require student to fill in details.",     color: "#F59E0B" },
+  { level: "L4", label: "Detailed",    desc: "Walk through the solution step-by-step with partial answers.",     color: "#F97316" },
+  { level: "L5", label: "Near Answer", desc: "Provide full methodology — student only needs to write it out.",   color: "#F43F5E" },
+];
 
-  async function updateProvider(newProvider: string) {
-    if (!token || isUpdating || newProvider === provider) return;
-    setIsUpdating(true);
-    setError(null);
-    setSuccessMsg(null);
-
-    try {
-      const result = await api<{ success: boolean }>("/admin/settings/provider", {
-        method: "POST",
-        body: { provider: newProvider },
-        token,
-      });
-
-      if (result.success) {
-        setProvider(newProvider);
-        setSuccessMsg(`Successfully switched global AI provider to ${newProvider}`);
-        setTimeout(() => setSuccessMsg(null), 3000);
-      }
-    } catch (err: any) {
-      setError(err.message || "Failed to update AI provider");
-    } finally {
-      setIsUpdating(false);
-    }
-  }
-
-  if (isLoading || !user || user.role !== "ADMIN") {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-bg-void">
-        <div className="animate-spin h-6 w-6 border-2 border-accent border-t-transparent rounded-full" />
-      </div>
-    );
-  }
-
-  const providers = [
-    { id: "gemini", name: "Google Gemini", description: "Default setup, currently synced with 3072D RAG Vectors", icon: <Sparkles className="w-6 h-6 text-accent" /> },
-    { id: "openai", name: "OpenAI GPT", description: "Premium LLMs requires text-embedding-3-large", icon: <Brain className="w-6 h-6 text-[#10B981]" /> },
-    { id: "anthropic", name: "Anthropic Claude", description: "Claude 3.5 requires external embeddings proxy", icon: <Cpu className="w-6 h-6 text-[#F59E0B]" /> }
-  ];
-
+function SettingSection({ title, icon: Icon, children }: {
+  title: string; icon: React.FC<{ size: number; style?: React.CSSProperties }>; children: React.ReactNode;
+}) {
   return (
-    <div className="min-h-screen bg-bg-void font-sans">
-      {/* Top Nav */}
-      <nav className="border-b border-border-subtle px-6 py-4 flex items-center justify-between bg-bg-base sticky top-0 z-10">
-        <div className="flex items-center gap-4">
-          <h1 className="text-xl font-bold text-text-primary tracking-tight">
-            LinhIQ <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-accent text-white ml-2 align-middle">Admin</span>
-          </h1>
+    <div
+      className="rounded-2xl border"
+      style={{ background: "var(--color-surface)", borderColor: "var(--color-border-subtle)" }}
+    >
+      <div
+        className="flex items-center gap-3 px-6 py-4 border-b"
+        style={{ borderColor: "var(--color-border-subtle)" }}
+      >
+        <div
+          className="w-8 h-8 rounded-lg flex items-center justify-center"
+          style={{ background: "var(--color-accent-soft)" }}
+        >
+          <Icon size={16} style={{ color: "var(--color-accent)" }} />
         </div>
-        <div className="flex items-center gap-4">
-          <button onClick={() => router.push("/dashboard")} className="hidden sm:flex text-sm font-medium text-text-muted hover:text-text-primary transition-colors items-center gap-1">
-            <ArrowLeft className="w-4 h-4" /> Dashboard
-          </button>
-          <span className="text-sm font-medium text-text-secondary border-l border-border-default pl-4">
-            {user.name}
-          </span>
-          <button
-            onClick={logout}
-            className="text-sm font-medium text-danger hover:underline transition-colors"
-          >
-            Sign out
-          </button>
-        </div>
-      </nav>
-
-      <main className="max-w-4xl mx-auto px-6 py-10">
-        <div className="flex items-center gap-4 mb-2">
-          <button onClick={() => router.push("/dashboard")} className="sm:hidden text-text-muted hover:text-text-primary transition-colors">
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <h2 className="text-3xl font-semibold text-text-primary tracking-tight">System Settings</h2>
-        </div>
-        <p className="text-text-secondary mb-10 text-lg">
-          Manage platform routing, features, and core configuration limits.
-        </p>
-
-        {error && (
-          <div className="mb-6 p-4 bg-danger/10 border border-danger/30 rounded-xl text-danger text-sm font-medium flex items-center gap-3">
-            <AlertTriangle className="w-5 h-5" /> {error}
-          </div>
-        )}
-
-        {successMsg && (
-          <div className="mb-6 p-4 bg-[#10B981]/10 border border-[#10B981]/30 rounded-xl text-[#10B981] text-sm font-medium flex items-center gap-3">
-            <Check className="w-5 h-5" /> {successMsg}
-          </div>
-        )}
-
-        {/* Global Provider Switcher */}
-        <section className="bg-bg-base border border-border-default rounded-3xl overflow-hidden mb-8 shadow-sm">
-          <div className="px-8 py-6 border-b border-border-subtle bg-bg-surface">
-            <h3 className="text-lg font-semibold text-text-primary">Global AI Provider</h3>
-            <p className="text-sm text-text-secondary mt-1">
-              Select which foundation model provider to use globally across the system for student chat & QA. 
-            </p>
-          </div>
-          
-          <div className="p-8">
-            <div className="flex flex-col space-y-4">
-              {providers.map((p) => (
-                <div 
-                  key={p.id}
-                  onClick={() => updateProvider(p.id)}
-                  className={`relative p-6 rounded-2xl border-2 transition-all cursor-pointer flex items-start gap-5 
-                    ${provider === p.id ? "bg-accent/5 border-accent shadow-glow" : "bg-bg-surface border-border-subtle hover:border-border-default"} 
-                    ${isUpdating && provider !== p.id ? "opacity-50 pointer-events-none" : ""}`}
-                >
-                  <div className="bg-bg-base p-3 rounded-xl border border-border-default shadow-sm shrink-0">
-                    {p.icon}
-                  </div>
-                  <div className="flex-1">
-                    <h4 className={`text-lg font-bold ${provider === p.id ? "text-accent" : "text-text-primary"}`}>
-                      {p.name}
-                    </h4>
-                    <p className="text-sm text-text-secondary mt-1">
-                      {p.description}
-                    </p>
-                  </div>
-                  
-                  {provider === p.id && (
-                    <div className="absolute top-1/2 -translate-y-1/2 right-6">
-                      <div className="h-6 w-6 rounded-full bg-accent flex items-center justify-center shadow-lg shadow-accent/40">
-                        <Check className="w-4 h-4 text-white" />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-            
-            <div className="mt-8 text-[13px] text-text-secondary p-4 bg-[#F59E0B]/10 border border-[#F59E0B]/30 rounded-xl flex items-start gap-3">
-              <AlertTriangle className="w-5 h-5 text-[#F59E0B] shrink-0" />
-              <div>
-                <span className="font-semibold text-[#F59E0B]">Warning: </span> 
-                Switching providers requires ensuring you have valid API keys supplied in the backend environment variables (`.env`).
-              </div>
-            </div>
-          </div>
-        </section>
-      </main>
+        <h2 className="font-semibold">{title}</h2>
+      </div>
+      <div className="px-6 py-5">{children}</div>
     </div>
   );
 }
 
 export default function AdminSettingsPage() {
+  const { token } = useAuth();
+  const [settings, setSettings] = useState<SystemSetting | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [selectedProvider, setSelectedProvider] = useState("gemini");
+  const [savingProvider, setSavingProvider] = useState(false);
+  const [toast, setToast] = useState<{ msg: string; type: "ok" | "err" } | null>(null);
+  const [maintenanceMode, setMaintenanceMode] = useState(false);
+  const [registrationOpen, setRegistrationOpen] = useState(true);
+  const [maxSessionsPerUser, setMaxSessionsPerUser] = useState("50");
+  const [defaultHintLevel, setDefaultHintLevel] = useState("L2");
+
+  const showToast = (msg: string, type: "ok" | "err" = "ok") => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3500);
+  };
+
+  const loadSettings = useCallback(async () => {
+    if (!token) return;
+    setLoading(true);
+    try {
+      const res = await api<{ data: SystemSetting }>("/admin/settings", { token });
+      setSettings(res?.data || null);
+      if (res?.data?.defaultAiProvider) setSelectedProvider(res.data.defaultAiProvider);
+    } catch {
+      showToast("Failed to load settings", "err");
+    } finally {
+      setLoading(false);
+    }
+  }, [token]);
+
+  useEffect(() => { loadSettings(); }, [loadSettings]);
+
+  async function saveProvider() {
+    if (!token) return;
+    setSavingProvider(true);
+    try {
+      await api("/admin/settings/provider", { method: "POST", token, body: { provider: selectedProvider } });
+      showToast("AI provider updated");
+      loadSettings();
+    } catch (e: any) {
+      showToast(e.message, "err");
+    } finally {
+      setSavingProvider(false);
+    }
+  }
+
+  function Toggle({ value, onChange, label, desc }: {
+    value: boolean; onChange: (v: boolean) => void; label: string; desc?: string;
+  }) {
+    return (
+      <div className="flex items-center justify-between py-3">
+        <div>
+          <p className="font-medium text-sm">{label}</p>
+          {desc && <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>{desc}</p>}
+        </div>
+        <button
+          onClick={() => onChange(!value)}
+          className="relative w-12 h-6 rounded-full transition-all duration-300 flex-shrink-0"
+          style={{ background: value ? "var(--color-accent)" : "var(--color-elevated)" }}
+        >
+          <span
+            className="absolute top-1 w-4 h-4 rounded-full transition-all duration-300"
+            style={{
+              left: value ? "26px" : "4px",
+              background: value ? "#fff" : "var(--color-text-muted)",
+            }}
+          />
+        </button>
+      </div>
+    );
+  }
+
   return (
-    <AuthProvider>
-      <AdminSettingsContent />
-    </AuthProvider>
+    <div className="px-6 lg:px-8 py-8 max-w-3xl mx-auto">
+      {/* Toast */}
+      {toast && (
+        <div
+          className="fixed top-5 right-5 z-50 px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-2 animate-slide-in-right"
+          style={{
+            background: toast.type === "ok" ? "rgba(34,211,163,0.15)" : "rgba(244,63,94,0.15)",
+            border: `1px solid ${toast.type === "ok" ? "rgba(34,211,163,0.4)" : "rgba(244,63,94,0.4)"}`,
+            color: toast.type === "ok" ? "var(--color-success)" : "var(--color-danger)",
+            boxShadow: "var(--shadow-md)",
+          }}
+        >
+          {toast.type === "ok" ? <Check size={14} /> : <X size={14} />}
+          {toast.msg}
+        </div>
+      )}
+
+      {/* Header */}
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-2xl font-bold">System Settings</h1>
+          <p className="text-sm mt-0.5" style={{ color: "var(--color-text-secondary)" }}>
+            Configure the LinhIQ platform
+            {settings?.updatedAt && ` · Last updated ${new Date(settings.updatedAt).toLocaleDateString()}`}
+          </p>
+        </div>
+        <button onClick={loadSettings} className="btn-ghost p-2">
+          <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+        </button>
+      </div>
+
+      <div className="space-y-6">
+        {/* AI Provider */}
+        <SettingSection title="AI Provider" icon={Brain as any}>
+          <p className="text-sm mb-4" style={{ color: "var(--color-text-secondary)" }}>
+            Select the default large language model provider for AI tutoring sessions.
+          </p>
+          {loading ? (
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="skeleton h-16 rounded-xl" />
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-3 mb-5">
+              {PROVIDERS.map(({ value, label, icon, desc }) => (
+                <button
+                  key={value}
+                  onClick={() => setSelectedProvider(value)}
+                  className="w-full flex items-center gap-4 px-4 py-3.5 rounded-xl border transition-all text-left"
+                  style={{
+                    background: selectedProvider === value ? "var(--color-accent-soft)" : "var(--color-elevated)",
+                    borderColor: selectedProvider === value ? "var(--color-accent)" : "var(--color-border-subtle)",
+                  }}
+                >
+                  <span className="text-2xl">{icon}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm">{label}</p>
+                    <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>{desc}</p>
+                  </div>
+                  {selectedProvider === value && (
+                    <CheckCircle size={18} style={{ color: "var(--color-accent)", flexShrink: 0 }} />
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+          <button
+            onClick={saveProvider}
+            disabled={savingProvider || selectedProvider === settings?.defaultAiProvider}
+            className="btn-primary gap-2 text-sm"
+          >
+            <Save size={14} />
+            {savingProvider ? "Saving..." : "Save Provider"}
+          </button>
+          {selectedProvider === settings?.defaultAiProvider && (
+            <p className="text-xs mt-2" style={{ color: "var(--color-text-muted)" }}>
+              ✓ Currently active
+            </p>
+          )}
+        </SettingSection>
+
+        {/* Hint System */}
+        <SettingSection title="Hint Level Configuration" icon={Sliders as any}>
+          <p className="text-sm mb-4" style={{ color: "var(--color-text-secondary)" }}>
+            Configure the 5-level pedagocical hint system. The default level is applied when students start a new session.
+          </p>
+          <div className="space-y-2 mb-4">
+            {HINT_LEVELS.map(({ level, label, desc, color }) => (
+              <button
+                key={level}
+                onClick={() => setDefaultHintLevel(level)}
+                className="w-full flex items-center gap-4 px-4 py-3 rounded-xl border transition-all text-left"
+                style={{
+                  background: defaultHintLevel === level ? `${color}10` : "var(--color-elevated)",
+                  borderColor: defaultHintLevel === level ? `${color}50` : "var(--color-border-subtle)",
+                }}
+              >
+                <div
+                  className="px-2 py-0.5 rounded text-xs font-bold flex-shrink-0"
+                  style={{ background: `${color}20`, color }}
+                >
+                  {level}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm" style={{ color: defaultHintLevel === level ? color : "inherit" }}>
+                    {label}
+                  </p>
+                  <p className="text-xs mt-0.5 line-clamp-1" style={{ color: "var(--color-text-muted)" }}>
+                    {desc}
+                  </p>
+                </div>
+                {defaultHintLevel === level && (
+                  <span className="text-xs font-semibold" style={{ color }}>DEFAULT</span>
+                )}
+              </button>
+            ))}
+          </div>
+          <button className="btn-primary gap-2 text-sm">
+            <Save size={14} /> Save Default
+          </button>
+        </SettingSection>
+
+        {/* Platform toggles */}
+        <SettingSection title="Platform Configuration" icon={Globe as any}>
+          <div className="divide-y" style={{ borderColor: "var(--color-border-subtle)" }}>
+            <Toggle
+              value={registrationOpen}
+              onChange={setRegistrationOpen}
+              label="Open Registration"
+              desc="Allow new users to create accounts"
+            />
+            <Toggle
+              value={maintenanceMode}
+              onChange={setMaintenanceMode}
+              label="Maintenance Mode"
+              desc="Show maintenance banner to all users"
+            />
+          </div>
+          {maintenanceMode && (
+            <div
+              className="mt-4 flex items-start gap-2 p-3 rounded-xl border text-sm"
+              style={{ background: "rgba(245,158,11,0.05)", borderColor: "rgba(245,158,11,0.2)", color: "var(--color-warning)" }}
+            >
+              <AlertCircle size={15} className="flex-shrink-0 mt-0.5" />
+              Maintenance mode is ON. Students cannot access the platform.
+            </div>
+          )}
+        </SettingSection>
+
+        {/* Limits */}
+        <SettingSection title="Usage Limits" icon={Server as any}>
+          <div className="space-y-4">
+            <div>
+              <label className="label">Max Chat Sessions per User</label>
+              <input
+                value={maxSessionsPerUser}
+                onChange={(e) => setMaxSessionsPerUser(e.target.value)}
+                type="number"
+                min="1"
+                max="500"
+                className="input mt-1.5"
+                style={{ width: 120 }}
+              />
+              <p className="text-xs mt-1" style={{ color: "var(--color-text-muted)" }}>
+                Students can archive old sessions beyond this limit
+              </p>
+            </div>
+          </div>
+          <button className="btn-primary gap-2 text-sm mt-5">
+            <Save size={14} /> Save Limits
+          </button>
+        </SettingSection>
+
+        {/* Security */}
+        <SettingSection title="Security" icon={Shield as any}>
+          <div className="space-y-3">
+            {[
+              { label: "JWT Token Expiry", value: "7 days", editable: false },
+              { label: "Rate Limit (requests/min)", value: "60", editable: true },
+              { label: "Max File Upload Size", value: "50 MB", editable: false },
+            ].map(({ label, value, editable }) => (
+              <div
+                key={label}
+                className="flex items-center justify-between py-3 border-b last:border-0"
+                style={{ borderColor: "var(--color-border-subtle)" }}
+              >
+                <p className="text-sm font-medium">{label}</p>
+                <div className="flex items-center gap-2">
+                  {editable ? (
+                    <input
+                      defaultValue={value}
+                      className="input text-right text-sm"
+                      style={{ width: 80, height: 32, padding: "4px 8px" }}
+                    />
+                  ) : (
+                    <span
+                      className="text-sm px-2.5 py-1 rounded-lg"
+                      style={{ background: "var(--color-elevated)", color: "var(--color-text-secondary)" }}
+                    >
+                      {value}
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+          <button className="btn-primary gap-2 text-sm mt-5">
+            <Save size={14} /> Save Security Rules
+          </button>
+        </SettingSection>
+
+        {/* Danger zone */}
+        <div
+          className="rounded-2xl border p-6"
+          style={{ background: "rgba(244,63,94,0.04)", borderColor: "rgba(244,63,94,0.25)" }}
+        >
+          <h2 className="font-bold mb-1" style={{ color: "var(--color-danger)" }}>Danger Zone</h2>
+          <p className="text-sm mb-5" style={{ color: "var(--color-text-secondary)" }}>
+            Irreversible and destructive actions. Handle with extreme care.
+          </p>
+          <div className="space-y-3">
+            {[
+              { label: "Clear RAG Vector Store", desc: "Remove all embedded knowledge chunks from the vector database" },
+              { label: "Flush All Chat Sessions", desc: "Delete all conversation history from all users" },
+              { label: "Reset System Settings", desc: "Restore all settings to factory defaults" },
+            ].map(({ label, desc }) => (
+              <div
+                key={label}
+                className="flex items-center justify-between py-3 border-b last:border-0"
+                style={{ borderColor: "rgba(244,63,94,0.15)" }}
+              >
+                <div className="min-w-0 pr-4">
+                  <p className="text-sm font-medium">{label}</p>
+                  <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>{desc}</p>
+                </div>
+                <button
+                  className="text-sm px-4 py-2 rounded-xl border flex-shrink-0 font-medium transition-all"
+                  style={{ borderColor: "rgba(244,63,94,0.4)", color: "var(--color-danger)" }}
+                  onMouseEnter={(e) => {
+                    const el = e.currentTarget as HTMLElement;
+                    el.style.background = "rgba(244,63,94,0.1)";
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLElement).style.background = "transparent";
+                  }}
+                >
+                  Execute
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

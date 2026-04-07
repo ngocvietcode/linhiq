@@ -2,172 +2,377 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { ArrowRight, ArrowLeft } from "lucide-react";
+import { AuthProvider, useAuth } from "@/lib/auth-context";
+import { api } from "@/lib/api";
+import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 
-type Step = 1 | 2 | 3;
+const SUBJECTS = [
+  { id: "biology", emoji: "🧬", name: "Biology" },
+  { id: "chemistry", emoji: "⚗️", name: "Chemistry" },
+  { id: "maths", emoji: "∫", name: "Maths" },
+  { id: "physics", emoji: "⚡", name: "Physics" },
+  { id: "economics", emoji: "📊", name: "Economics" },
+  { id: "geography", emoji: "🌍", name: "Geography" },
+];
 
-export default function OnboardingPage() {
+const DIAGNOSTIC_QUESTIONS = [
+  {
+    question: "What is the function of the cell membrane?",
+    options: [
+      "Controls what enters and leaves the cell",
+      "Produces energy for the cell",
+      "Controls cell division",
+      "Stores genetic information",
+    ],
+    correct: 0,
+  },
+  {
+    question: "Which process converts glucose into energy in cells?",
+    options: ["Photosynthesis", "Osmosis", "Respiration", "Diffusion"],
+    correct: 2,
+  },
+  {
+    question: "What does DNA stand for?",
+    options: [
+      "Deoxyribonucleic Acid",
+      "Deoxyribose Nucleotide Algorithm",
+      "Dynamic Nucleic Array",
+      "Deionized Nitrogen Acid",
+    ],
+    correct: 0,
+  },
+];
+
+function OnboardingContent() {
   const router = useRouter();
-  const [step, setStep] = useState<Step>(1);
-  const [curriculum, setCurriculum] = useState<string | null>(null);
-  const [subjects, setSubjects] = useState<string[]>([]);
-  const [diagnosticAns, setDiagnosticAns] = useState<number | null>(null);
+  const { token } = useAuth();
+  const [step, setStep] = useState(1);
+  const [curriculum, setCurriculum] = useState<string>("");
+  const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
+  const [diagnosticAnswers, setDiagnosticAnswers] = useState<number[]>([]);
+  const [currentQ, setCurrentQ] = useState(0);
+  const [saving, setSaving] = useState(false);
 
-  const toggleSubject = (sub: string) => {
-    setSubjects(prev => 
-      prev.includes(sub) ? prev.filter(s => s !== sub) : [...prev, sub].slice(0, 3)
+  const totalSteps = 3;
+
+  function toggleSubject(id: string) {
+    setSelectedSubjects((prev) =>
+      prev.includes(id) ? prev.filter((s) => s !== id) : prev.length < 3 ? [...prev, id] : prev
     );
-  };
+  }
 
-  const nextStep = () => {
-    if (step < 3) setStep(prev => (prev + 1) as Step);
-    else router.push("/dashboard");
-  };
+  function answerDiagnostic(answerIdx: number) {
+    const newAnswers = [...diagnosticAnswers, answerIdx];
+    setDiagnosticAnswers(newAnswers);
+    if (currentQ < DIAGNOSTIC_QUESTIONS.length - 1) {
+      setCurrentQ((q) => q + 1);
+    } else {
+      finishOnboarding(newAnswers);
+    }
+  }
 
-  const skipToDashboard = () => router.push("/dashboard");
+  async function finishOnboarding(answers?: number[]) {
+    setSaving(true);
+    try {
+      // Save onboarding data if API supports it
+      if (token) {
+        await api("/users/onboarding", {
+          method: "POST",
+          token,
+          body: {
+            curriculum,
+            subjects: selectedSubjects,
+            diagnosticAnswers: answers || diagnosticAnswers,
+          },
+        }).catch(() => {}); // non-blocking
+      }
+    } finally {
+      router.push("/dashboard");
+    }
+  }
+
+  function StepIndicator() {
+    return (
+      <div className="flex items-center gap-2">
+        {Array.from({ length: totalSteps }, (_, i) => (
+          <div
+            key={i}
+            className="rounded-full transition-all duration-300"
+            style={{
+              width: i + 1 === step ? 20 : 8,
+              height: 8,
+              background: i + 1 <= step ? "var(--color-accent)" : "var(--color-surface)",
+              border: "1px solid var(--color-border-default)",
+            }}
+          />
+        ))}
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-bg-void flex items-center justify-center p-4 selection:bg-accent/30">
-      <div className="w-full max-w-2xl bg-bg-base border border-border-default rounded-[32px] overflow-hidden flex flex-col min-h-[560px] shadow-2xl relative">
-        
-        {/* Header */}
-        <div className="px-8 py-6 border-b border-border-subtle flex items-center justify-between z-10 relative">
-          <div className="font-semibold text-lg text-text-primary tracking-tight">LinhIQ</div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-text-muted mr-2">Step {step} of 3</span>
-            <div className="flex gap-1.5">
-              {[1, 2, 3].map(i => (
-                <div key={i} className={`w-2 h-2 rounded-full transition-colors ${step >= i ? 'bg-accent' : 'bg-border-default'}`} />
-              ))}
-            </div>
-          </div>
-        </div>
+    <div
+      className="min-h-screen flex flex-col"
+      style={{ background: "var(--color-void)" }}
+    >
+      {/* Background glow */}
+      <div
+        className="fixed inset-0 pointer-events-none"
+        style={{
+          background:
+            "radial-gradient(ellipse 80% 50% at 50% -20%, rgba(99,102,241,0.1), transparent)",
+        }}
+      />
 
-        {/* Content */}
-        <div className="flex-1 p-8 sm:p-12 z-10 relative flex flex-col justify-center">
+      {/* Header */}
+      <header className="relative z-10 px-6 py-5 flex items-center justify-between">
+        <div className="text-xl font-bold">
+          <span style={{ color: "var(--color-accent)" }}>Linh</span>IQ
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="text-sm" style={{ color: "var(--color-text-muted)" }}>
+            Step {step} of {totalSteps}
+          </span>
+          <StepIndicator />
+        </div>
+      </header>
+
+      {/* Content */}
+      <main className="relative z-10 flex-1 flex items-center justify-center px-4 py-12">
+        <div className="w-full max-w-xl animate-fade-up">
+
+          {/* ─── STEP 1: Curriculum ─── */}
           {step === 1 && (
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <h1 className="text-3xl font-semibold mb-2 text-text-primary">Hi, I&apos;m LinhIQ.</h1>
-              <p className="text-xl text-text-secondary mb-8">Your Cambridge AI tutor.<br/>Let me set up your personalised experience.</p>
-              
-              <h2 className="text-sm font-medium text-text-muted uppercase tracking-wider mb-4">Which curriculum are you studying?</h2>
-              <div className="grid sm:grid-cols-2 gap-4">
-                <button
-                  onClick={() => setCurriculum('IGCSE')}
-                  className={`text-left p-6 rounded-2xl border-2 transition-all ${curriculum === 'IGCSE' ? 'border-accent bg-accent/5 shadow-glow' : 'border-border-subtle bg-bg-surface hover:border-border-default'}`}
+            <div>
+              <div className="text-center mb-10">
+                <p
+                  className="text-4xl mb-4"
+                  style={{ fontFamily: "var(--font-mono)" }}
                 >
-                  <h3 className="text-xl font-bold text-text-primary mb-1">IGCSE</h3>
-                  <p className="text-sm text-text-muted">Grade 9–10<br/>Age 14–16</p>
-                </button>
-                <button
-                  onClick={() => setCurriculum('A-Level')}
-                  className={`text-left p-6 rounded-2xl border-2 transition-all ${curriculum === 'A-Level' ? 'border-accent bg-accent/5 shadow-glow' : 'border-border-subtle bg-bg-surface hover:border-border-default'}`}
-                >
-                  <h3 className="text-xl font-bold text-text-primary mb-1">A-Level</h3>
-                  <p className="text-sm text-text-muted">Grade 11–12<br/>Age 16–18</p>
-                </button>
+                  👋
+                </p>
+                <h1 className="text-3xl font-bold mb-3">
+                  Hi, I&apos;m LinhIQ.
+                  <br />
+                  <span style={{ color: "var(--color-text-secondary)" }}>
+                    Your Cambridge AI tutor.
+                  </span>
+                </h1>
+                <p style={{ color: "var(--color-text-secondary)" }}>
+                  Let me set up your personalised experience.
+                </p>
               </div>
+
+              <p className="font-medium mb-4">Which curriculum are you studying?</p>
+              <div className="grid grid-cols-2 gap-4 mb-8">
+                {[
+                  { id: "IGCSE", label: "IGCSE", sub: "Grade 9–10 · Age 14–16" },
+                  { id: "A-Level", label: "A-Level", sub: "Grade 11–12 · Age 16–18" },
+                ].map((c) => (
+                  <button
+                    key={c.id}
+                    onClick={() => setCurriculum(c.id)}
+                    className="rounded-xl p-5 text-left transition-all duration-200 border"
+                    style={{
+                      background:
+                        curriculum === c.id
+                          ? "var(--color-accent-soft)"
+                          : "var(--color-surface)",
+                      borderColor:
+                        curriculum === c.id
+                          ? "var(--color-accent)"
+                          : "var(--color-border-default)",
+                      boxShadow: curriculum === c.id ? "var(--shadow-glow)" : "none",
+                    }}
+                  >
+                    <div className="font-semibold text-lg mb-1">{c.label}</div>
+                    <div className="text-sm" style={{ color: "var(--color-text-secondary)" }}>
+                      {c.sub}
+                    </div>
+                    {curriculum === c.id && (
+                      <div
+                        className="mt-2 w-5 h-5 rounded-full flex items-center justify-center"
+                        style={{ background: "var(--color-accent)" }}
+                      >
+                        <Check size={12} color="white" />
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+
+              <button
+                onClick={() => setStep(2)}
+                disabled={!curriculum}
+                className="btn-primary w-full"
+              >
+                Continue <ArrowRight size={16} />
+              </button>
             </div>
           )}
 
+          {/* ─── STEP 2: Subjects ─── */}
           {step === 2 && (
-            <div className="animate-in fade-in slide-in-from-right-8 duration-500">
-              <h1 className="text-2xl font-semibold mb-2 text-text-primary">Which subjects do you want to study?</h1>
-              <p className="text-text-secondary mb-8">Pick up to 3 subjects to pin to your dashboard.</p>
-              
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {[
-                  { id: 'Biology', icon: '🧬' },
-                  { id: 'Chemistry', icon: '⚗️' },
-                  { id: 'Maths', icon: '∫' },
-                  { id: 'Physics', icon: '⚡' },
-                  { id: 'Economics', icon: '📊' },
-                  { id: 'Geography', icon: '🌍' },
-                ].map(s => {
-                  const isSelected = subjects.includes(s.id);
+            <div>
+              <div className="text-center mb-8">
+                <h1 className="text-3xl font-bold mb-2">Which subjects?</h1>
+                <p style={{ color: "var(--color-text-secondary)" }}>
+                  Pick up to 3 subjects to start with.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3 mb-4">
+                {SUBJECTS.map((s) => {
+                  const selected = selectedSubjects.includes(s.id);
                   return (
                     <button
                       key={s.id}
                       onClick={() => toggleSubject(s.id)}
-                      className={`relative p-4 rounded-xl border-2 text-center transition-all ${isSelected ? 'border-accent bg-accent/5' : 'border-border-subtle bg-bg-surface hover:border-border-default'}`}
+                      className="rounded-xl p-4 text-center transition-all duration-200 border relative"
+                      style={{
+                        background: selected ? "var(--color-accent-soft)" : "var(--color-surface)",
+                        borderColor: selected
+                          ? "var(--color-accent)"
+                          : "var(--color-border-subtle)",
+                      }}
                     >
-                      {isSelected && <div className="absolute top-2 left-2 w-4 h-4 rounded-full bg-accent text-white flex items-center justify-center text-[10px]">✓</div>}
-                      <div className="text-3xl mb-2">{s.icon}</div>
-                      <div className="text-[13px] font-semibold text-text-primary">{s.id}</div>
+                      {selected && (
+                        <div
+                          className="absolute top-2 right-2 w-4 h-4 rounded-full flex items-center justify-center"
+                          style={{ background: "var(--color-accent)" }}
+                        >
+                          <Check size={10} color="white" />
+                        </div>
+                      )}
+                      <div className="text-2xl mb-1">{s.emoji}</div>
+                      <div className="text-xs font-medium">{s.name}</div>
                     </button>
                   );
                 })}
               </div>
-              <p className="mt-8 text-sm font-medium text-text-muted">
-                {subjects.length} selected {subjects.length > 0 && `— ${subjects.join(', ')}`}
+
+              <p
+                className="text-sm mb-6"
+                style={{ color: "var(--color-text-secondary)" }}
+              >
+                {selectedSubjects.length} selected
+                {selectedSubjects.length > 0 &&
+                  ` — ${selectedSubjects
+                    .map((id) => SUBJECTS.find((s) => s.id === id)?.name)
+                    .join(", ")}`}
               </p>
+
+              <div className="flex gap-3">
+                <button onClick={() => setStep(1)} className="btn-ghost flex-1">
+                  <ArrowLeft size={16} /> Back
+                </button>
+                <button
+                  onClick={() => setStep(3)}
+                  disabled={selectedSubjects.length === 0}
+                  className="btn-primary flex-1"
+                >
+                  Continue <ArrowRight size={16} />
+                </button>
+              </div>
             </div>
           )}
 
+          {/* ─── STEP 3: Diagnostic ─── */}
           {step === 3 && (
-            <div className="animate-in fade-in slide-in-from-right-8 duration-500">
-              <h1 className="text-2xl font-semibold mb-2 text-text-primary">Quick diagnostic — 3 questions</h1>
-              <p className="text-text-secondary mb-8">Helps me understand where you are right now.</p>
-              
-              <div className="flex items-center gap-3 mb-6">
-                <span className="bg-bg-surface border border-border-subtle px-3 py-1 rounded-full text-xs font-semibold text-text-secondary">Biology</span>
-                <span className="text-sm font-medium text-text-muted">Question 1 of 3</span>
+            <div>
+              <div className="mb-6">
+                <h1 className="text-2xl font-bold mb-1">Quick diagnostic — 3 questions</h1>
+                <p className="text-sm" style={{ color: "var(--color-text-secondary)" }}>
+                  Helps me understand where you are right now.
+                </p>
               </div>
 
-              <div className="bg-bg-surface border border-border-subtle p-6 sm:p-8 rounded-2xl mb-6">
-                <h3 className="text-lg font-medium text-text-primary mb-6">What is the function of the cell membrane?</h3>
+              <div
+                className="text-xs font-medium mb-4 flex items-center gap-2"
+                style={{ color: "var(--color-text-muted)" }}
+              >
+                Biology · Question {currentQ + 1} of {DIAGNOSTIC_QUESTIONS.length}
+                <div
+                  className="progress-bar flex-1"
+                  style={{ height: 4 }}
+                >
+                  <div
+                    className="progress-fill"
+                    style={{ width: `${((currentQ) / DIAGNOSTIC_QUESTIONS.length) * 100}%` }}
+                  />
+                </div>
+              </div>
+
+              <div
+                className="rounded-xl p-6 mb-5 border"
+                style={{
+                  background: "var(--color-surface)",
+                  borderColor: "var(--color-border-subtle)",
+                }}
+              >
+                <p className="text-lg font-medium mb-6">
+                  {DIAGNOSTIC_QUESTIONS[currentQ].question}
+                </p>
                 <div className="space-y-3">
-                  {[
-                    "Controls what enters and leaves the cell",
-                    "Produces energy for the cell",
-                    "Controls cell division",
-                    "Stores genetic information"
-                  ].map((ans, idx) => (
+                  {DIAGNOSTIC_QUESTIONS[currentQ].options.map((opt, idx) => (
                     <button
                       key={idx}
-                      onClick={() => setDiagnosticAns(idx)}
-                      className={`w-full text-left p-4 rounded-xl border transition-all flex items-center gap-4 ${diagnosticAns === idx ? 'border-accent bg-accent/10 border-2' : 'border-border-subtle bg-bg-base hover:border-border-default'}`}
+                      onClick={() => answerDiagnostic(idx)}
+                      className="w-full text-left px-4 py-3 rounded-lg border transition-all duration-150"
+                      style={{
+                        background: "var(--color-base)",
+                        borderColor: "var(--color-border-default)",
+                        color: "var(--color-text-primary)",
+                      }}
+                      onMouseEnter={(e) => {
+                        (e.currentTarget as HTMLElement).style.borderColor =
+                          "var(--color-accent)";
+                        (e.currentTarget as HTMLElement).style.background =
+                          "var(--color-accent-soft)";
+                      }}
+                      onMouseLeave={(e) => {
+                        (e.currentTarget as HTMLElement).style.borderColor =
+                          "var(--color-border-default)";
+                        (e.currentTarget as HTMLElement).style.background = "var(--color-base)";
+                      }}
                     >
-                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${diagnosticAns === idx ? 'border-accent' : 'border-text-muted'}`}>
-                        {diagnosticAns === idx && <div className="w-2.5 h-2.5 rounded-full bg-accent" />}
-                      </div>
-                      <span className={`text-[15px] font-medium ${diagnosticAns === idx ? 'text-text-primary' : 'text-text-secondary'}`}>{ans}</span>
+                      <span
+                        className="font-mono text-xs mr-3"
+                        style={{ color: "var(--color-text-muted)" }}
+                      >
+                        {String.fromCharCode(65 + idx)}
+                      </span>
+                      {opt}
                     </button>
                   ))}
                 </div>
               </div>
+
+              <div className="flex items-center justify-between">
+                <button onClick={() => setStep(2)} className="btn-ghost">
+                  <ArrowLeft size={16} /> Back
+                </button>
+                <button
+                  onClick={() => finishOnboarding()}
+                  disabled={saving}
+                  className="text-sm"
+                  style={{ color: "var(--color-text-muted)" }}
+                >
+                  Skip diagnostic →
+                </button>
+              </div>
             </div>
           )}
         </div>
-
-        {/* Footer actions */}
-        <div className="px-8 py-6 border-t border-border-subtle bg-bg-base/80 backdrop-blur-sm z-10 flex items-center gap-4 justify-between">
-          <Button 
-            variant="ghost" 
-            onClick={() => setStep(prev => prev > 1 ? (prev - 1) as Step : 1)}
-            className={step === 1 ? 'invisible' : ''}
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" /> Back
-          </Button>
-
-          <Button 
-            onClick={nextStep} 
-            disabled={(step === 1 && !curriculum) || (step === 2 && subjects.length === 0)}
-            className="px-8"
-          >
-            {step === 3 ? "Complete" : "Continue"} <ArrowRight className="w-4 h-4 ml-2" />
-          </Button>
-        </div>
-        
-        {step === 3 && (
-          <div className="p-4 text-center text-sm">
-            <span className="text-text-secondary">You can skip this — it only helps personalise your path.</span>
-            <button onClick={skipToDashboard} className="ml-2 text-accent font-medium hover:underline focus:outline-none">Skip diagnostic</button>
-          </div>
-        )}
-      </div>
+      </main>
     </div>
+  );
+}
+
+export default function OnboardingPage() {
+  return (
+    <AuthProvider>
+      <OnboardingContent />
+    </AuthProvider>
   );
 }

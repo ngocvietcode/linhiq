@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
-import { Curriculum } from '@prisma/client';
+import { Curriculum } from '@javirs/database';
 
 @Injectable()
 export class AdminSubjectsService {

@@ -4,14 +4,11 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { ArrowRight, Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, ArrowRight, Loader2 } from "lucide-react";
 
 export default function RegisterPage() {
   const router = useRouter();
   const { register } = useAuth();
-  
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -23,10 +20,9 @@ export default function RegisterPage() {
     e.preventDefault();
     setError("");
     setLoading(true);
-
     try {
-      await register(email, password, name, "STUDENT");
-      router.push("/dashboard");
+      await register(email, password, name);
+      router.push("/onboarding");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Registration failed");
     } finally {
@@ -35,83 +31,109 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="w-full max-w-[400px] mx-auto">
-      <div className="mb-8 text-center">
-        <div className="flex items-center justify-center gap-2 mb-6">
-          <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center font-bold text-accent">L</div>
-          <span className="font-semibold text-lg text-text-primary tracking-tight">LinhIQ</span>
-        </div>
-        <h1 className="text-2xl font-semibold tracking-tight text-text-primary">Create an account</h1>
-        <p className="text-sm text-text-secondary mt-2">Start your learning journey today</p>
+    <div className="animate-fade-up">
+      <div className="text-center mb-8">
+        <h1 className="text-2xl font-bold mb-1">Create your account</h1>
+        <p className="text-sm" style={{ color: "var(--color-text-secondary)" }}>
+          Start learning with your personal AI tutor
+        </p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
-          <div className="p-3 bg-danger/10 text-danger border border-danger/30 rounded-xl text-sm font-medium text-center">
+          <div
+            className="px-4 py-3 rounded-lg text-sm"
+            style={{
+              background: "rgba(244,63,94,0.08)",
+              border: "1px solid rgba(244,63,94,0.25)",
+              color: "var(--color-danger)",
+            }}
+          >
             {error}
           </div>
         )}
 
-        <div className="space-y-1.5">
-          <label className="text-sm font-medium text-text-secondary px-1">Full Name</label>
-          <Input
+        <div>
+          <label htmlFor="name" className="block text-sm font-medium mb-2" style={{ color: "var(--color-text-secondary)" }}>
+            Full name
+          </label>
+          <input
+            id="name"
             type="text"
-            placeholder="John Doe"
+            required
             value={name}
             onChange={(e) => setName(e.target.value)}
-            required
-            className="h-12 bg-bg-surface"
+            className="input"
+            placeholder="Alex Nguyen"
           />
         </div>
 
-        <div className="space-y-1.5">
-          <label className="text-sm font-medium text-text-secondary px-1">Email</label>
-          <Input
+        <div>
+          <label htmlFor="email" className="block text-sm font-medium mb-2" style={{ color: "var(--color-text-secondary)" }}>
+            Email
+          </label>
+          <input
+            id="email"
             type="email"
-            placeholder="you@example.com"
+            required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            required
-            className="h-12 bg-bg-surface"
+            className="input"
+            placeholder="you@example.com"
           />
         </div>
 
-        <div className="space-y-1.5">
-          <label className="text-sm font-medium text-text-secondary px-1">Password</label>
+        <div>
+          <label htmlFor="password" className="block text-sm font-medium mb-2" style={{ color: "var(--color-text-secondary)" }}>
+            Password
+          </label>
           <div className="relative">
-            <Input
+            <input
+              id="password"
               type={showPassword ? "text" : "password"}
-              placeholder="••••••••"
+              required
+              minLength={8}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              required
-              className="h-12 bg-bg-surface pr-10"
-              minLength={6}
+              className="input pr-11"
+              placeholder="Min. 8 characters"
             />
             <button
               type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary transition-colors focus:outline-none"
+              onClick={() => setShowPassword((v) => !v)}
+              className="absolute right-3 top-1/2 -translate-y-1/2"
+              style={{ color: "var(--color-text-muted)" }}
             >
-              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           </div>
         </div>
 
-        <Button type="submit" className="w-full h-12 text-[15px] mt-2" disabled={loading}>
-          {loading ? "Creating account..." : "Create Account"}
-          {!loading && <ArrowRight className="w-4 h-4 ml-2 opacity-70" />}
-        </Button>
+        <button
+          type="submit"
+          disabled={loading}
+          className="btn-primary w-full mt-2"
+          style={{ borderRadius: "var(--radius-sm)" }}
+        >
+          {loading ? (
+            <>
+              <Loader2 size={15} className="animate-spin" />
+              Creating account...
+            </>
+          ) : (
+            <>
+              Create account <ArrowRight size={14} />
+            </>
+          )}
+        </button>
       </form>
 
-      <div className="mt-8 text-center space-y-3">
-        <p className="text-sm text-text-secondary">
-          Already have an account?{" "}
-          <Link href="/login" className="text-accent font-medium hover:underline">
-            Sign in →
-          </Link>
-        </p>
-      </div>
+      <p className="mt-6 text-center text-sm" style={{ color: "var(--color-text-secondary)" }}>
+        Already have an account?{" "}
+        <Link href="/login" className="font-medium hover:underline" style={{ color: "var(--color-accent)" }}>
+          Sign in →
+        </Link>
+      </p>
     </div>
   );
 }

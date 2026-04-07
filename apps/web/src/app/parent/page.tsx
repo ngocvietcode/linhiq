@@ -1,165 +1,253 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { 
-  BarChart2, 
-  MessageSquare, 
-  Settings, 
-  LayoutDashboard,
-  AlertTriangle,
-  ArrowRight
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import {
+  LayoutDashboard, BarChart2, MessageSquare, Settings,
+  TrendingUp, TrendingDown, AlertCircle, Clock, CheckCircle,
+  Flame
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+
+const NAV_ITEMS = [
+  { href: "/parent", icon: LayoutDashboard, label: "Overview" },
+  { href: "/parent/reports", icon: BarChart2, label: "Reports" },
+  { href: "/parent/messages", icon: MessageSquare, label: "Messages" },
+  { href: "/parent/settings", icon: Settings, label: "Settings" },
+];
+
+// Static demo data — in production would come from API
+const STUDENT = {
+  name: "Minh",
+  curriculum: "IGCSE Year 10",
+  studyHoursWeek: "8h 20min",
+  studyHoursChange: "+23%",
+  questionsWeek: 47,
+  correctPct: 78,
+  streakDays: 7,
+};
+
+const SUBJECTS = [
+  { emoji: "🧬", name: "Biology", mastery: 78, status: "good", label: "Good progress" },
+  { emoji: "⚗️", name: "Chemistry", mastery: 62, status: "ok", label: "Steady" },
+  { emoji: "∫", name: "Mathematics", mastery: 41, status: "warn", label: "Needs focus" },
+];
+
+const ATTENTION = [
+  { icon: AlertCircle, text: "Minh hasn't studied Chemistry in 3 days.", sub: "The Chemistry exam is in 18 days." },
+];
+
+const RECENT_ACTIVITY = [
+  { date: "Today", subject: "Biology", duration: "55min", note: "Studied Transport in Humans" },
+  { date: "Today", subject: "Biology", duration: "25min", note: "Asked about osmosis (5 questions)" },
+  { date: "Monday", subject: "Chemistry", duration: "40min", note: "Studied Ionic Bonding" },
+  { date: "Sunday", subject: "Biology", duration: "30min", note: "Completed quiz — 8/10 correct" },
+];
+
+function StatCard({ icon: Icon, label, value, sub, color }: {
+  icon: React.FC<{ size: number; style?: React.CSSProperties }>;
+  label: string; value: string; sub?: string; color: string;
+}) {
+  return (
+    <div className="rounded-xl border p-4"
+      style={{ background: "var(--color-base)", borderColor: "var(--color-border-subtle)", boxShadow: "var(--shadow-sm)" }}>
+      <div className="flex items-center gap-2 mb-2">
+        <Icon size={16} style={{ color }} />
+        <span className="text-sm font-medium" style={{ color: "var(--color-text-secondary)" }}>{label}</span>
+      </div>
+      <p className="text-2xl font-bold" style={{ color: "var(--color-text-primary)" }}>{value}</p>
+      {sub && <p className="text-xs mt-1" style={{ color: "var(--color-text-muted)" }}>{sub}</p>}
+    </div>
+  );
+}
 
 export default function ParentHomePage() {
-  const router = useRouter();
-
-  useEffect(() => {
-    document.documentElement.classList.add("parent-mode");
-    return () => {
-      document.documentElement.classList.remove("parent-mode");
-    };
-  }, []);
+  const pathname = usePathname();
 
   return (
-    <div className="min-h-screen bg-bg-void flex flex-col font-sans text-text-primary">
-      
-      {/* HEADER */}
-      <header className="border-b border-border-subtle bg-bg-base sticky top-0 z-10 px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center font-bold text-accent">L</div>
-          <span className="font-semibold text-lg tracking-tight">LinhIQ Parent</span>
+    <div className="min-h-screen flex" style={{ background: "var(--color-void)" }}>
+      {/* ── Sidebar ── */}
+      <aside className="hidden md:flex flex-col w-60 border-r"
+        style={{ background: "var(--color-base)", borderColor: "var(--color-border-subtle)", boxShadow: "var(--shadow-sm)" }}>
+        <div className="px-5 py-6 border-b" style={{ borderColor: "var(--color-border-subtle)" }}>
+          <span className="text-xl font-bold" style={{ color: "var(--color-text-primary)" }}>
+            <span style={{ color: "var(--color-accent)" }}>Linh</span>IQ{" "}
+            <span className="text-sm font-normal" style={{ color: "var(--color-text-muted)" }}>Parent</span>
+          </span>
         </div>
-        <div className="text-sm font-medium text-text-secondary">
-          Mr. Hung ▾
+        <nav className="flex-1 p-3 space-y-1">
+          {NAV_ITEMS.map(({ href, icon: Icon, label }) => {
+            const active = pathname === href;
+            return (
+              <Link key={href} href={href}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all"
+                style={{
+                  background: active ? "rgba(99,102,241,0.08)" : "transparent",
+                  color: active ? "var(--color-accent)" : "var(--color-text-secondary)",
+                }}>
+                <Icon size={18} />{label}
+              </Link>
+            );
+          })}
+        </nav>
+        <div className="p-4 border-t" style={{ borderColor: "var(--color-border-subtle)" }}>
+          <p className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>Mr. Hung</p>
+          <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>Parent account</p>
         </div>
-      </header>
+      </aside>
 
-      <main className="flex-1 max-w-5xl mx-auto w-full p-6 sm:p-8 md:py-12">
-        <div className="mb-10">
-          <h1 className="text-2xl sm:text-3xl font-semibold mb-2">👋 Good morning, Mr. Hung.</h1>
-          <p className="text-text-secondary text-lg">Here&apos;s how Minh is doing this week.</p>
-        </div>
-
-        {/* SUMMARY CARD */}
-        <div className="bg-bg-base border border-border-default rounded-2xl p-6 sm:p-8 shadow-sm mb-8">
-          <div className="flex items-center justify-between mb-8 border-b border-border-subtle pb-6">
-            <div>
-              <h2 className="font-semibold text-lg">Minh</h2>
-              <p className="text-text-secondary text-sm">IGCSE Year 10</p>
-            </div>
-            <Button variant="secondary" onClick={() => router.push('/parent/reports')} className="hidden sm:flex">
-              View Detailed Report →
-            </Button>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            <div>
-              <div className="text-sm font-medium text-text-muted mb-1 flex items-center gap-2">⏱ Study Time</div>
-              <div className="text-2xl font-bold flex items-end gap-2">
-                8h 20m <span className="text-sm text-success mb-1">↑ 23%</span>
-              </div>
-            </div>
-            <div>
-              <div className="text-sm font-medium text-text-muted mb-1 flex items-center gap-2">💬 Questions</div>
-              <div className="text-2xl font-bold">47 <span className="text-text-secondary text-sm font-medium">asked</span></div>
-            </div>
-            <div>
-              <div className="text-sm font-medium text-text-muted mb-1 flex items-center gap-2">🎯 Accuracy</div>
-              <div className="text-2xl font-bold">78% <span className="text-text-secondary text-sm font-medium">correct</span></div>
-            </div>
-            <div>
-              <div className="text-sm font-medium text-text-muted mb-1 flex items-center gap-2">🔥 Streak</div>
-              <div className="text-2xl font-bold">7 <span className="text-text-secondary text-sm font-medium">days active</span></div>
-            </div>
-          </div>
-          <Button variant="secondary" onClick={() => router.push('/parent/reports')} className="w-full mt-8 sm:hidden">
-            View Detailed Report →
-          </Button>
-        </div>
-
-        {/* SUBJECT OVERVIEW */}
-        <h3 className="text-lg font-semibold mb-4 text-text-primary">Subject overview</h3>
-        <div className="grid sm:grid-cols-3 gap-4 mb-8">
-          {[
-            { name: 'Biology', pct: 78, status: 'Good progress', emoji: '🧬', color: 'bg-[#10B981]' },
-            { name: 'Chemistry', pct: 62, status: 'Steady', emoji: '⚗️', color: 'bg-[#3B82F6]' },
-            { name: 'Maths', pct: 41, status: 'Needs focus', emoji: '∫', color: 'bg-[#F59E0B]' },
-          ].map(s => (
-            <div key={s.name} className="bg-bg-base border border-border-default rounded-xl p-5 shadow-sm">
-              <div className="flex items-center gap-3 mb-4">
-                <span className="text-2xl">{s.emoji}</span>
-                <span className="font-semibold">{s.name}</span>
-              </div>
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex-1 bg-border-subtle h-2 rounded-full overflow-hidden mr-3">
-                  <div className={`h-full ${s.color} rounded-full`} style={{ width: `${s.pct}%` }} />
-                </div>
-                <span className="text-sm font-bold">{s.pct}%</span>
-              </div>
-              <p className="text-sm text-text-secondary">{s.status}</p>
-            </div>
-          ))}
-        </div>
-
-        {/* ATTENTION NEEDED */}
-        <h3 className="text-lg font-semibold mb-4 text-text-primary">Attention needed</h3>
-        <div className="bg-bg-base border-l-4 border-l-[#F59E0B] border border-border-default rounded-xl p-5 shadow-sm mb-8 flex items-start gap-4">
-          <AlertTriangle className="w-6 h-6 text-[#F59E0B] shrink-0 mt-0.5" />
+      {/* ── Main ── */}
+      <div className="flex-1 md:ml-0">
+        {/* Header */}
+        <header className="sticky top-0 z-10 px-6 py-4 border-b flex items-center justify-between"
+          style={{ background: "var(--color-base)", borderColor: "var(--color-border-subtle)", boxShadow: "var(--shadow-sm)" }}>
           <div>
-            <p className="font-medium text-text-primary">Minh hasn&apos;t studied Chemistry in 3 days.</p>
-            <p className="text-text-secondary text-sm mt-1">The Chemistry exam is in 18 days. Consider reminding him to review Ionic Bonding.</p>
+            <h1 className="text-lg font-bold" style={{ color: "var(--color-text-primary)" }}>
+              👋 Good morning, Mr. Hung.
+            </h1>
+            <p className="text-sm" style={{ color: "var(--color-text-secondary)" }}>
+              Here&apos;s how Minh is doing this week.
+            </p>
           </div>
-        </div>
+          <div className="hidden md:flex items-center gap-3">
+            <span className="text-sm font-medium px-3 py-1.5 rounded-full border"
+              style={{ background: "var(--color-surface)", borderColor: "var(--color-border-default)", color: "var(--color-text-secondary)" }}>
+              This week ▾
+            </span>
+          </div>
+        </header>
 
-        {/* RECENT ACTIVITY */}
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-text-primary">Recent activity</h3>
-          <button className="text-sm font-medium text-accent hover:underline flex items-center">
-            View full history <ArrowRight className="w-4 h-4 ml-1" />
-          </button>
-        </div>
-        <div className="bg-bg-base border border-border-default rounded-xl overflow-hidden shadow-sm">
-          <div className="divide-y divide-border-subtle">
-            {[
-              { day: 'Today', sub: 'Biology', time: '55min', desc: 'Studied Transport in Humans' },
-              { day: 'Today', sub: 'Biology', time: '25min', desc: 'Asked about osmosis (5 Qs)' },
-              { day: 'Monday', sub: 'Chemistry', time: '40min', desc: 'Studied Ionic Bonding' },
-              { day: 'Sunday', sub: 'Biology', time: '30min', desc: 'Completed quiz — 8/10 correct' },
-            ].map((act, i) => (
-              <div key={i} className="flex flex-col sm:flex-row sm:items-center py-4 px-6 gap-2 sm:gap-6 hover:bg-bg-surface transition-colors">
-                <div className="w-20 text-sm font-medium text-text-primary">{act.day}</div>
-                <div className="w-32 text-sm text-text-secondary flex justify-between">
-                  <span>{act.sub}</span> <span>{act.time}</span>
-                </div>
-                <div className="flex-1 text-sm text-text-primary sm:border-l sm:border-border-default sm:pl-6">{act.desc}</div>
+        <main className="px-5 md:px-8 py-8 max-w-4xl mx-auto">
+          {/* Student summary card */}
+          <section className="rounded-2xl border p-6 mb-8"
+            style={{ background: "var(--color-base)", borderColor: "var(--color-border-subtle)", boxShadow: "var(--shadow-md)" }}>
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-xl font-bold" style={{ color: "var(--color-text-primary)" }}>{STUDENT.name}</h2>
+                <p className="text-sm" style={{ color: "var(--color-text-secondary)" }}>{STUDENT.curriculum}</p>
               </div>
-            ))}
-          </div>
-        </div>
+              <Link href="/parent/reports"
+                className="text-sm font-medium flex items-center gap-1"
+                style={{ color: "var(--color-accent)" }}>
+                View Detailed Report <TrendingUp size={14} />
+              </Link>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <StatCard
+                icon={Clock as React.FC<{ size: number; style?: React.CSSProperties }>}
+                label="Study time"
+                value={STUDENT.studyHoursWeek}
+                sub={`↑ ${STUDENT.studyHoursChange} vs last week`}
+                color="var(--color-accent)"
+              />
+              <StatCard
+                icon={MessageSquare as React.FC<{ size: number; style?: React.CSSProperties }>}
+                label="Questions asked"
+                value={`${STUDENT.questionsWeek}`}
+                sub="this week"
+                color="#3B82F6"
+              />
+              <StatCard
+                icon={CheckCircle as React.FC<{ size: number; style?: React.CSSProperties }>}
+                label="Accuracy"
+                value={`${STUDENT.correctPct}%`}
+                sub="AI-graded"
+                color="#10B981"
+              />
+              <StatCard
+                icon={Flame as React.FC<{ size: number; style?: React.CSSProperties }>}
+                label="Streak"
+                value={`${STUDENT.streakDays} days`}
+                sub="active"
+                color="#F59E0B"
+              />
+            </div>
+          </section>
 
-      </main>
+          {/* Subject overview */}
+          <section className="mb-8">
+            <h2 className="text-sm font-semibold mb-4" style={{ color: "var(--color-text-muted)" }}>
+              SUBJECT OVERVIEW
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {SUBJECTS.map((s) => (
+                <div key={s.name} className="rounded-xl border p-5"
+                  style={{ background: "var(--color-base)", borderColor: "var(--color-border-subtle)", boxShadow: "var(--shadow-sm)" }}>
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="text-2xl">{s.emoji}</span>
+                    <span className="font-semibold" style={{ color: "var(--color-text-primary)" }}>{s.name}</span>
+                  </div>
+                  <div className="progress-bar mb-2">
+                    <div className="progress-fill" style={{
+                      width: `${s.mastery}%`,
+                      background: s.status === "good"
+                        ? "var(--color-success)"
+                        : s.status === "warn"
+                        ? "var(--color-warning)"
+                        : "var(--color-accent)",
+                    }} />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm" style={{ color: "var(--color-text-secondary)" }}>{s.label}</span>
+                    <span className="text-sm font-bold" style={{ color: "var(--color-text-primary)" }}>{s.mastery}%</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
 
-      {/* BOTTOM NAV */}
-      <footer className="border-t border-border-subtle bg-bg-base py-3 flex justify-around items-center px-6 mt-auto">
-        <button className="flex flex-col items-center gap-1 text-accent">
-          <LayoutDashboard className="w-5 h-5" />
-          <span className="text-[10px] font-medium">Overview</span>
-        </button>
-        <button onClick={() => router.push('/parent/reports')} className="flex flex-col items-center gap-1 text-text-muted hover:text-text-primary">
-          <BarChart2 className="w-5 h-5" />
-          <span className="text-[10px] font-medium">Reports</span>
-        </button>
-        <button className="flex flex-col items-center gap-1 text-text-muted hover:text-text-primary">
-          <MessageSquare className="w-5 h-5" />
-          <span className="text-[10px] font-medium">Messages</span>
-        </button>
-        <button className="flex flex-col items-center gap-1 text-text-muted hover:text-text-primary">
-          <Settings className="w-5 h-5" />
-          <span className="text-[10px] font-medium">Settings</span>
-        </button>
-      </footer>
+          {/* Attention needed */}
+          {ATTENTION.length > 0 && (
+            <section className="mb-8">
+              <h2 className="text-sm font-semibold mb-4" style={{ color: "var(--color-text-muted)" }}>
+                ATTENTION NEEDED
+              </h2>
+              {ATTENTION.map((a, i) => (
+                <div key={i} className="rounded-xl border p-4 flex items-start gap-3"
+                  style={{ background: "rgba(245,158,11,0.04)", borderColor: "rgba(245,158,11,0.2)" }}>
+                  <AlertCircle size={16} style={{ color: "var(--color-warning)", flexShrink: 0, marginTop: 2 }} />
+                  <div>
+                    <p className="text-sm font-medium" style={{ color: "var(--color-text-primary)" }}>{a.text}</p>
+                    <p className="text-xs mt-0.5" style={{ color: "var(--color-text-secondary)" }}>{a.sub}</p>
+                  </div>
+                </div>
+              ))}
+            </section>
+          )}
+
+          {/* Recent activity */}
+          <section>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-sm font-semibold" style={{ color: "var(--color-text-muted)" }}>
+                RECENT ACTIVITY
+              </h2>
+              <Link href="/parent/reports" className="text-sm" style={{ color: "var(--color-accent)" }}>
+                View full history →
+              </Link>
+            </div>
+            <div className="rounded-xl border overflow-hidden"
+              style={{ background: "var(--color-base)", borderColor: "var(--color-border-subtle)", boxShadow: "var(--shadow-sm)" }}>
+              {RECENT_ACTIVITY.map((a, i) => (
+                <div key={i}
+                  className="flex items-center gap-4 px-5 py-3.5"
+                  style={{ borderBottom: i < RECENT_ACTIVITY.length - 1 ? "1px solid var(--color-border-subtle)" : "none" }}>
+                  <div className="w-20 flex-shrink-0">
+                    <span className="text-xs font-medium" style={{ color: "var(--color-text-muted)" }}>{a.date}</span>
+                  </div>
+                  <div
+                    className="w-6 h-6 rounded flex items-center justify-center text-sm flex-shrink-0"
+                    style={{ background: "var(--color-surface)" }}>
+                    {SUBJECTS.find((s) => s.name === a.subject)?.emoji || "📚"}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-sm" style={{ color: "var(--color-text-primary)" }}>{a.note}</span>
+                  </div>
+                  <span className="text-xs flex-shrink-0" style={{ color: "var(--color-text-muted)" }}>{a.duration}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+        </main>
+      </div>
     </div>
   );
 }

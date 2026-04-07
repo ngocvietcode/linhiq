@@ -13,6 +13,7 @@ import {
 import type { Response } from 'express';
 import { ChatService } from './chat.service';
 import { AiService } from '../ai/ai.service';
+import { ProgressService } from '../progress/progress.service';
 import { AuthGuard } from '../../common/guards/auth.guard';
 import { createSessionSchema, sendMessageSchema } from '@javirs/validators';
 
@@ -22,6 +23,7 @@ export class ChatController {
   constructor(
     private readonly chat: ChatService,
     private readonly ai: AiService,
+    private readonly progress: ProgressService,
   ) {}
 
   @Post('sessions')
@@ -137,9 +139,41 @@ export class ChatController {
         res.write(`data: ${JSON.stringify({ type: 'text', content: chunk })}\n\n`);
       }
 
-      // Send metadata
+      // Post-stream: evaluate student's answer quality, then update mastery
+      let masteryUpdate: { topicId: string; masteryLevel: number; answerQuality: string } | undefined;
+
+      if (!shouldRedirect && session.mode !== 'OPEN') {
+        const chunkIds = metadata?.ragSources?.map((r: any) => r.chunkId) ?? [];
+        const topicId = await this.progress.getTopicIdFromChunks(chunkIds);
+
+        if (topicId) {
+          // Ask AI to evaluate whether the student was answering and how well
+          const answerQuality = await this.ai.evaluateAnswer(
+            input.content,
+            fullResponse,
+            session.subject?.name ?? 'General',
+          );
+
+          // Only update mastery if the student was attempting an answer
+          if (answerQuality !== 'NOT_ANSWER') {
+            const wasSuccessful = answerQuality === 'CORRECT';
+            // PARTIAL counts the attempt (questionsAsked++) but not correct
+            const updated = await this.progress.updateTopicMastery(
+              req.user.sub,
+              topicId,
+              wasSuccessful,
+            );
+            masteryUpdate = {
+              topicId,
+              masteryLevel: updated.masteryLevel,
+              answerQuality,
+            };
+          }
+        }
+      }
+
       res.write(
-        `data: ${JSON.stringify({ type: 'done', metadata })}\n\n`,
+        `data: ${JSON.stringify({ type: 'done', metadata, masteryUpdate })}\n\n`,
       );
 
       // Save complete AI response

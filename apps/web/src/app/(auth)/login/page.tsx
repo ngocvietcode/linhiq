@@ -4,9 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { ArrowRight, Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, ArrowRight, Loader2 } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -21,7 +19,6 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
     setLoading(true);
-
     try {
       await login(email, password);
       router.push("/dashboard");
@@ -33,97 +30,136 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="w-full max-w-[400px] mx-auto">
-      <div className="mb-8 text-center">
-        <div className="flex items-center justify-center gap-2 mb-6">
-          <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center font-bold text-accent">L</div>
-          <span className="font-semibold text-lg text-text-primary tracking-tight">LinhIQ</span>
-        </div>
-        <h1 className="text-2xl font-semibold tracking-tight text-text-primary">Welcome back</h1>
-        <p className="text-sm text-text-secondary mt-2">Enter your credentials to continue</p>
+    <div className="animate-fade-up">
+      {/* Header */}
+      <div className="text-center mb-8">
+        <h1 className="text-2xl font-bold mb-1">Welcome back</h1>
+        <p className="text-sm" style={{ color: "var(--color-text-secondary)" }}>
+          Continue your learning journey
+        </p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
-          <div className="p-3 bg-danger/10 text-danger border border-danger/30 rounded-xl text-sm font-medium text-center">
+          <div
+            className="px-4 py-3 rounded-lg text-sm"
+            style={{
+              background: "rgba(244,63,94,0.08)",
+              border: "1px solid rgba(244,63,94,0.25)",
+              color: "var(--color-danger)",
+            }}
+          >
             {error}
           </div>
         )}
 
-        <div className="space-y-1.5">
-          <label className="text-sm font-medium text-text-secondary px-1">Email</label>
-          <Input
+        <div>
+          <label
+            htmlFor="email"
+            className="block text-sm font-medium mb-2"
+            style={{ color: "var(--color-text-secondary)" }}
+          >
+            Email
+          </label>
+          <input
+            id="email"
             type="email"
-            placeholder="you@example.com"
+            required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            required
-            className="h-12 bg-bg-surface"
+            className="input"
+            placeholder="you@example.com"
           />
         </div>
 
-        <div className="space-y-1.5">
-          <label className="text-sm font-medium text-text-secondary px-1">Password</label>
+        <div>
+          <label
+            htmlFor="password"
+            className="block text-sm font-medium mb-2"
+            style={{ color: "var(--color-text-secondary)" }}
+          >
+            Password
+          </label>
           <div className="relative">
-            <Input
+            <input
+              id="password"
               type={showPassword ? "text" : "password"}
-              placeholder="••••••••"
+              required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              required
-              className="h-12 bg-bg-surface pr-10"
+              className="input pr-11"
+              placeholder="••••••••"
             />
             <button
               type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary transition-colors focus:outline-none"
+              onClick={() => setShowPassword((v) => !v)}
+              className="absolute right-3 top-1/2 -translate-y-1/2"
+              style={{ color: "var(--color-text-muted)" }}
             >
-              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           </div>
-          <div className="flex justify-end pt-1">
-            <button type="button" className="text-[13px] font-medium text-text-muted hover:text-text-primary transition-colors">
+          <div className="flex justify-end mt-1.5">
+            <Link
+              href="/forgot-password"
+              className="text-xs hover:underline"
+              style={{ color: "var(--color-text-muted)" }}
+            >
               Forgot password?
-            </button>
+            </Link>
           </div>
         </div>
 
-        <Button type="submit" className="w-full h-12 text-[15px]" disabled={loading}>
-          {loading ? "Signing in..." : "Sign in"}
-          {!loading && <ArrowRight className="w-4 h-4 ml-2 opacity-70" />}
-        </Button>
+        <button
+          type="submit"
+          disabled={loading}
+          className="btn-primary w-full mt-2"
+          style={{ borderRadius: "var(--radius-sm)" }}
+        >
+          {loading ? (
+            <>
+              <Loader2 size={15} className="animate-spin" />
+              Signing in...
+            </>
+          ) : (
+            <>
+              Sign in <ArrowRight size={14} />
+            </>
+          )}
+        </button>
 
-        <div className="relative my-6">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-border-subtle"></div>
-          </div>
-          <div className="relative flex justify-center text-xs">
-            <span className="bg-bg-void px-3 text-text-muted">or continue with</span>
-          </div>
+        {/* Divider */}
+        <div className="flex items-center gap-3 my-2">
+          <div className="flex-1 h-px" style={{ background: "var(--color-border-subtle)" }} />
+          <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+            or continue with
+          </span>
+          <div className="flex-1 h-px" style={{ background: "var(--color-border-subtle)" }} />
         </div>
 
+        {/* Social (placeholder) */}
         <div className="grid grid-cols-2 gap-3">
-          <Button variant="secondary" className="w-full h-11 bg-bg-surface" type="button">
-            Google
-          </Button>
-          <Button variant="secondary" className="w-full h-11 bg-bg-surface" type="button">
-            Apple
-          </Button>
+          <button type="button" className="btn-ghost text-sm justify-center py-2.5">
+            🟢 Google
+          </button>
+          <button type="button" className="btn-ghost text-sm justify-center py-2.5">
+            🍎 Apple
+          </button>
         </div>
       </form>
 
-      <div className="mt-8 text-center space-y-3">
-        <p className="text-sm text-text-secondary">
+      <div className="mt-6 space-y-2 text-center">
+        <p className="text-sm" style={{ color: "var(--color-text-secondary)" }}>
           Don&apos;t have an account?{" "}
-          <Link href="/register" className="text-accent font-medium hover:underline">
+          <Link href="/register" className="font-medium hover:underline" style={{ color: "var(--color-accent)" }}>
             Create one →
           </Link>
         </p>
-        <p className="text-sm text-text-secondary">
+        <p className="text-sm" style={{ color: "var(--color-text-secondary)" }}>
           Are you a parent?{" "}
-          <button className="text-accent font-medium hover:underline focus:outline-none">
+          <Link href="/parent/login" className="font-medium hover:underline" style={{ color: "var(--color-text-hint)" }}>
             Parent sign in →
-          </button>
+          </Link>
         </p>
       </div>
     </div>

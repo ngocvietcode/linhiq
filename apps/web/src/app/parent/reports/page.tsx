@@ -1,160 +1,247 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { ArrowLeft, Download, Share } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { ArrowLeft, Download, Share2, CheckCircle, AlertTriangle } from "lucide-react";
+
+const STUDY_HOURS = [
+  { day: "Mon", hours: 1 },
+  { day: "Tue", hours: 0 },
+  { day: "Wed", hours: 2 },
+  { day: "Thu", hours: 1 },
+  { day: "Fri", hours: 2 },
+  { day: "Sat", hours: 0 },
+  { day: "Sun", hours: 1.3 },
+];
+
+const SUBJECT_BREAKDOWN = [
+  { emoji: "🧬", name: "Biology", hours: "5h 20min", pct: 64 },
+  { emoji: "⚗️", name: "Chemistry", hours: "2h 10min", pct: 26 },
+  { emoji: "∫", name: "Mathematics", hours: "50min", pct: 10 },
+];
+
+const TOPICS = [
+  {
+    subject: "Biology", emoji: "🧬",
+    items: [
+      { label: "Transport in Humans (2h 10min)", tag: "NEW topic" },
+      { label: "Osmosis deep dive (1h 40min)", tag: "Reviewed" },
+      { label: "Cell quiz (30min)", sub: "Scored 8/10" },
+    ],
+  },
+  {
+    subject: "Chemistry", emoji: "⚗️",
+    items: [
+      { label: "Ionic vs Covalent Bonding (1h 20min)", tag: "" },
+      { label: "Periodic Table review (50min)", tag: "" },
+    ],
+  },
+];
+
+const KEY_TOPICS = [
+  "Osmosis & water potential (12 questions)",
+  "Blood circulation (8 questions)",
+  "Ionic bonding (7 questions)",
+];
+
+const STRENGTHS = [
+  "Osmosis and water potential",
+  "Cell structure and function",
+  "Enzyme activity",
+];
+const WEAKNESSES = [
+  { topic: "Photosynthesis", note: "only 55% correct" },
+  { topic: "Mathematics overall", note: "only 2 sessions this week" },
+];
 
 export default function ParentReportPage() {
-  const router = useRouter();
-
-  useEffect(() => {
-    document.documentElement.classList.add("parent-mode");
-    return () => {
-      document.documentElement.classList.remove("parent-mode");
-    };
-  }, []);
+  const maxH = Math.max(...STUDY_HOURS.map((d) => d.hours), 2);
+  const totalH = STUDY_HOURS.reduce((s, d) => s + d.hours, 0);
+  const totalHStr = `${Math.floor(totalH)}h ${Math.round((totalH % 1) * 60)}min`;
 
   return (
-    <div className="min-h-screen bg-bg-void flex flex-col font-sans text-text-primary pb-10">
-      
-      {/* HEADER */}
-      <header className="border-b border-border-subtle bg-bg-base sticky top-0 z-10 px-4 sm:px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <button onClick={() => router.push('/parent')} className="text-text-secondary hover:text-text-primary transition-colors">
-            <ArrowLeft className="w-5 h-5" />
+    <div className="min-h-screen" style={{ background: "var(--color-void)" }}>
+      {/* Header */}
+      <header className="sticky top-0 z-10 px-6 py-4 border-b flex items-center gap-4"
+        style={{ background: "var(--color-base)", borderColor: "var(--color-border-subtle)", boxShadow: "var(--shadow-sm)" }}>
+        <Link href="/parent" className="p-1.5 rounded-lg transition-colors"
+          style={{ color: "var(--color-text-secondary)" }}
+          onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = "var(--color-text-primary)")}
+          onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.color = "var(--color-text-secondary)")}>
+          <ArrowLeft size={18} />
+        </Link>
+        <div className="flex-1">
+          <h1 className="font-bold text-lg" style={{ color: "var(--color-text-primary)" }}>
+            Minh&apos;s Weekly Report
+          </h1>
+          <p className="text-sm" style={{ color: "var(--color-text-secondary)" }}>
+            Week of Mar 31 – Apr 6, 2026
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button className="btn-ghost text-sm px-3 py-2 gap-1.5">
+            <Download size={14} /> PDF
           </button>
-          <div>
-            <h1 className="font-semibold text-[15px] leading-tight text-text-primary">Minh&apos;s Weekly Report</h1>
-            <p className="text-xs text-text-muted">Week of Mar 31 – Apr 6, 2026</p>
-          </div>
+          <button className="btn-ghost text-sm px-3 py-2 gap-1.5">
+            <Share2 size={14} /> Share
+          </button>
         </div>
       </header>
 
-      <main className="flex-1 max-w-3xl mx-auto w-full p-4 sm:p-6 space-y-6">
-
-        {/* Study Hours */}
-        <section className="bg-bg-base border border-border-default rounded-2xl p-6 shadow-sm">
-          <h2 className="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-6">Study hours</h2>
-          
-          <div className="flex items-end justify-between gap-1 h-32 w-full border-b border-border-subtle pb-2 relative">
-            <div className="absolute top-0 left-0 w-full border-t border-dashed border-border-subtle opacity-50" />
-            <div className="absolute top-1/2 left-0 w-full border-t border-dashed border-border-subtle opacity-50" />
-            
-            {[
-              { d: 'Mon', v: 40 },
-              { d: 'Tue', v: 0 },
-              { d: 'Wed', v: 80 },
-              { d: 'Thu', v: 40 },
-              { d: 'Fri', v: 80 },
-              { d: 'Sat', v: 0 },
-              { d: 'Sun', v: 50 },
-            ].map((day, i) => (
-              <div key={i} className="flex-1 flex flex-col items-center gap-2 z-10 h-full justify-end">
-                <div className="w-full max-w-[24px] bg-accent/80 rounded-sm hover:bg-accent transition-colors" style={{ height: `${day.v}%` }} />
-                <span className="text-[11px] font-medium text-text-muted">{day.d}</span>
+      <main className="px-5 md:px-8 py-8 max-w-3xl mx-auto space-y-8">
+        {/* Study hours chart */}
+        <section className="rounded-2xl border p-6"
+          style={{ background: "var(--color-base)", borderColor: "var(--color-border-subtle)", boxShadow: "var(--shadow-sm)" }}>
+          <h2 className="text-sm font-semibold mb-5" style={{ color: "var(--color-text-muted)" }}>
+            STUDY HOURS
+          </h2>
+          <div className="flex items-end gap-3 h-24 mb-3">
+            {STUDY_HOURS.map(({ day, hours }) => (
+              <div key={day} className="flex-1 flex flex-col items-center gap-1.5">
+                <span className="text-xs font-mono font-medium" style={{ color: "var(--color-text-secondary)" }}>
+                  {hours > 0 ? `${hours}h` : ""}
+                </span>
+                <div
+                  className="w-full rounded-md"
+                  style={{
+                    height: `${Math.max((hours / maxH) * 100, 4)}%`,
+                    background: hours > 0
+                      ? "linear-gradient(to top, #6366F1, #818CF8)"
+                      : "var(--color-surface)",
+                    transition: "height 0.6s cubic-bezier(0.16,1,0.3,1)",
+                  }}
+                />
+                <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>{day}</span>
               </div>
             ))}
           </div>
+          <div className="flex items-center justify-between border-t pt-4"
+            style={{ borderColor: "var(--color-border-subtle)" }}>
+            <span className="text-sm" style={{ color: "var(--color-text-secondary)" }}>Total this week</span>
+            <span className="text-lg font-bold" style={{ color: "var(--color-text-primary)" }}>{totalHStr}</span>
+          </div>
         </section>
 
-        {/* Subject Breakdown */}
-        <section className="bg-bg-base border border-border-default rounded-2xl p-6 shadow-sm">
-          <h2 className="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-4">Subject breakdown</h2>
+        {/* Subject breakdown */}
+        <section className="rounded-2xl border p-6"
+          style={{ background: "var(--color-base)", borderColor: "var(--color-border-subtle)", boxShadow: "var(--shadow-sm)" }}>
+          <h2 className="text-sm font-semibold mb-5" style={{ color: "var(--color-text-muted)" }}>
+            SUBJECT BREAKDOWN
+          </h2>
           <div className="space-y-4">
-            {[
-              { name: 'Biology', time: '5h 20min', pct: 64, color: 'bg-[#10B981]' },
-              { name: 'Chemistry', time: '2h 10min', pct: 26, color: 'bg-[#3B82F6]' },
-              { name: 'Mathematics', time: '50min', pct: 10, color: 'bg-[#F59E0B]' },
-            ].map(s => (
-              <div key={s.name} className="flex items-center gap-4">
-                <span className="w-24 text-[13px] font-medium">{s.name}</span>
-                <div className="flex-1 bg-border-subtle h-2 rounded-full overflow-hidden shrink-1">
-                  <div className={`h-full ${s.color} rounded-full`} style={{ width: `${s.pct}%` }} />
+            {SUBJECT_BREAKDOWN.map((s) => (
+              <div key={s.name}>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <span>{s.emoji}</span>
+                    <span className="font-medium text-sm" style={{ color: "var(--color-text-primary)" }}>{s.name}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm" style={{ color: "var(--color-text-secondary)" }}>{s.hours}</span>
+                    <span className="text-sm font-bold w-8 text-right" style={{ color: "var(--color-text-primary)" }}>{s.pct}%</span>
+                  </div>
                 </div>
-                <div className="w-32 flex justify-between text-[13px]">
-                  <span className="font-medium">{s.time}</span>
-                  <span className="text-text-muted">{s.pct}%</span>
+                <div className="progress-bar">
+                  <div className="progress-fill" style={{ width: `${s.pct}%` }} />
                 </div>
               </div>
             ))}
           </div>
         </section>
 
-        {/* Topics Studied */}
-        <section className="bg-bg-base border border-border-default rounded-2xl p-6 shadow-sm">
-          <h2 className="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-4">Topics studied this week</h2>
-          
-          <div className="space-y-6">
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-xl">🧬</span>
-                <h3 className="font-semibold text-text-primary">Biology</h3>
+        {/* Topics studied */}
+        <section className="rounded-2xl border p-6"
+          style={{ background: "var(--color-base)", borderColor: "var(--color-border-subtle)", boxShadow: "var(--shadow-sm)" }}>
+          <h2 className="text-sm font-semibold mb-5" style={{ color: "var(--color-text-muted)" }}>
+            TOPICS STUDIED THIS WEEK
+          </h2>
+          {TOPICS.map((t) => (
+            <div key={t.subject} className="mb-5 last:mb-0">
+              <div className="flex items-center gap-2 mb-3">
+                <span>{t.emoji}</span>
+                <span className="font-semibold text-sm" style={{ color: "var(--color-text-primary)" }}>{t.subject}</span>
               </div>
-              <ul className="space-y-2 ml-8">
-                <li className="text-[13px] text-text-secondary flex gap-2"><span className="text-text-muted">·</span> <span className="font-medium text-text-primary">Transport in Humans (2h 10min)</span> — NEW topic</li>
-                <li className="text-[13px] text-text-secondary flex gap-2"><span className="text-text-muted">·</span> <span>Osmosis deep dive (1h 40min)</span> — Reviewed</li>
-                <li className="text-[13px] text-text-secondary flex gap-2"><span className="text-text-muted">·</span> <span>Cell quiz (30min)</span> — Scored 8/10</li>
+              <ul className="space-y-2 pl-6">
+                {t.items.map((item, i) => (
+                  <li key={i} className="flex items-start gap-2">
+                    <span style={{ color: "var(--color-text-muted)", marginTop: 2 }}>·</span>
+                    <div>
+                      <span className="text-sm" style={{ color: "var(--color-text-secondary)" }}>{item.label}</span>
+                      {item.tag && (
+                        <span className="ml-2 text-xs px-1.5 py-0.5 rounded"
+                          style={{ background: "rgba(99,102,241,0.1)", color: "var(--color-accent)" }}>
+                          {item.tag}
+                        </span>
+                      )}
+                      {item.sub && (
+                        <span className="ml-2 text-xs" style={{ color: "var(--color-success)" }}>— {item.sub}</span>
+                      )}
+                    </div>
+                  </li>
+                ))}
               </ul>
             </div>
-
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-xl">⚗️</span>
-                <h3 className="font-semibold text-text-primary">Chemistry</h3>
-              </div>
-              <ul className="space-y-2 ml-8">
-                <li className="text-[13px] text-text-secondary flex gap-2"><span className="text-text-muted">·</span> <span className="font-medium text-text-primary">Ionic vs Covalent Bonding (1h 20min)</span></li>
-                <li className="text-[13px] text-text-secondary flex gap-2"><span className="text-text-muted">·</span> <span>Periodic Table review (50min)</span></li>
-              </ul>
-            </div>
-          </div>
+          ))}
         </section>
 
-        {/* AI Insight */}
-        <section className="bg-bg-surface border border-accent/20 rounded-2xl p-6 shadow-[0_0_15px_rgba(99,102,241,0.05)] border-l-4 border-l-accent">
-          <h2 className="text-sm font-semibold text-accent uppercase tracking-wider mb-2">AI conversation summary</h2>
-          <p className="text-[14px] text-text-primary font-medium mb-3">47 questions asked this week. Key topics:</p>
-          <ul className="list-disc pl-5 space-y-1 text-[13px] text-text-secondary mb-4">
-            <li>Osmosis & water potential (12 questions)</li>
-            <li>Blood circulation (8 questions)</li>
-            <li>Ionic bonding (7 questions)</li>
+        {/* AI summary */}
+        <section className="rounded-2xl border p-6"
+          style={{ background: "var(--color-base)", borderColor: "var(--color-border-subtle)", boxShadow: "var(--shadow-sm)" }}>
+          <h2 className="text-sm font-semibold mb-4" style={{ color: "var(--color-text-muted)" }}>
+            AI CONVERSATION SUMMARY
+          </h2>
+          <p className="text-sm mb-4" style={{ color: "var(--color-text-secondary)" }}>
+            47 questions asked this week. Key topics:
+          </p>
+          <ul className="space-y-1.5 mb-5">
+            {KEY_TOPICS.map((kp) => (
+              <li key={kp} className="flex items-center gap-2 text-sm" style={{ color: "var(--color-text-secondary)" }}>
+                <span style={{ color: "var(--color-accent)" }}>·</span> {kp}
+              </li>
+            ))}
           </ul>
-          <div className="bg-bg-elevated p-3 rounded-lg border border-border-default text-[13px] text-text-primary italic">
-            "Minh often asks follow-up questions after getting hints — showing good persistence." ✨
+          <div className="rounded-lg p-4 border"
+            style={{ background: "rgba(99,102,241,0.04)", borderColor: "rgba(99,102,241,0.15)" }}>
+            <p className="text-sm" style={{ color: "var(--color-text-secondary)" }}>
+              Minh often asks follow-up questions after getting hints — showing good persistence. ✨
+            </p>
           </div>
         </section>
 
-        {/* Strengths & Weaknesses */}
-        <div className="grid sm:grid-cols-2 gap-6">
-          <section className="bg-bg-base border border-[#10B981]/30 rounded-2xl p-6 shadow-sm">
-            <h2 className="text-sm font-semibold text-[#10B981] uppercase tracking-wider mb-4">What Minh knows well</h2>
-            <ul className="space-y-2 text-[13px] text-text-primary">
-              <li className="flex items-center gap-2">✅ Osmosis and water potential</li>
-              <li className="flex items-center gap-2">✅ Cell structure and function</li>
-              <li className="flex items-center gap-2">✅ Enzyme activity</li>
+        {/* Strengths & weaknesses */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <section className="rounded-2xl border p-5"
+            style={{ background: "var(--color-base)", borderColor: "var(--color-border-subtle)", boxShadow: "var(--shadow-sm)" }}>
+            <h2 className="text-sm font-semibold mb-4" style={{ color: "var(--color-text-muted)" }}>
+              WHAT MINH KNOWS WELL
+            </h2>
+            <ul className="space-y-3">
+              {STRENGTHS.map((s) => (
+                <li key={s} className="flex items-center gap-2 text-sm" style={{ color: "var(--color-text-primary)" }}>
+                  <CheckCircle size={14} style={{ color: "var(--color-success)", flexShrink: 0 }} />
+                  {s}
+                </li>
+              ))}
             </ul>
           </section>
 
-          <section className="bg-bg-base border border-[#F59E0B]/30 rounded-2xl p-6 shadow-sm">
-            <h2 className="text-sm font-semibold text-[#F59E0B] uppercase tracking-wider mb-4">Areas to strengthen</h2>
-            <ul className="space-y-2 text-[13px] text-text-primary">
-              <li className="flex gap-2">⚠️ Photosynthesis (only 55% correct)</li>
-              <li className="flex gap-2">⚠️ Mathematics overall (only 2 sessions this week)</li>
+          <section className="rounded-2xl border p-5"
+            style={{ background: "var(--color-base)", borderColor: "var(--color-border-subtle)", boxShadow: "var(--shadow-sm)" }}>
+            <h2 className="text-sm font-semibold mb-4" style={{ color: "var(--color-text-muted)" }}>
+              AREAS TO STRENGTHEN
+            </h2>
+            <ul className="space-y-3">
+              {WEAKNESSES.map((w) => (
+                <li key={w.topic} className="flex items-start gap-2 text-sm">
+                  <AlertTriangle size={14} style={{ color: "var(--color-warning)", flexShrink: 0, marginTop: 2 }} />
+                  <div>
+                    <span style={{ color: "var(--color-text-primary)" }}>{w.topic}</span>
+                    <span className="text-xs ml-1" style={{ color: "var(--color-text-muted)" }}>({w.note})</span>
+                  </div>
+                </li>
+              ))}
             </ul>
           </section>
         </div>
-
-        {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row items-center gap-4 pt-4">
-          <Button variant="secondary" className="w-full sm:flex-1 bg-bg-base shadow-sm">
-            <Download className="w-4 h-4 mr-2" /> Download PDF Report
-          </Button>
-          <Button variant="secondary" className="w-full sm:flex-1 bg-bg-base shadow-sm">
-            <Share className="w-4 h-4 mr-2" /> Share with teacher
-          </Button>
-        </div>
-
       </main>
     </div>
   );

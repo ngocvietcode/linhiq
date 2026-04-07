@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@javirs/database';
 
 const prisma = new PrismaClient();
 
@@ -39,7 +39,18 @@ async function main() {
     },
   });
 
-  console.log(`  ✅ Subjects: ${biology.name}, ${math.name}, ${chemistry.name}`);
+  const science = await prisma.subject.upsert({
+    where: { name_curriculum: { name: 'Science', curriculum: 'IGCSE' } },
+    update: {},
+    create: {
+      name: 'Science',
+      curriculum: 'IGCSE',
+      description: 'Cambridge Lower Secondary Science (grade 9)',
+      iconEmoji: '🔭',
+    },
+  });
+
+  console.log(`  ✅ Subjects: ${biology.name}, ${math.name}, ${chemistry.name}, ${science.name}`);
 
   // ── Biology Topics ────────────────────────
   const bioTopics = [
@@ -74,20 +85,20 @@ async function main() {
 
   // ── Demo Admin User ───────────────────────
   const bcrypt = require('bcryptjs');
-  const passwordHash = await bcrypt.hash('admin123', 12);
+  const passwordHash = await bcrypt.hash('Admin@123', 12);
   
   await prisma.user.upsert({
-    where: { email: 'admin@javirs.io' },
-    update: { passwordHash },
+    where: { email: 'admin@linhiq.com' },
+    update: { passwordHash, role: 'ADMIN' },
     create: {
-      email: 'admin@javirs.io',
-      name: 'Admin',
+      email: 'admin@linhiq.com',
+      name: 'System Admin',
       role: 'ADMIN',
       passwordHash,
     },
   });
 
-  console.log('  ✅ Admin user: admin@javirs.io');
+  console.log('  ✅ Admin user: admin@linhiq.com / Admin@123');
   console.log('🎉 Seeding complete!');
 }
 

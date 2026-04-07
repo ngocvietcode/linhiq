@@ -20,8 +20,8 @@ C4Context
     System(aiPlatform, "AI Learning Platform", "Cốt lõi hệ thống: Cung cấp trợ lý học tập cá nhân qua chat, bài tập RAG, đánh giá tiến độ.")
 
     %% External Systems
-    System_Ext(llmProvider, "LLM APIs", "Các tổ chức AI (OpenAI, Anthropic): Xử lý ngôn ngữ tự nhiên và Chat.")
-    System_Ext(authProvider, "Auth Provider", "Bảo mật & Phân quyền đăng nhập (VD: Clerk/Firebase).")
+    System_Ext(llmProvider, "LLM APIs", "Các tổ chức AI (Gemini): Xử lý ngôn ngữ tự nhiên và Chat.")
+    System_Ext(authProvider, "Auth Provider", "Bảo mật & Phân quyền đăng nhập (Custom Auth / JWT).")
     System_Ext(billingSystem, "Payment Gateway", "Xử lý nâng cấp gói cước học tập (Stripe).")
 
     %% Relationships
@@ -54,15 +54,15 @@ C4Container
         %% Backend APIs
         Container(apiGateway, "API Gateway / BFF", "Node.js/NestJS", "Xử lý Routing, điều hướng tải và API chung.")
         Container(chatService, "Realtime Chat Service", "Socket.io / Node.js", "Xử lý kết nối websocket trực tiếp để stream text.")
-        Container(aiEngine, "AI RAG Engine", "Python / FastAPI", "Trái tim LLM: Điều phối LlamaIndex, xử lý RAG & Prompting.")
+        Container(aiEngine, "AI RAG Engine", "Node.js / NestJS", "Trái tim LLM: Điều phối LlamaIndex, xử lý RAG & Prompting.")
         
         %% Databases
         ContainerDb(rdbms, "Core Database", "PostgreSQL", "Lưu thông tin User, Progress, Học bạ.")
         ContainerDb(vectorDb, "RAG Vector DB", "pgvector / Pinecone", "Chứa vector nhúng của Sách giáo khoa, Past Papers.")
-        ContainerDb(cacheCache, "Chat Cache", "Redis", "Lưu Session hội thoại ngắn hạn (Chat History) siêu nhanh.")
+        ContainerDb(cacheCache, "Chat Cache", "PostgreSQL / Memory", "Lưu Session hội thoại ngắn hạn.")
     }
 
-    System_Ext(llmAPI, "OpenAI / Anthropic API", "LLM Inference Endpoint")
+    System_Ext(llmAPI, "Gemini API", "LLM Inference Endpoint")
     System_Ext(llmObs, "LangSmith / Helicone", "Giám sát Logs AI")
 
     %% Relations Users -> UI -> Gateway
@@ -90,8 +90,8 @@ C4Container
 
 ## 3. Luồng Xử Lý Điển Hình (Ví dụ Truy vấn RAG)
 1. **Học sinh** mở cửa sổ học tập trên **Web/Mobile** và hỏi "What is covalent bond?".
-2. Yêu cầu chạy qua WebSockets kết nối vào **Chat Service** (Node.js).
-3. Chat Service lấy lịch sử nhắn tin từ **Redis Cache** và đẩy yêu cầu sang **AI Engine** (FastAPI).
+2. Yêu cầu chạy qua WebSockets kết nối vào **Chat Service** (Node.js/NestJS).
+3. Chat Service lấy lịch sử nhắn tin và đẩy yêu cầu sang luồng xử lý chính trong **AI Engine** (NestJS).
 4. **AI Engine** biến câu hỏi thành Vector và lấy thông tin Covalent Bond chính xác từ **Vector DB** (Sách IGCSE Chemistry Cambridge).
 5. **AI Engine** kết hợp tài liệu này làm Context (ngữ cảnh) cùng với hướng dẫn Socratic để gọi tới **LLM API**.
 6. LLM bắt đầu trả lời từng chữ (streaming) ngược về **AI Engine => Chat Service => Web/Mobile**. Đồng thời **AI Engine** ghi lại log lên hệ thống đánh giá **LangSmith**.

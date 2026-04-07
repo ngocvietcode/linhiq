@@ -11,9 +11,11 @@ import {
   SAFE_CHAT_PROMPT,
   GENTLE_REDIRECT_PROMPT,
   OPEN_CHAT_SYSTEM_PROMPT,
+  ANSWER_EVAL_PROMPT,
+  QUIZ_GENERATOR_PROMPT,
   MODEL_ROUTES,
 } from '@javirs/ai-config';
-import type { QueryComplexity } from '@javirs/ai-config';
+import type { QueryComplexity, AnswerQuality } from '@javirs/ai-config';
 import type { HintLevel } from '@javirs/types';
 import type { TopicCategory } from '@javirs/database';
 
@@ -270,5 +272,123 @@ export class AiService {
         safeCategory: category,
       },
     };
+  }
+  /**
+   * Evaluate the quality of a student's answer after an AI exchange.
+   * Runs silently in the background — does NOT block the SSE stream.
+   *
+   * Returns:
+   *   NOT_ANSWER → student was asking, not answering — skip mastery update
+   *   CORRECT    → good answer, wasSuccessful = true
+   *   PARTIAL    → partial answer, wasSuccessful = false (question counted, not correct)
+   *   INCORRECT  → wrong answer, wasSuccessful = false
+   */
+  async evaluateAnswer(
+    studentMessage: string,
+    aiResponse: string,
+    subjectName: string,
+  ): Promise<AnswerQuality> {
+    try {
+      const activeProvider = await this.getGlobalProvider();
+      const model = this.resolveModel(activeProvider, 'simple'); // always use flash
+
+      const prompt = ANSWER_EVAL_PROMPT
+        .replace('{{SUBJECT}}', subjectName)
+        .replace('{{STUDENT_MESSAGE}}', studentMessage.substring(0, 500))
+        .replace('{{AI_RESPONSE}}', aiResponse.substring(0, 800));
+
+      const result = streamText({
+        model,
+        messages: [{ role: 'user', content: prompt }],
+        // @ts-ignore
+        maxTokens: 5,
+        temperature: 0,
+      } as any);
+
+      let text = '';
+      for await (const chunk of result.textStream) {
+        text += chunk;
+      }
+
+      const quality = text.trim().toUpperCase() as AnswerQuality;
+      const valid: AnswerQuality[] = ['NOT_ANSWER', 'CORRECT', 'PARTIAL', 'INCORRECT'];
+      return valid.includes(quality) ? quality : 'NOT_ANSWER';
+    } catch (error) {
+      this.logger.warn('Answer evaluation failed, skipping mastery update', error);
+      return 'NOT_ANSWER'; // safe default: do nothing
+    }
+  }
+
+  /**
+   * Generate MCQ quiz questions from RAG content.
+   * topics: array of { id, name } for the quiz scope
+   * questionCount: 5 for topic quiz, 15 for milestone/section quiz
+   */
+  async generateQuiz(options: {
+    topics: { id: string; name: string }[];
+    subjectName: string;
+    questionCount: number;
+    subjectId: string;
+  }): Promise<{ topicId: string; question: string; options: string[]; correctAnswer: string; explanation: string }[]> {
+    const { topics, subjectName, questionCount, subjectId } = options;
+    const activeProvider = await this.getGlobalProvider();
+    // Use pro model for quiz quality
+    const model = this.resolveModel(activeProvider, 'complex');
+
+    // Gather RAG context for all topics
+    const ragContextParts: string[] = [];
+    for (const topic of topics) {
+      const results = await this.rag.search(topic.name, subjectId, 3);
+      if (results.length > 0) {
+        ragContextParts.push(`## ${topic.name}\n${this.rag.formatContext(results)}`);
+      }
+    }
+    const ragContext = ragContextParts.join('\n\n') || 'Use general Cambridge IGCSE knowledge.';
+
+    const prompt = QUIZ_GENERATOR_PROMPT
+      .replace('{{SUBJECT}}', subjectName)
+      .replace('{{TOPIC_NAMES}}', topics.map(t => t.name).join(', '))
+      .replace('{{RAG_CONTEXT}}', ragContext.substring(0, 6000))
+      .replace(/\{\{QUESTION_COUNT\}\}/g, String(questionCount));
+
+    const result = streamText({
+      model,
+      messages: [{ role: 'user', content: prompt }],
+      // @ts-ignore
+      maxTokens: 4000,
+      temperature: 0.3,
+    } as any);
+
+    let raw = '';
+    for await (const chunk of result.textStream) {
+      raw += chunk;
+    }
+
+    // Strip markdown code fences if present
+    const jsonStr = raw.replace(/^```[\w]*\n?/, '').replace(/\n?```$/, '').trim();
+
+    let parsed: any[];
+    try {
+      parsed = JSON.parse(jsonStr);
+    } catch {
+      this.logger.error('Quiz generation: failed to parse JSON', jsonStr.substring(0, 300));
+      throw new Error('Quiz generation failed — invalid JSON from LLM');
+    }
+
+    // Map topicName back to topicId
+    const topicMap = new Map(topics.map(t => [t.name.toLowerCase(), t.id]));
+
+    return parsed.map((q: any, i: number) => {
+      const topicId = topicMap.get((q.topicName ?? '').toLowerCase())
+        ?? topics[i % topics.length]?.id  // fallback: round-robin
+        ?? topics[0].id;
+      return {
+        topicId,
+        question: String(q.question ?? ''),
+        options: Array.isArray(q.options) ? q.options.map(String) : [],
+        correctAnswer: String(q.correctAnswer ?? 'A').toUpperCase().charAt(0),
+        explanation: String(q.explanation ?? ''),
+      };
+    });
   }
 }

@@ -1,174 +1,332 @@
+"use client";
+
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { CheckCircle2, MessageSquare, Target, Brain } from "lucide-react";
+import { useState } from "react";
+import { ArrowRight, Brain, BookOpen, Target, Check } from "lucide-react";
+
+const DEMO_MESSAGES = [
+  { role: "user", content: "What is osmosis?" },
+  {
+    role: "assistant",
+    content:
+      "Great question! Before I explain — what do you already know about how water moves between cells?",
+  },
+  {
+    role: "user",
+    content: "Water goes from less concentrated to more concentrated?",
+  },
+  {
+    role: "assistant",
+    content:
+      "✅ KEY TERM earned: **concentration gradient**\n\nYou're almost there! Water actually moves from HIGH water potential (dilute) to LOW (concentrated). What type of membrane allows this?",
+  },
+];
+
+const FEATURES = [
+  {
+    icon: Brain,
+    title: "Socratic Method",
+    desc: "Teaches you to think, not copy answers",
+  },
+  {
+    icon: BookOpen,
+    title: "Cambridge Aligned",
+    desc: "Every answer grounded in your syllabus",
+  },
+  {
+    icon: Target,
+    title: "Mark Scheme Grading",
+    desc: "Know exactly which words earn marks",
+  },
+];
+
+const SUBJECTS = ["Biology", "Mathematics", "Chemistry", "Physics", "Economics"];
 
 export default function HomePage() {
+  const [activeMsg, setActiveMsg] = useState(0);
+
   return (
-    <div className="min-h-screen bg-bg-void flex flex-col font-sans selection:bg-accent/30">
-      {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 px-6 py-4 flex items-center justify-between max-w-7xl mx-auto w-full bg-bg-void/80 backdrop-blur-md border-b border-border-subtle">
+    <div
+      className="min-h-screen flex flex-col"
+      style={{ background: "var(--color-void)", color: "var(--color-text-primary)" }}
+    >
+      {/* ── Nav ── */}
+      <header
+        className="sticky top-0 z-50 px-6 py-4 flex items-center justify-between border-b"
+        style={{
+          background: "rgba(8,12,20,0.8)",
+          backdropFilter: "blur(20px)",
+          borderColor: "var(--color-border-subtle)",
+        }}
+      >
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center font-bold text-accent">L</div>
-          <span className="font-semibold text-lg text-text-primary tracking-tight">LinhIQ</span>
+          <span className="text-2xl font-bold">
+            <span style={{ color: "var(--color-accent)" }}>Linh</span>IQ
+          </span>
         </div>
-        <div className="flex items-center gap-4">
-          <Link href="/login" className="text-[15px] font-medium text-text-secondary hover:text-text-primary transition-colors">
+        <div className="flex items-center gap-2">
+          <Link href="/login" className="btn-ghost text-sm px-4 py-2">
             Sign in
           </Link>
-          <Link href="/register">
-            <Button size="sm" className="hidden sm:flex">Start →</Button>
+          <Link href="/register" className="btn-primary text-sm px-4 py-2 gap-1">
+            Start Free <ArrowRight size={14} />
           </Link>
         </div>
-      </nav>
+      </header>
 
-      {/* Hero Section */}
-      <main className="flex-1 px-6 pt-32 pb-20">
-        <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-5xl sm:text-7xl font-bold tracking-tight text-text-primary mb-6">
-            Study smarter.<br />Not harder.
+      {/* ── Hero ── */}
+      <main className="flex-1">
+        <section className="max-w-5xl mx-auto px-6 pt-24 pb-20 text-center">
+          {/* Eyebrow */}
+          <div
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm mb-8"
+            style={{
+              background: "var(--color-accent-soft)",
+              border: "1px solid rgba(99,102,241,0.3)",
+              color: "var(--color-text-hint)",
+            }}
+          >
+            <span className="w-2 h-2 rounded-full bg-current animate-pulse" />
+            Cambridge IGCSE &amp; A-Level · AI-Powered
+          </div>
+
+          <h1
+            className="text-5xl sm:text-6xl lg:text-7xl font-bold leading-none tracking-tight mb-6 animate-fade-up"
+            style={{ letterSpacing: "-0.025em" }}
+          >
+            Study smarter.
+            <br />
+            <span className="text-gradient">Not harder.</span>
           </h1>
-          <p className="text-text-secondary text-lg sm:text-xl max-w-2xl mx-auto mb-10 leading-relaxed">
-            Your personal AI tutor for Cambridge IGCSE & A-Level.<br />
-            Answers your questions with questions — until you truly understand.
+
+          <p
+            className="text-lg sm:text-xl max-w-xl mx-auto mb-10 animate-fade-up"
+            style={{ color: "var(--color-text-secondary)", animationDelay: "80ms" }}
+          >
+            Your personal AI tutor for Cambridge IGCSE &amp; A-Level. Answers your
+            questions with questions — until you truly understand.
           </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link href="/register">
-              <Button size="lg" className="w-full sm:w-auto">Try 3 Questions Free →</Button>
+
+          <div
+            className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-16 animate-fade-up"
+            style={{ animationDelay: "160ms" }}
+          >
+            <Link href="/register" className="btn-primary text-base px-7 py-3.5 gap-2">
+              Try 3 Questions Free <ArrowRight size={16} />
             </Link>
-            <Link href="#how-it-works">
-              <Button variant="secondary" size="lg" className="w-full sm:w-auto bg-bg-surface">See how it works</Button>
+            <Link href="/login" className="btn-ghost text-base px-7 py-3.5">
+              See how it works
             </Link>
           </div>
 
-          <div className="mt-16 mb-4 flex items-center justify-center gap-4 text-sm font-medium text-text-muted">
-            <div className="h-px bg-border-subtle flex-1 max-w-[100px]" />
-            Trusted for
-            <div className="h-px bg-border-subtle flex-1 max-w-[100px]" />
+          {/* Subjects row */}
+          <div className="flex flex-wrap justify-center gap-2 mb-24">
+            <span style={{ color: "var(--color-text-muted)", fontSize: 13 }}>Trusted for:</span>
+            {SUBJECTS.map((s) => (
+              <span key={s} className="tag" style={{ fontSize: 13 }}>
+                {s}
+              </span>
+            ))}
           </div>
-          <div className="flex flex-wrap justify-center gap-4 text-text-secondary font-medium">
-            <span>Biology</span> · <span>Mathematics</span> · <span>Chemistry</span> · <span>Physics</span> · <span>Economics</span>
-          </div>
-        </div>
 
-        {/* Live Demo Chat Mockup */}
-        <div className="mt-24 max-w-3xl mx-auto relative group">
-          <div className="absolute -inset-1 bg-gradient-to-r from-accent/30 to-purple-500/30 rounded-[32px] blur opacity-50 group-hover:opacity-100 transition duration-1000"></div>
-          <div className="relative bg-bg-base border border-border-default rounded-3xl p-4 sm:p-8 shadow-2xl flex flex-col gap-6">
-            <div className="flex justify-end">
-              <div className="bg-accent text-white px-5 py-3 rounded-[18px_18px_4px_18px] text-[15px] shadow-sm max-w-[80%]">
-                What is osmosis?
-              </div>
+          {/* ── Chat Demo ── */}
+          <div
+            className="rounded-2xl border overflow-hidden max-w-2xl mx-auto shadow-2xl animate-fade-up"
+            style={{
+              background: "var(--color-surface)",
+              borderColor: "var(--color-border-subtle)",
+              animationDelay: "240ms",
+              boxShadow: "0 32px 64px rgba(0,0,0,0.6), 0 0 0 1px rgba(99,102,241,0.1)",
+            }}
+          >
+            {/* window chrome */}
+            <div
+              className="flex items-center gap-2 px-4 py-3 border-b"
+              style={{ borderColor: "var(--color-border-subtle)", background: "var(--color-elevated)" }}
+            >
+              <span className="w-3 h-3 rounded-full bg-danger/70" />
+              <span className="w-3 h-3 rounded-full bg-warning/70" />
+              <span className="w-3 h-3 rounded-full bg-success/70" />
+              <span className="flex-1 text-center text-xs" style={{ color: "var(--color-text-muted)" }}>
+                🧬 Biology · IGCSE
+              </span>
             </div>
-            
-            <div className="flex justify-start">
-              <div className="bg-bg-surface border border-border-subtle text-text-primary px-5 py-4 rounded-[4px_18px_18px_18px] text-[15px] shadow-sm max-w-[85%] relative">
-                Great question! Before I explain — what do you already know about how water moves between cells?
-              </div>
-            </div>
-
-            <div className="flex justify-end">
-              <div className="bg-accent text-white px-5 py-3 rounded-[18px_18px_4px_18px] text-[15px] shadow-sm max-w-[80%]">
-                Water goes from less concentrated to more?
-              </div>
-            </div>
-
-            <div className="flex justify-start">
-              <div className="bg-bg-surface border border-border-subtle text-text-primary px-5 py-4 rounded-[4px_18px_18px_18px] text-[15px] shadow-sm max-w-[85%] relative">
-                <div className="flex items-center gap-1.5 mb-2.5 text-[11px] font-semibold text-success uppercase tracking-widest bg-success/10 w-fit px-2.5 py-1 rounded-md">
-                  ✅ KEY TERM: concentration gradient
+            {/* messages */}
+            <div className="p-6 space-y-4 text-left">
+              {DEMO_MESSAGES.map((msg, i) => (
+                <div
+                  key={i}
+                  className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"} animate-fade-up`}
+                  style={{ animationDelay: `${300 + i * 120}ms` }}
+                >
+                  <div
+                    className="max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed"
+                    style={
+                      msg.role === "user"
+                        ? {
+                            background: "var(--color-accent)",
+                            color: "#fff",
+                            borderRadius: "18px 18px 4px 18px",
+                          }
+                        : {
+                            background: "var(--color-elevated)",
+                            color: "var(--color-text-primary)",
+                            border: "1px solid var(--color-border-subtle)",
+                            borderRadius: "4px 18px 18px 18px",
+                          }
+                    }
+                  >
+                    {msg.content.split("**").map((part, pi) =>
+                      pi % 2 === 1 ? (
+                        <strong key={pi} className="key-term">
+                          {part}
+                        </strong>
+                      ) : (
+                        <span key={pi}>{part}</span>
+                      )
+                    )}
+                  </div>
                 </div>
-                You&apos;re on the right track! Now — what do we call the type of membrane that allows water through but not large molecules?
+              ))}
+              {/* input */}
+              <div
+                className="flex items-center gap-2 px-4 py-3 rounded-xl border mt-2"
+                style={{ borderColor: "var(--color-border-default)", background: "var(--color-elevated)" }}
+              >
+                <span className="flex-1 text-sm" style={{ color: "var(--color-text-muted)" }}>
+                  Ask anything...
+                </span>
+                <button className="btn-primary text-xs px-3 py-1.5">→</button>
               </div>
             </div>
-            
-            <div className="mt-4 relative flex items-center bg-bg-surface border border-border-subtle rounded-2xl p-2 px-4 shadow-sm opacity-60">
-              <span className="text-text-muted text-[15px] py-1">Ask anything...</span>
+            <div
+              className="px-6 py-2 text-center text-xs border-t"
+              style={{ borderColor: "var(--color-border-subtle)", color: "var(--color-text-muted)" }}
+            >
+              Live demo — no signup needed
             </div>
           </div>
-          <p className="text-center text-sm font-medium text-text-muted mt-6">Live demo — no signup needed</p>
-        </div>
+        </section>
 
-        {/* Features Section */}
-        <div id="how-it-works" className="mt-32 max-w-5xl mx-auto">
-          <div className="flex items-center justify-center gap-4 text-sm font-medium text-accent mb-12">
-            <div className="h-px bg-accent/20 flex-1 max-w-[60px]" />
-            What makes LinhIQ different
-            <div className="h-px bg-accent/20 flex-1 max-w-[60px]" />
+        {/* ── Features ── */}
+        <section
+          className="py-20 px-6"
+          style={{ background: "var(--color-base)", borderTop: "1px solid var(--color-border-subtle)" }}
+        >
+          <div className="max-w-4xl mx-auto">
+            <h2
+              className="text-center text-3xl font-bold mb-3"
+              style={{ letterSpacing: "-0.02em" }}
+            >
+              What makes LinhIQ different
+            </h2>
+            <p className="text-center mb-12" style={{ color: "var(--color-text-secondary)" }}>
+              Built for serious exam prep, not just entertainment.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+              {FEATURES.map(({ icon: Icon, title, desc }) => (
+                <div key={title} className="card text-center">
+                  <div
+                    className="w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-4"
+                    style={{ background: "var(--color-accent-soft)" }}
+                  >
+                    <Icon size={22} style={{ color: "var(--color-accent)" }} />
+                  </div>
+                  <h3 className="font-semibold mb-2">{title}</h3>
+                  <p className="text-sm" style={{ color: "var(--color-text-secondary)" }}>
+                    {desc}
+                  </p>
+                </div>
+              ))}
+            </div>
           </div>
+        </section>
 
-          <div className="grid sm:grid-cols-3 gap-6">
-            <div className="bg-bg-surface border border-border-subtle p-6 rounded-2xl text-center">
-              <div className="w-12 h-12 bg-accent/10 text-accent rounded-xl flex items-center justify-center mx-auto mb-4">
-                <Brain className="w-6 h-6" />
+        {/* ── Pricing ── */}
+        <section
+          className="py-20 px-6"
+          style={{ background: "var(--color-void)", borderTop: "1px solid var(--color-border-subtle)" }}
+        >
+          <div className="max-w-3xl mx-auto">
+            <h2
+              className="text-center text-3xl font-bold mb-12"
+              style={{ letterSpacing: "-0.02em" }}
+            >
+              Simple pricing
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              {/* Free */}
+              <div className="card">
+                <div className="mb-6">
+                  <h3 className="text-xl font-semibold mb-1">Free</h3>
+                  <p className="text-4xl font-bold mt-3">$0</p>
+                </div>
+                <ul className="space-y-3 mb-8">
+                  {["10 questions / day", "1 subject", "Basic hints (L1-L3)"].map((f) => (
+                    <li key={f} className="flex items-center gap-2 text-sm" style={{ color: "var(--color-text-secondary)" }}>
+                      <Check size={14} style={{ color: "var(--color-success)" }} />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+                <Link href="/register" className="btn-ghost w-full justify-center">
+                  Start Free
+                </Link>
               </div>
-              <h3 className="text-lg font-semibold text-text-primary mb-2">Socratic Method</h3>
-              <p className="text-text-secondary text-sm">Teaches you to think, not copy. We guide you to the answer instead of handing it to you.</p>
-            </div>
-            
-            <div className="bg-bg-surface border border-border-subtle p-6 rounded-2xl text-center">
-              <div className="w-12 h-12 bg-accent/10 text-accent rounded-xl flex items-center justify-center mx-auto mb-4">
-                <MessageSquare className="w-6 h-6" />
+              {/* Pro */}
+              <div
+                className="card relative overflow-hidden"
+                style={{
+                  borderColor: "rgba(99,102,241,0.5)",
+                  boxShadow: "var(--shadow-glow)",
+                  background: "linear-gradient(135deg, rgba(99,102,241,0.08), var(--color-surface))",
+                }}
+              >
+                <div
+                  className="absolute top-4 right-4 text-xs font-bold px-2.5 py-1 rounded-full"
+                  style={{ background: "var(--color-accent)", color: "#fff" }}
+                >
+                  POPULAR
+                </div>
+                <div className="mb-6">
+                  <h3 className="text-xl font-semibold mb-1">Student Pro</h3>
+                  <p className="text-4xl font-bold mt-3">
+                    $15
+                    <span className="text-lg font-medium" style={{ color: "var(--color-text-secondary)" }}>
+                      /mo
+                    </span>
+                  </p>
+                </div>
+                <ul className="space-y-3 mb-8">
+                  {[
+                    "Unlimited questions",
+                    "All subjects",
+                    "Photo upload",
+                    "Mark Scheme grading",
+                    "Progress tracking",
+                    "All 5 hint levels",
+                  ].map((f) => (
+                    <li key={f} className="flex items-center gap-2 text-sm" style={{ color: "var(--color-text-secondary)" }}>
+                      <Check size={14} style={{ color: "var(--color-success)" }} />
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+                <Link href="/register" className="btn-primary w-full justify-center gap-2">
+                  Get Pro <ArrowRight size={14} />
+                </Link>
               </div>
-              <h3 className="text-lg font-semibold text-text-primary mb-2">Cambridge Aligned RAG</h3>
-              <p className="text-text-secondary text-sm">Every answer is grounded in your exact syllabus. No hallucinations, just textbooks.</p>
-            </div>
-
-            <div className="bg-bg-surface border border-border-subtle p-6 rounded-2xl text-center">
-              <div className="w-12 h-12 bg-accent/10 text-accent rounded-xl flex items-center justify-center mx-auto mb-4">
-                <Target className="w-6 h-6" />
-              </div>
-              <h3 className="text-lg font-semibold text-text-primary mb-2">Mark Scheme Grading</h3>
-              <p className="text-text-secondary text-sm">Know exactly which words earn marks based on past papers and examiner reports.</p>
             </div>
           </div>
-        </div>
-
-        {/* Pricing */}
-        <div className="mt-32 max-w-4xl mx-auto">
-          <div className="flex items-center justify-center gap-4 text-sm font-medium text-text-muted mb-12">
-            <div className="h-px bg-border-subtle flex-1 max-w-[60px]" />
-            Pricing
-            <div className="h-px bg-border-subtle flex-1 max-w-[60px]" />
-          </div>
-
-          <div className="grid sm:grid-cols-2 gap-8 max-w-2xl mx-auto">
-            <div className="bg-bg-base border border-border-default p-8 rounded-3xl flex flex-col">
-              <h3 className="text-xl font-semibold text-text-primary mb-2">Free</h3>
-              <p className="text-text-secondary text-sm mb-6">Perfect to try out.</p>
-              <div className="text-3xl font-bold text-text-primary mb-8">$0<span className="text-sm font-medium text-text-muted">/mo</span></div>
-              
-              <ul className="space-y-4 mb-8 flex-1">
-                <li className="flex items-center gap-3 text-sm text-text-secondary"><CheckCircle2 className="w-5 h-5 text-text-muted" /> 10 questions/day</li>
-                <li className="flex items-center gap-3 text-sm text-text-secondary"><CheckCircle2 className="w-5 h-5 text-text-muted" /> 1 subject</li>
-                <li className="flex items-center gap-3 text-sm text-text-secondary"><CheckCircle2 className="w-5 h-5 text-text-muted" /> Basic hints</li>
-              </ul>
-              
-              <Link href="/register"><Button variant="secondary" className="w-full bg-bg-surface">Start Free</Button></Link>
-            </div>
-
-            <div className="bg-bg-surface border border-accent/40 relative p-8 rounded-3xl overflow-hidden flex flex-col shadow-[0_0_40px_rgba(99,102,241,0.1)]">
-              <div className="absolute top-0 right-0 bg-accent text-white text-xs font-bold uppercase tracking-wider py-1 px-3 rounded-bl-xl">Popular</div>
-              <h3 className="text-xl font-semibold text-text-primary mb-2">Student Pro</h3>
-              <p className="text-text-secondary text-sm mb-6">Unlock full learning potential.</p>
-              <div className="text-3xl font-bold text-text-primary mb-8">$15<span className="text-sm font-medium text-text-muted">/mo</span></div>
-              
-              <ul className="space-y-4 mb-8 flex-1">
-                <li className="flex items-center gap-3 text-sm text-text-primary font-medium"><CheckCircle2 className="w-5 h-5 text-accent" /> Unlimited questions</li>
-                <li className="flex items-center gap-3 text-sm text-text-primary font-medium"><CheckCircle2 className="w-5 h-5 text-accent" /> All subjects</li>
-                <li className="flex items-center gap-3 text-sm text-text-primary font-medium"><CheckCircle2 className="w-5 h-5 text-accent" /> Photo upload</li>
-                <li className="flex items-center gap-3 text-sm text-text-primary font-medium"><CheckCircle2 className="w-5 h-5 text-accent" /> Mark Scheme grading</li>
-                <li className="flex items-center gap-3 text-sm text-text-primary font-medium"><CheckCircle2 className="w-5 h-5 text-accent" /> Progress tracking</li>
-              </ul>
-              
-              <Link href="/register"><Button className="w-full shadow-accent-glow">Get Pro →</Button></Link>
-            </div>
-          </div>
-        </div>
-
+        </section>
       </main>
 
-      <footer className="border-t border-border-subtle py-8 text-center text-sm font-medium text-text-muted">
-        © 2026 LinhIQ. Designed for students globally.
+      {/* ── Footer ── */}
+      <footer
+        className="py-8 px-6 text-center text-sm border-t"
+        style={{ borderColor: "var(--color-border-subtle)", color: "var(--color-text-muted)" }}
+      >
+        © 2026 LinhIQ · Built for Cambridge students
       </footer>
     </div>
   );

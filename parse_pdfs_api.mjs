@@ -76,8 +76,10 @@ async function getMarkdownResult(jobId) {
 
 async function main() {
     try {
-        const inputDir = 'D:/Projects/Javirs/apps/data/curriculum/igcse/biology/pdf';
-        const outputDir = 'D:/Projects/Javirs/apps/data/curriculum/igcse/biology/textbook';
+        const subjectArg = process.argv[2] || 'biology';
+        const folderName = subjectArg.toLowerCase();
+        const inputDir = `D:/Projects/Javirs/apps/data/curriculum/igcse/${folderName}/pdf`;
+        const outputDir = `D:/Projects/Javirs/apps/data/curriculum/igcse/${folderName}/textbook`;
 
         await fsp.mkdir(outputDir, { recursive: true });
 

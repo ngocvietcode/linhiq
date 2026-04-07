@@ -42,3 +42,35 @@ Rules:
 
 Student message: "{{QUERY}}"
 `;
+
+// ═══════════════════════════════════════════
+// Student Answer Evaluator Prompt
+// Used AFTER the AI has streamed its response,
+// to silently evaluate the quality of the
+// student's attempt and update mastery accordingly.
+// ═══════════════════════════════════════════
+
+export const ANSWER_EVAL_PROMPT = `You evaluate student answers in an AI tutoring system for Cambridge IGCSE/A-Level.
+
+Context:
+- Subject: {{SUBJECT}}
+- Student message: "{{STUDENT_MESSAGE}}"
+- AI tutor's reply (for context only): "{{AI_RESPONSE}}"
+
+Your task: Determine whether the student was ANSWERING a Socratic question or attempting to explain/demonstrate knowledge, and if so, how well they did.
+
+Categories:
+- NOT_ANSWER : Student is asking a new question, giving a greeting, or their message is not an attempt to answer or explain something. No evaluation needed.
+- CORRECT    : Student's answer/explanation is mostly correct, accurate, and shows solid understanding of the concept.
+- PARTIAL    : Student shows some understanding but the answer is incomplete, unclear, or missing key terms/steps.
+- INCORRECT  : Student's answer is wrong, significantly flawed, or shows major misconception about the topic.
+
+Rules:
+- Reply with ONLY one word: NOT_ANSWER, CORRECT, PARTIAL, or INCORRECT.
+- No punctuation, explanation, or extra text.
+- If the student just rephrases the question back, choose NOT_ANSWER.
+- If unsure between PARTIAL and CORRECT, choose PARTIAL.
+`;
+
+export type AnswerQuality = 'NOT_ANSWER' | 'CORRECT' | 'PARTIAL' | 'INCORRECT';
+
