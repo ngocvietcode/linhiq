@@ -155,7 +155,7 @@ function OnboardingContent() {
                   Hi, I&apos;m LinhIQ.
                   <br />
                   <span style={{ color: "var(--color-text-secondary)" }}>
-                    Your Cambridge AI tutor.
+                    Your personal AI tutor.
                   </span>
                 </h1>
                 <p style={{ color: "var(--color-text-secondary)" }}>
@@ -163,7 +163,7 @@ function OnboardingContent() {
                 </p>
               </div>
 
-              <p className="font-medium mb-4">Which curriculum are you studying?</p>
+              <p className="font-medium mb-4">Which school program are you studying?</p>
               <div className="grid grid-cols-2 gap-4 mb-8">
                 {[
                   { id: "IGCSE", label: "IGCSE", sub: "Grade 9–10 · Age 14–16" },

@@ -30,7 +30,7 @@ const FEATURES = [
   },
   {
     icon: BookOpen,
-    title: "Cambridge Aligned",
+    title: "School Programs",
     desc: "Every answer grounded in your syllabus",
   },
   {
@@ -87,7 +87,7 @@ export default function HomePage() {
             }}
           >
             <span className="w-2 h-2 rounded-full bg-current animate-pulse" />
-            Cambridge IGCSE &amp; A-Level · AI-Powered
+            Chương trình Quốc tế &amp; Việt Nam · AI-Powered
           </div>
 
           <h1
@@ -103,7 +103,7 @@ export default function HomePage() {
             className="text-lg sm:text-xl max-w-xl mx-auto mb-10 animate-fade-up"
             style={{ color: "var(--color-text-secondary)", animationDelay: "80ms" }}
           >
-            Your personal AI tutor for Cambridge IGCSE &amp; A-Level. Answers your
+            Your personal AI tutor for international and Vietnamese school programs. Answers your
             questions with questions — until you truly understand.
           </p>
 
@@ -326,7 +326,7 @@ export default function HomePage() {
         className="py-8 px-6 text-center text-sm border-t"
         style={{ borderColor: "var(--color-border-subtle)", color: "var(--color-text-muted)" }}
       >
-        © 2026 LinhIQ · Built for Cambridge students
+        © 2026 LinhIQ · Built for students
       </footer>
     </div>
   );
