@@ -34,7 +34,6 @@ ENV NODE_ENV=production
 COPY --from=builder /app/apps/api/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/packages/database/prisma ./prisma
-COPY --from=builder /app/packages/database/node_modules/.prisma ./node_modules/.prisma
 
 USER nestjs
 
