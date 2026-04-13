@@ -35,3 +35,4 @@ msg_result.json
 subj.json
 seed-admin.*
 out.log
+deploy/certbot/
