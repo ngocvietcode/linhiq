@@ -15,6 +15,10 @@ COPY . .
 # Install all dependencies precisely preserving pnpm symlinks
 RUN pnpm install --frozen-lockfile
 
+# Accept build arguments for public environment variables
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+
 # Build Next.js
 RUN cd apps/web && pnpm build
 
