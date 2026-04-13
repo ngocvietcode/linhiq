@@ -78,8 +78,8 @@ async function main() {
     try {
         const subjectArg = process.argv[2] || 'biology';
         const folderName = subjectArg.toLowerCase();
-        const inputDir = `D:/Projects/Javirs/apps/data/curriculum/igcse/${folderName}/pdf`;
-        const outputDir = `D:/Projects/Javirs/apps/data/curriculum/igcse/${folderName}/textbook`;
+        const inputDir = `D:/Projects/LinhIQ/apps/data/curriculum/igcse/${folderName}/pdf`;
+        const outputDir = `D:/Projects/LinhIQ/apps/data/curriculum/igcse/${folderName}/textbook`;
 
         await fsp.mkdir(outputDir, { recursive: true });
 

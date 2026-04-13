@@ -14,10 +14,10 @@ import {
   ANSWER_EVAL_PROMPT,
   QUIZ_GENERATOR_PROMPT,
   MODEL_ROUTES,
-} from '@javirs/ai-config';
-import type { QueryComplexity, AnswerQuality } from '@javirs/ai-config';
-import type { HintLevel } from '@javirs/types';
-import type { TopicCategory } from '@javirs/database';
+} from '@linhiq/ai-config';
+import type { QueryComplexity, AnswerQuality } from '@linhiq/ai-config';
+import type { HintLevel } from '@linhiq/types';
+import type { TopicCategory } from '@linhiq/database';
 
 interface ChatHistoryMessage {
   role: 'user' | 'assistant' | 'system';

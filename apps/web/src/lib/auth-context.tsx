@@ -58,13 +58,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Restore session on mount
   useEffect(() => {
-    const savedToken = localStorage.getItem("javirs_token");
+    const savedToken = localStorage.getItem("linhiq_token");
     if (savedToken) {
       setToken(savedToken);
       api<User>("/auth/me", { token: savedToken })
         .then(setUser)
         .catch(() => {
-          localStorage.removeItem("javirs_token");
+          localStorage.removeItem("linhiq_token");
           setToken(null);
         })
         .finally(() => setIsLoading(false));
@@ -80,7 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     setUser(result.user);
     setToken(result.accessToken);
-    localStorage.setItem("javirs_token", result.accessToken);
+    localStorage.setItem("linhiq_token", result.accessToken);
   }, []);
 
   const register = useCallback(
@@ -94,20 +94,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       );
       setUser(result.user);
       setToken(result.accessToken);
-      localStorage.setItem("javirs_token", result.accessToken);
+      localStorage.setItem("linhiq_token", result.accessToken);
     },
     []
   );
 
   const logout = useCallback(async () => {
     try {
-      await api("/auth/logout", { method: "POST", token: localStorage.getItem("javirs_token") || undefined });
+      await api("/auth/logout", { method: "POST", token: localStorage.getItem("linhiq_token") || undefined });
     } catch {
       // Ignore API errors gracefully on logout
     }
     setUser(null);
     setToken(null);
-    localStorage.removeItem("javirs_token");
+    localStorage.removeItem("linhiq_token");
   }, []);
 
   return (

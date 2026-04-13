@@ -36,6 +36,6 @@ async function bootstrap() {
 
   const port = parseInt(process.env.API_PORT || '4500', 10);
   await app.listen(port);
-  console.log(`🚀 Javirs API running on http://localhost:${port}/api`);
+  console.log(`🚀 LinhIQ API running on http://localhost:${port}/api`);
 }
 bootstrap();

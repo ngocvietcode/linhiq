@@ -492,7 +492,7 @@ PIPELINE cho mỗi message (ChatController → AiService):
    → AiService.classifySafeChat(message)
    → Input: message text only (no history context yet)
    → Output: { category: TopicCategory, shouldRedirect: boolean }
-   → SAFE_CHAT_PROMPT from @javirs/ai-config
+   → SAFE_CHAT_PROMPT from @linhiq/ai-config
 
 2. Save User Message
    → ChatService.saveMessage() with safeCategory attached

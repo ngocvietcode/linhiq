@@ -46,7 +46,7 @@ async function getMarkdownResult(jobId) {
 
 async function main() {
     const jobId = '8fb1918e-fd2d-4df8-a30d-f9759c6025f7';
-    const outputDir = 'D:/Projects/Javirs/apps/data/curriculum/igcse/maths/textbook';
+    const outputDir = 'D:/Projects/LinhIQ/apps/data/curriculum/igcse/maths/textbook';
     const outputPath = path.join(outputDir, 'Cambridge _Maths_LBgrade 6.md');
 
     await fsp.mkdir(outputDir, { recursive: true });

@@ -7,7 +7,7 @@ async function test() {
     const res = await fetch('http://localhost:4500/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'admin@javirs.io', password: 'admin123' })
+      body: JSON.stringify({ email: 'admin@linhiq.io', password: 'admin123' })
     });
     
     if (!res.ok) {

@@ -1,6 +1,6 @@
 import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
-import { RegisterInput, LoginInput } from '@javirs/validators';
+import { RegisterInput, LoginInput } from '@linhiq/validators';
 import * as bcrypt from 'bcryptjs';
 import * as jwt from 'jsonwebtoken';
 import type { JwtPayload } from '../../common/interfaces/jwt-payload.interface';

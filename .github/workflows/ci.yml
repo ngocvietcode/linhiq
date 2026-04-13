@@ -34,7 +34,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Generate Prisma client
-        run: pnpm --filter @javirs/database db:generate
+        run: pnpm --filter @linhiq/database db:generate
 
       - name: Lint
         run: pnpm lint
@@ -62,7 +62,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Build API image
-        run: docker build -f apps/api/Dockerfile -t javirs-api:${{ github.sha }} .
+        run: docker build -f apps/api/Dockerfile -t linhiq-api:${{ github.sha }} .
 
       - name: Build Web image
-        run: docker build -f apps/web/Dockerfile -t javirs-web:${{ github.sha }} .
+        run: docker build -f apps/web/Dockerfile -t linhiq-web:${{ github.sha }} .

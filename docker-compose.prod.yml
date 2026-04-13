@@ -1,5 +1,5 @@
 # ══════════════════════════════════════════════════
-# Javirs — Production Docker Compose
+# LinhIQ — Production Docker Compose
 # ══════════════════════════════════════════════════
 # Usage:
 #   docker compose -f docker-compose.prod.yml up -d
@@ -10,18 +10,18 @@ services:
   # ── PostgreSQL 16 + pgvector ──
   postgres:
     image: pgvector/pgvector:pg16
-    container_name: javirs-postgres
+    container_name: linhiq-postgres
     restart: always
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-javirs}
+      POSTGRES_USER: ${POSTGRES_USER:-linhiq}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env.prod}
-      POSTGRES_DB: ${POSTGRES_DB:-javirs}
+      POSTGRES_DB: ${POSTGRES_DB:-linhiq}
     volumes:
       - pgdata:/var/lib/postgresql/data
     ports:
       - "127.0.0.1:5432:5432"  # Bind localhost only
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-javirs}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-linhiq}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -36,7 +36,7 @@ services:
   # ── Redis 7 ──
   redis:
     image: redis:7-alpine
-    container_name: javirs-redis
+    container_name: linhiq-redis
     restart: always
     command: redis-server --requirepass ${REDIS_PASSWORD:?Set REDIS_PASSWORD in .env.prod} --maxmemory 512mb --maxmemory-policy allkeys-lru --appendonly yes
     volumes:
@@ -54,7 +54,7 @@ services:
     build:
       context: .
       dockerfile: apps/api/Dockerfile
-    container_name: javirs-api
+    container_name: linhiq-api
     restart: always
     depends_on:
       postgres:
@@ -63,7 +63,7 @@ services:
         condition: service_healthy
     environment:
       NODE_ENV: production
-      DATABASE_URL: "postgresql://${POSTGRES_USER:-javirs}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-javirs}?schema=public"
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-linhiq}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-linhiq}?schema=public"
       REDIS_URL: "redis://:${REDIS_PASSWORD}@redis:6379"
       JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?Set JWT_REFRESH_SECRET}
@@ -95,7 +95,7 @@ services:
     build:
       context: .
       dockerfile: apps/web/Dockerfile
-    container_name: javirs-web
+    container_name: linhiq-web
     restart: always
     depends_on:
       - api
@@ -116,7 +116,7 @@ services:
   # ── Nginx Reverse Proxy ──
   nginx:
     image: nginx:alpine
-    container_name: javirs-nginx
+    container_name: linhiq-nginx
     restart: always
     depends_on:
       - web
@@ -138,7 +138,7 @@ services:
   # ── Certbot (SSL auto-renew) ──
   certbot:
     image: certbot/certbot
-    container_name: javirs-certbot
+    container_name: linhiq-certbot
     volumes:
       - ./deploy/certbot/conf:/etc/letsencrypt
       - ./deploy/certbot/www:/var/www/certbot

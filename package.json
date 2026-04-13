@@ -1,16 +1,16 @@
 {
-  "name": "javirs",
+  "name": "linhiq",
   "version": "0.1.0",
   "private": true,
-  "description": "Javirs AI Learning Platform — Personalized AI Tutor for Cambridge IGCSE/A-Level",
+  "description": "LinhIQ AI Learning Platform — Personalized AI Tutor for Cambridge IGCSE/A-Level",
   "scripts": {
     "dev": "turbo dev",
     "build": "turbo build",
     "lint": "turbo lint",
     "type-check": "turbo type-check",
-    "db:migrate": "pnpm --filter @javirs/database db:migrate",
-    "db:seed": "pnpm --filter @javirs/database db:seed",
-    "db:studio": "pnpm --filter @javirs/database db:studio",
+    "db:migrate": "pnpm --filter @linhiq/database db:migrate",
+    "db:seed": "pnpm --filter @linhiq/database db:seed",
+    "db:studio": "pnpm --filter @linhiq/database db:studio",
     "clean": "turbo clean && rimraf node_modules"
   },
   "devDependencies": {

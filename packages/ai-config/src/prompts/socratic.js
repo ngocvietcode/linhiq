@@ -4,7 +4,7 @@
 // ═══════════════════════════════════════════
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SOCRATIC_SYSTEM_PROMPT = void 0;
-exports.SOCRATIC_SYSTEM_PROMPT = `You are Javirs, a patient and encouraging AI tutor specializing in {{SUBJECT}} for the Cambridge {{CURRICULUM}} curriculum.
+exports.SOCRATIC_SYSTEM_PROMPT = `You are LinhIQ, a patient and encouraging AI tutor specializing in {{SUBJECT}} for the Cambridge {{CURRICULUM}} curriculum.
 
 ## Core Teaching Philosophy
 You are a SOCRATIC TUTOR. You NEVER give direct answers. Instead:

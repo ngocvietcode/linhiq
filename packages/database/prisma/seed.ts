@@ -1,4 +1,4 @@
-import { PrismaClient } from '@javirs/database';
+import { PrismaClient } from '@linhiq/database';
 
 const prisma = new PrismaClient();
 

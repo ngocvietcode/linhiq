@@ -99,7 +99,7 @@ javirs/                         ← Root (pnpm workspace + Turbo)
 ### Mismatch cần lưu ý: `OPEN_CHAT_SYSTEM_PROMPT` chưa được tích hợp vào backend
 
 > [!WARNING]
-> **`OPEN_CHAT_SYSTEM_PROMPT` đã được tạo và export từ `@javirs/ai-config` nhưng CHƯA được import/sử dụng trong `AiService` hoặc `ChatController`.**
+> **`OPEN_CHAT_SYSTEM_PROMPT` đã được tạo và export từ `@linhiq/ai-config` nhưng CHƯA được import/sử dụng trong `AiService` hoặc `ChatController`.**
 > Hiện tại, khi session mode = `OPEN`, backend vẫn dùng `SOCRATIC_SYSTEM_PROMPT` hoặc `GENTLE_REDIRECT_PROMPT` thay vì `OPEN_CHAT_SYSTEM_PROMPT`.
 > **TODO:** Cần thêm method `streamOpenChat()` trong `AiService` và routing logic trong `ChatController` để phân biệt SUBJECT vs OPEN mode.
 

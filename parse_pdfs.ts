@@ -6,8 +6,8 @@ const API_KEY = "llx-4xn9ODNoVjMWWu3MsyDfs0NxiPknULsr5TtAklFx79YeGgEb";
 process.env.LLAMA_CLOUD_API_KEY = API_KEY;
 
 async function main() {
-    const inputDir = 'D:/Projects/Javirs/apps/data/curriculum/igcse/biology/pdf';
-    const outputDir = 'D:/Projects/Javirs/apps/data/curriculum/igcse/biology/markdown';
+    const inputDir = 'D:/Projects/LinhIQ/apps/data/curriculum/igcse/biology/pdf';
+    const outputDir = 'D:/Projects/LinhIQ/apps/data/curriculum/igcse/biology/markdown';
     
     // Create outputDir if it doesn't exist
     await fs.mkdir(outputDir, { recursive: true });
