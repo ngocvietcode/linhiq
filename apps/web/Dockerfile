@@ -3,33 +3,19 @@
 # Multi-stage build for Next.js (standalone)
 # ═══════════════════════════════════════════
 
-# ── Stage 1: Install dependencies ──
-FROM node:20-alpine AS deps
-WORKDIR /app
-
-RUN corepack enable && corepack prepare pnpm@10.7.1 --activate
-
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
-COPY apps/web/package.json apps/web/package.json
-COPY packages/ packages/
-
-RUN pnpm install --frozen-lockfile
-
-# ── Stage 2: Build ──
+# ── Stage 1: Build ──
 FROM node:20-alpine AS builder
 WORKDIR /app
 
 RUN corepack enable && corepack prepare pnpm@10.7.1 --activate
 
-COPY package.json pnpm-workspace.yaml turbo.json tsconfig.json* ./
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
-COPY --from=deps /app/packages ./packages
+# Copy full repository for isolated correct build
+COPY . .
 
-COPY apps/web/ apps/web/
+# Install all dependencies precisely preserving pnpm symlinks
+RUN pnpm install --frozen-lockfile
 
-ENV NEXT_TELEMETRY_DISABLED=1
-
+# Build Next.js
 RUN cd apps/web && pnpm build
 
 # ── Stage 3: Production ──
