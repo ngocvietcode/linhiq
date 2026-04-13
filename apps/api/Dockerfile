@@ -12,12 +12,9 @@ RUN corepack enable && corepack prepare pnpm@10.7.1 --activate
 # Copy workspace root files
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
 
-# Copy all package.json files for workspace resolution
+# Copy packages and app package file for isolated install
 COPY apps/api/package.json apps/api/package.json
-COPY packages/database/package.json packages/database/package.json
-COPY packages/types/package.json packages/types/package.json
-COPY packages/validators/package.json packages/validators/package.json
-COPY packages/ai-config/package.json packages/ai-config/package.json
+COPY packages/ packages/
 
 RUN pnpm install --frozen-lockfile
 
@@ -30,9 +27,9 @@ RUN corepack enable && corepack prepare pnpm@10.7.1 --activate
 COPY package.json pnpm-workspace.yaml turbo.json tsconfig.json* ./
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
+COPY --from=deps /app/packages ./packages
 
 # Copy source
-COPY packages/ packages/
 COPY apps/api/ apps/api/
 
 # Generate Prisma client
