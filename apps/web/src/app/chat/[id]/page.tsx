@@ -382,7 +382,7 @@ function ChatContent() {
     : session.title || session.subject?.name || "Study";
   const chatSubtitle = isOpen
     ? "Open Chat"
-    : `${session.subject?.curriculum || "Cambridge"} · ${session.subject?.name}`;
+    : `${session.subject?.curriculum || "International"} · ${session.subject?.name}`;
 
   const suggestions = session.subject
     ? SUBJECT_SUGGESTIONS[session.subject.name] || ["What would you like to learn?"]

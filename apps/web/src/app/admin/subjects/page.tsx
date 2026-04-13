@@ -11,8 +11,8 @@ import Link from "next/link";
 import type { AdminSubject, CreateSubjectBody } from "@/lib/admin-api";
 
 const CURRICULUM_OPTIONS = [
-  { value: "IGCSE",       label: "Cambridge IGCSE" },
-  { value: "A_LEVEL",     label: "Cambridge A-Level" },
+  { value: "IGCSE",       label: "IGCSE" },
+  { value: "A_LEVEL",     label: "A-Level" },
   { value: "VN_GRADE_12", label: "VN Grade 12" },
   { value: "GENERAL",     label: "General" },
 ];

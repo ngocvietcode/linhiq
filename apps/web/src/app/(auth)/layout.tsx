@@ -23,7 +23,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             <span style={{ color: "var(--color-accent)" }}>Linh</span>IQ
           </Link>
           <span className="text-sm" style={{ color: "var(--color-text-muted)" }}>
-            AI Tutor for Cambridge IGCSE &amp; A-Level
+            AI Tutor for International &amp; Vietnamese School Programs
           </span>
         </header>
 

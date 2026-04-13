@@ -30,12 +30,12 @@ export const metadata: Metadata = {
     template: "%s | LinhIQ",
   },
   description:
-    "Your personal AI tutor for Cambridge IGCSE & A-Level. Answers your questions with questions — until you truly understand.",
-  keywords: ["AI tutor", "Cambridge IGCSE", "A-Level", "Socratic method", "e-learning", "LinhIQ"],
+    "Your personal AI tutor for International & Vietnamese programs. Answers your questions with questions — until you truly understand.",
+  keywords: ["AI tutor", "international programs", "Vietnamese programs", "Socratic method", "e-learning", "LinhIQ"],
   authors: [{ name: "LinhIQ" }],
   openGraph: {
     title: "LinhIQ — Study Smarter, Not Harder",
-    description: "Your personal AI tutor for Cambridge IGCSE & A-Level.",
+    description: "Your personal AI tutor for International & Vietnamese programs.",
     type: "website",
   },
   icons: { icon: "/favicon.ico" },
