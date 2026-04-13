@@ -1,0 +1,4 @@
+{
+  "status": 201,
+  "body": "data: {\"type\":\"text\",\"content\":\"That's a great question to start with! Osm\"}\n\ndata: {\"type\":\"text\",\"content\":\"osis is a fundamental process in biology.\\n\\nWhat do you already know about how water moves in and out of cells, or through different solutions?\"}\n\ndata: {\"type\":\"done\",\"metadata\":{\"provider\":\"gemini\",\"complexity\":\"simple\",\"ragSources\":[]}}\n\n"
+}

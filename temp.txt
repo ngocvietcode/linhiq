@@ -1,0 +1,2 @@
+Line 1002: await this.chat.saveMessage(sessionId, 'user', input.content, {
+Line 1043: await this.chat.saveMessage(sessionId, 'assistant', fullResponse, {
