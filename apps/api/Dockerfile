@@ -34,4 +34,4 @@ USER nestjs
 EXPOSE 4500
 
 # Run migrations then start relative to the api directory
-CMD ["sh", "-c", "./node_modules/.bin/prisma migrate deploy --schema=./packages/database/prisma/schema.prisma && npx tsx apps/api/dist/main.js"]
+CMD ["sh", "-c", "./node_modules/.bin/prisma migrate deploy --schema=./packages/database/prisma/schema.prisma && ./node_modules/.bin/tsx apps/api/dist/main.js"]
