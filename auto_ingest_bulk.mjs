@@ -8,19 +8,19 @@ const BASE_URL = "https://api.cloud.llamaindex.ai/api/parsing";
 
 const books = [
     {
-        file: "D:/Projects/Javirs/apps/data/curriculum/igcse/new books/Edexcel International-GCSE Chemistry 9-1 Revision Guide by CGP (1).pdf",
+        file: "D:/Projects/LinhIQ/apps/data/curriculum/igcse/new books/Edexcel International-GCSE Chemistry 9-1 Revision Guide by CGP (1).pdf",
         subject: "Chemistry",
         folderName: "chemistry",
         outputName: "CGP_Chemistry.md"
     },
     {
-        file: "D:/Projects/Javirs/apps/data/curriculum/igcse/new books/Edexcel International-GCSE Maths 9-1 Revision Guide by CGP.pdf",
+        file: "D:/Projects/LinhIQ/apps/data/curriculum/igcse/new books/Edexcel International-GCSE Maths 9-1 Revision Guide by CGP.pdf",
         subject: "Mathematics",
         folderName: "maths",
         outputName: "CGP_Maths.md"
     },
     {
-        file: "D:/Projects/Javirs/apps/data/curriculum/igcse/new books/Edexcel International-GCSE Physics 9-1 Revision Guide by CGP.pdf",
+        file: "D:/Projects/LinhIQ/apps/data/curriculum/igcse/new books/Edexcel International-GCSE Physics 9-1 Revision Guide by CGP.pdf",
         subject: "Physics",
         folderName: "physics",
         outputName: "CGP_Physics.md"
@@ -62,7 +62,7 @@ async function processBook(book) {
     console.log(`Bắt đầu xử lý sách: ${path.basename(book.file)}`);
     console.log(`==========================================`);
     
-    const outputDir = `D:/Projects/Javirs/apps/data/curriculum/igcse/${book.folderName}/textbook`;
+    const outputDir = `D:/Projects/LinhIQ/apps/data/curriculum/igcse/${book.folderName}/textbook`;
     await fsp.mkdir(outputDir, { recursive: true });
     
     // 1. Lưu ý API key có thể check trùng job (LlamaParse tự tạo jobID mới)
@@ -94,7 +94,7 @@ async function processBook(book) {
         
         console.log(`---------- BẮT ĐẦU CẮT CHUNK VÀ IMPL VÀO DATABASE CHO ${book.subject} ---------`);
         try {
-            execSync(`npm run db:ingest ${book.subject}`, { stdio: 'inherit', cwd: 'D:/Projects/Javirs/packages/database' });
+            execSync(`npm run db:ingest ${book.subject}`, { stdio: 'inherit', cwd: 'D:/Projects/LinhIQ/packages/database' });
             console.log(`Ingest thành công môn ${book.subject}.`);
         } catch(e) {
             console.log(`Lỗi khi chạy nx or npm db:ingest cho ${book.subject}: ${e.message}`);

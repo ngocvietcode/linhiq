@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════
-// @javirs/types — RAG & Curriculum Types
+// @linhiq/types — RAG & Curriculum Types
 // ═══════════════════════════════════════════
 
 export type Curriculum = 'IGCSE' | 'A_LEVEL';

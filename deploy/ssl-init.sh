@@ -1,6 +1,6 @@
 #!/bin/bash
 # ══════════════════════════════════════════════════
-# Javirs — SSL Initial Setup (run ONCE on first deploy)
+# LinhIQ — SSL Initial Setup (run ONCE on first deploy)
 # ══════════════════════════════════════════════════
 # Prerequisites:
 #   - DNS A records pointing to this VPS
@@ -40,7 +40,7 @@ server {
     }
 
     location / {
-        return 200 'Javirs: Waiting for SSL setup...';
+        return 200 'LinhIQ: Waiting for SSL setup...';
         add_header Content-Type text/plain;
     }
 }

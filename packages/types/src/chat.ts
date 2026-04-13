@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════
-// @javirs/types — Chat & AI Types
+// @linhiq/types — Chat & AI Types
 // ═══════════════════════════════════════════
 
 export type MessageRole = 'user' | 'assistant' | 'system';

@@ -88,7 +88,7 @@ export function QuizModal({ type, targetId, subjectId, targetName, onClose }: Qu
   const startQuiz = useCallback(async () => {
     setState("generating");
     setError(null);
-    const token = localStorage.getItem("javirs_token");
+    const token = localStorage.getItem("linhiq_token");
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4500/api";
     try {
       const res = await fetch(`${apiUrl}/quiz/generate`, {
@@ -141,7 +141,7 @@ export function QuizModal({ type, targetId, subjectId, targetName, onClose }: Qu
   const handleSubmit = async (finalAnswers: Record<string, string>) => {
     if (!quiz) return;
     setState("submitting");
-    const token = localStorage.getItem("javirs_token");
+    const token = localStorage.getItem("linhiq_token");
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4500/api";
     try {
       const payload = {

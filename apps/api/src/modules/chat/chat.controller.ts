@@ -16,9 +16,9 @@ import { ChatService } from './chat.service';
 import { AiService } from '../ai/ai.service';
 import { ProgressService } from '../progress/progress.service';
 import { AuthGuard } from '../../common/guards/auth.guard';
-import { createSessionSchema, sendMessageSchema } from '@javirs/validators';
+import { createSessionSchema, sendMessageSchema } from '@linhiq/validators';
 import type { RequestWithUser } from '../../common/interfaces/jwt-payload.interface';
-import type { HintLevel as DbHintLevel } from '@javirs/database';
+import type { HintLevel as DbHintLevel } from '@linhiq/database';
 
 @Controller('chat')
 @UseGuards(AuthGuard)
@@ -195,7 +195,7 @@ export class ChatController {
         ragSources: ragSourceIds,
         tokensUsed: tokenUsage?.totalTokens,
         wasRedirected: metadata?.wasRedirected as boolean | undefined,
-        safeCategory: metadata?.safeCategory as unknown as import('@javirs/database').TopicCategory | undefined,
+        safeCategory: metadata?.safeCategory as unknown as import('@linhiq/database').TopicCategory | undefined,
       });
     } catch (error) {
       this.logger.error('LLM Stream Error:', error);

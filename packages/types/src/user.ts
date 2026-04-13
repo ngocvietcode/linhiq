@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════
-// @javirs/types — User & Auth Types
+// @linhiq/types — User & Auth Types
 // ═══════════════════════════════════════════
 
 export type Role = 'STUDENT' | 'PARENT' | 'TEACHER' | 'ADMIN';

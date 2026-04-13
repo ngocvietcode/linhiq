@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
-import { ChatMode, HintLevel, TopicCategory } from '@javirs/database';
+import { ChatMode, HintLevel, TopicCategory } from '@linhiq/database';
 
 @Injectable()
 export class ChatService {

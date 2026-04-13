@@ -1,6 +1,6 @@
 import { Controller, Post, Get, Body, Req, Res, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { registerSchema, loginSchema } from '@javirs/validators';
+import { registerSchema, loginSchema } from '@linhiq/validators';
 import { AuthGuard } from '../../common/guards/auth.guard';
 import type { Request, Response } from 'express';
 

@@ -1,24 +1,24 @@
 services:
   postgres:
     image: pgvector/pgvector:pg16
-    container_name: javirs-postgres
+    container_name: linhiq-postgres
     ports:
       - "5434:5432"
     environment:
-      POSTGRES_USER: javirs
-      POSTGRES_PASSWORD: javirs_dev
-      POSTGRES_DB: javirs
+      POSTGRES_USER: linhiq
+      POSTGRES_PASSWORD: linhiq_dev
+      POSTGRES_DB: linhiq
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U javirs"]
+      test: ["CMD-SHELL", "pg_isready -U linhiq"]
       interval: 5s
       timeout: 5s
       retries: 5
 
   redis:
     image: redis:7-alpine
-    container_name: javirs-redis
+    container_name: linhiq-redis
     ports:
       - "6379:6379"
     volumes:

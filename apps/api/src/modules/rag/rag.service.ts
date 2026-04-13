@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { embed } from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
 import { DatabaseService } from '../database/database.service';
-import { RAG_CONFIG } from '@javirs/ai-config';
+import { RAG_CONFIG } from '@linhiq/ai-config';
 
 interface RagResult {
   chunkId: string;

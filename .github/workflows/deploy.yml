@@ -1,5 +1,5 @@
 # ══════════════════════════════════════════════════════
-# Javirs — CI/CD Pipeline
+# LinhIQ — CI/CD Pipeline
 # ══════════════════════════════════════════════════════
 # Triggers:
 #   - Push to main → Build, Test, Deploy to production
@@ -44,7 +44,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Generate Prisma client
-        run: pnpm --filter @javirs/database db:generate
+        run: pnpm --filter @linhiq/database db:generate
 
       - name: Lint
         run: pnpm lint
@@ -75,7 +75,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Generate Prisma client
-        run: pnpm --filter @javirs/database db:generate
+        run: pnpm --filter @linhiq/database db:generate
 
       - name: Build all packages
         run: pnpm build
@@ -105,7 +105,7 @@ jobs:
           file: apps/api/Dockerfile
           push: false
           load: true
-          tags: javirs-api:${{ github.sha }}
+          tags: linhiq-api:${{ github.sha }}
           cache-from: type=gha,scope=api
           cache-to: type=gha,mode=max,scope=api
 
@@ -116,7 +116,7 @@ jobs:
           file: apps/web/Dockerfile
           push: false
           load: true
-          tags: javirs-web:${{ github.sha }}
+          tags: linhiq-web:${{ github.sha }}
           cache-from: type=gha,scope=web
           cache-to: type=gha,mode=max,scope=web
 
@@ -148,7 +148,7 @@ jobs:
             echo "🚀 Deploying Javirs — $(date)"
             echo "═══════════════════════════════════════"
 
-            cd ~/javirs
+            cd ~/linhiq
 
             # Pull latest code
             echo "📦 Pulling latest code..."

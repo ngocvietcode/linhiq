@@ -46,7 +46,7 @@ async function getMarkdownResult(jobId) {
 
 async function main() {
     const jobId = '1b759f70-48b2-405c-8aec-9dbd8f0b5d42';
-    const outputDir = 'D:/Projects/Javirs/apps/data/curriculum/igcse/science/textbook';
+    const outputDir = 'D:/Projects/LinhIQ/apps/data/curriculum/igcse/science/textbook';
     const outputPath = path.join(outputDir, 'Cambridge _Science_LB9.md');
 
     await fsp.mkdir(outputDir, { recursive: true });

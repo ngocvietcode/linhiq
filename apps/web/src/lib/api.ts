@@ -18,7 +18,7 @@ export async function api<T = unknown>(
   let token = options.token;
 
   if (!token && typeof window !== 'undefined') {
-    token = localStorage.getItem("javirs_token") || undefined;
+    token = localStorage.getItem("linhiq_token") || undefined;
   }
 
   const headers: Record<string, string> = {
@@ -51,7 +51,7 @@ export async function api<T = unknown>(
           
           const data = await refreshRes.json();
           const newToken = data.accessToken;
-          localStorage.setItem("javirs_token", newToken);
+          localStorage.setItem("linhiq_token", newToken);
           window.dispatchEvent(new CustomEvent('token_refreshed', { detail: newToken }));
           return newToken;
         } catch (e) {
