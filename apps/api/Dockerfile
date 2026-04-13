@@ -3,37 +3,20 @@
 # Multi-stage build for NestJS
 # ═══════════════════════════════════════════
 
-# ── Stage 1: Install dependencies ──
-FROM node:20-alpine AS deps
-WORKDIR /app
-
-RUN corepack enable && corepack prepare pnpm@10.7.1 --activate
-
-# Copy workspace root files
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
-
-# Copy packages and app package file for isolated install
-COPY apps/api/package.json apps/api/package.json
-COPY packages/ packages/
-
-RUN pnpm install --frozen-lockfile
-
-# ── Stage 2: Build ──
+# ── Stage 1: Build ──
 FROM node:20-alpine AS builder
 WORKDIR /app
 
 RUN corepack enable && corepack prepare pnpm@10.7.1 --activate
 
-COPY package.json pnpm-workspace.yaml turbo.json tsconfig.json* ./
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
-COPY --from=deps /app/packages ./packages
+# Copy full repository for isolated correct build
+COPY . .
 
-# Copy source
-COPY apps/api/ apps/api/
+# Install all dependencies precisely preserving pnpm symlinks
+RUN pnpm install --frozen-lockfile
 
-# Generate Prisma client
-RUN cd packages/database && pnpm exec prisma generate
+# Generate Prisma client locally
+RUN ./node_modules/.bin/prisma generate --schema=./packages/database/prisma/schema.prisma
 
 # Build NestJS
 RUN cd apps/api && pnpm build
