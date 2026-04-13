@@ -11,7 +11,7 @@ RUN corepack enable && corepack prepare pnpm@10.7.1 --activate
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
 COPY apps/web/package.json apps/web/package.json
-COPY packages/types/package.json packages/types/package.json
+COPY packages/ packages/
 
 RUN pnpm install --frozen-lockfile
 
@@ -21,10 +21,11 @@ WORKDIR /app
 
 RUN corepack enable && corepack prepare pnpm@10.7.1 --activate
 
+COPY package.json pnpm-workspace.yaml turbo.json tsconfig.json* ./
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
+COPY --from=deps /app/packages ./packages
 
-COPY packages/ packages/
 COPY apps/web/ apps/web/
 
 ENV NEXT_TELEMETRY_DISABLED=1
