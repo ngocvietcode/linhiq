@@ -30,9 +30,9 @@ RUN corepack enable && corepack prepare pnpm@10.7.1 --activate
 COPY package.json pnpm-workspace.yaml turbo.json tsconfig.json* ./
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
-COPY --from=deps /app/packages ./packages
 
 # Copy source
+COPY packages/ packages/
 COPY apps/api/ apps/api/
 
 # Generate Prisma client
