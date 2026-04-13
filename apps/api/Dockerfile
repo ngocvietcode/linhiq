@@ -27,15 +27,16 @@ WORKDIR /app
 
 RUN corepack enable && corepack prepare pnpm@10.7.1 --activate
 
+COPY package.json pnpm-workspace.yaml turbo.json tsconfig.json* ./
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
+COPY --from=deps /app/packages ./packages
 
 # Copy source
-COPY packages/ packages/
 COPY apps/api/ apps/api/
 
 # Generate Prisma client
-RUN cd packages/database && npx prisma generate
+RUN cd packages/database && pnpm exec prisma generate
 
 # Build NestJS
 RUN cd apps/api && pnpm build
@@ -60,4 +61,4 @@ USER nestjs
 EXPOSE 4500
 
 # Run migrations then start
-CMD ["sh", "-c", "npx prisma migrate deploy --schema=./prisma/schema.prisma && node dist/main.js"]
+CMD ["sh", "-c", "./node_modules/.bin/prisma migrate deploy --schema=./prisma/schema.prisma && node dist/main.js"]
