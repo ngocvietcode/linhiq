@@ -381,6 +381,9 @@ model SystemSetting {
   onboardingEnabled Boolean @default(true)
   safeChatEnabled   Boolean @default(true)
   safeChatModel     String  @default("gemini-2.5-flash")
+  simpleQueryModel  String  @default("gemini-2.5-flash")
+  complexQueryModel String  @default("gemini-2.5-pro")
+  embeddingModel    String  @default("gemini-embedding-001")
 
   updatedAt DateTime @updatedAt
 }

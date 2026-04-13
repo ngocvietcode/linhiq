@@ -1,8 +1,8 @@
 export type QueryComplexity = 'simple' | 'complex' | 'grading';
 export interface ModelConfig {
-    provider: 'openai' | 'anthropic';
+    provider: 'openai' | 'anthropic' | 'gemini';
     model: string;
-    maxTokens: number;
+    maxOutputTokens: number;
     temperature: number;
     costPer1MInput: number;
     costPer1MOutput: number;

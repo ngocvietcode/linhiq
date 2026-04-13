@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { streamText, type LanguageModel } from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
 import { createAnthropic } from '@ai-sdk/anthropic';
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
+
 import { RagService } from '../rag/rag.service';
 import { DatabaseService } from '../database/database.service';
 import {
@@ -31,6 +31,21 @@ interface StreamChatOptions {
   subjectName: string;
   curriculum: string;
   hintLevel?: HintLevel;
+  imageBase64?: string | null;   // base64-encoded image (no data: prefix)
+  imageMimeType?: string | null; // e.g. "image/jpeg"
+}
+
+interface StreamResult {
+  stream: ReturnType<typeof streamText>;
+  metadata: Record<string, unknown>;
+}
+
+interface SystemSettings {
+  id: string;
+  defaultAiProvider: string;
+  simpleQueryModel: string;
+  complexQueryModel: string;
+  embeddingModel: string;
 }
 
 @Injectable()
@@ -38,7 +53,10 @@ export class AiService {
   private readonly logger = new Logger(AiService.name);
   private readonly openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY || 'dummy' });
   private readonly anthropic = createAnthropic({ apiKey: process.env.ANTHROPIC_API_KEY || 'dummy' });
-  private readonly google = createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY || 'dummy' });
+  private readonly litellm = createOpenAI({ 
+    baseURL: process.env.LITELLM_URL || 'http://localhost:4000/v1', 
+    apiKey: process.env.LITELLM_API_KEY || process.env.GEMINI_API_KEY || 'dummy',
+  });
 
   constructor(
     private readonly rag: RagService,
@@ -46,43 +64,38 @@ export class AiService {
   ) {}
 
   /**
-   * Get the global AI provider set by Admin, defaulting to gemini
+   * Get the global system settings for AI routing
    */
-  private async getGlobalProvider(): Promise<'openai' | 'anthropic' | 'gemini'> {
+  private async getSystemSettings(): Promise<SystemSettings> {
     const setting = await this.db.systemSetting.findUnique({
       where: { id: 'global' },
     });
-    return (setting?.defaultAiProvider as any) || 'gemini';
+    return setting || {
+      id: 'global',
+      defaultAiProvider: 'gemini',
+      simpleQueryModel: 'gemini-2.5-flash',
+      complexQueryModel: 'gemini-2.5-pro',
+      embeddingModel: 'gemini-embedding-001',
+    };
   }
 
   /**
-   * Resolve an LLM instance dynamically based on the active provider
+   * Resolve an LLM instance dynamically (now universally via LiteLLM)
    */
-  private resolveModel(provider: 'openai' | 'anthropic' | 'gemini', complexity: QueryComplexity): LanguageModel {
-    // If Gemini is active, use gemini-2.5-flash for simple, gemini-2.5-pro for complex/grading
-    if (provider === 'gemini') {
-      const modelId = complexity === 'simple' ? 'gemini-2.5-flash' : 'gemini-2.5-pro';
-      return this.google(modelId) as any;
-    }
+  private async resolveModel(complexity: QueryComplexity): Promise<{ model: LanguageModel, provider: string }> {
+    const settings = await this.getSystemSettings();
+    const modelId = complexity === 'simple' ? settings.simpleQueryModel : settings.complexQueryModel;
     
-    // Fallback logic for original routing (OpenAI vs Anthropic)
-    if (provider === 'openai') {
-      const modelId = complexity === 'simple' ? 'gpt-4o-mini' : 'gpt-4o';
-      return this.openai(modelId) as any;
-    }
+    // Everything routed through litellm proxy now
+    const model = this.litellm(modelId);
 
-    if (provider === 'anthropic') {
-      const modelId = complexity === 'simple' ? 'claude-3-haiku-20240307' : 'claude-3-5-sonnet-latest';
-      return this.anthropic(modelId) as any;
-    }
-
-    return this.google('gemini-2.5-flash') as any;
+    return { model, provider: modelId };
   }
 
   /**
    * Stream a Socratic AI response with RAG context
    */
-  async streamChat(options: StreamChatOptions): Promise<{ stream: any; metadata: any }> {
+  async streamChat(options: StreamChatOptions): Promise<StreamResult> {
     const {
       userMessage,
       chatHistory,
@@ -90,16 +103,16 @@ export class AiService {
       subjectName,
       curriculum,
       hintLevel = 1,
+      imageBase64,
+      imageMimeType = 'image/jpeg',
     } = options;
 
-    const activeProvider = await this.getGlobalProvider();
-    
-    // 1. Classify query complexity
-    const complexity = await this.classifyQuery(userMessage, activeProvider);
-    this.logger.log(`Query classified as: ${complexity} using ${activeProvider}`);
+    // 1. Classify query complexity (images are always complex)
+    const complexity = imageBase64 ? 'complex' : await this.classifyQuery(userMessage);
 
-    // 2. RAG search for relevant Cambridge content
-    const ragResults = await this.rag.search(userMessage, subjectId);
+    // 2. RAG search using text (image descriptions aren't available yet, use text or fallback)
+    const searchQuery = userMessage.trim() || `image question in ${subjectName}`;
+    const ragResults = await this.rag.search(searchQuery, subjectId);
     const ragContext = this.rag.formatContext(ragResults);
 
     // 3. Build system prompt with RAG context
@@ -110,52 +123,74 @@ export class AiService {
       .replaceAll('{{RAG_CONTEXT}}', ragContext);
 
     // 4. Select model instance
-    const model = this.resolveModel(activeProvider, complexity);
+    const { model, provider: activeProvider } = await this.resolveModel(complexity);
+    this.logger.log(`Query classified as: ${complexity} using ${activeProvider}`);
     const modelConfig = MODEL_ROUTES[complexity];
 
-    // 5. Stream response
-    const result = streamText({
-      model,
-      system: systemPrompt,
-      messages: [
-        ...chatHistory.slice(-10),
-        { role: 'user' as const, content: userMessage },
-      ],
-      // @ts-ignore
-      maxTokens: modelConfig.maxTokens,
-      temperature: modelConfig.temperature,
-    } as any);
+    // 5. Build user content — text-only or multipart vision
+    let userContent: string | Array<{ type: string; image?: string; text?: string }>;
+    if (imageBase64) {
+      userContent = [
+        {
+          type: 'image',
+          image: `data:${imageMimeType};base64,${imageBase64}`,
+        },
+        ...(userMessage.trim() ? [{ type: 'text', text: userMessage }] : [{
+          type: 'text',
+          text: 'Please look at this image and help me understand this problem using the Socratic method.',
+        }]),
+      ];
+    } else {
+      userContent = userMessage;
+    }
 
-    return {
-      stream: result,
-      metadata: {
-        provider: activeProvider,
-        complexity,
-        ragSources: ragResults.map((r) => ({
-          chunkId: r.chunkId,
-          documentTitle: r.documentTitle,
-          content: r.content.substring(0, 100) + '...',
-          similarity: r.similarity,
-        })),
-      },
-    };
+    // 6. Stream response
+    try {
+      const result = streamText({
+        model,
+        system: systemPrompt,
+        messages: [
+          ...chatHistory.slice(-10),
+          { role: 'user' as const, content: userContent as string },
+        ],
+        maxOutputTokens: modelConfig.maxOutputTokens,
+        temperature: modelConfig.temperature,
+      });
+
+      return {
+        stream: result,
+        metadata: {
+          provider: activeProvider,
+          complexity,
+          hasImage: !!imageBase64,
+          ragSources: ragResults.map((r) => ({
+            chunkId: r.chunkId,
+            documentTitle: r.documentTitle,
+            content: r.content.substring(0, 100) + '...',
+            similarity: r.similarity,
+          })),
+        },
+      };
+    } catch (e) {
+      this.logger.error('Stream generation failed:', e);
+      throw e;
+    }
   }
 
   /**
    * Classify query complexity
    */
-  private async classifyQuery(query: string, provider: 'openai' | 'anthropic' | 'gemini'): Promise<QueryComplexity> {
+  private async classifyQuery(query: string): Promise<QueryComplexity> {
     try {
       const prompt = CLASSIFIER_PROMPT.replace('{{QUERY}}', query);
-      const model = this.resolveModel(provider, 'simple'); // Always use mini model for classification
+      const { model } = await this.resolveModel('simple'); // Always use mini model for classification
 
       const result = streamText({
         model,
         messages: [{ role: 'user', content: prompt }],
-        // @ts-ignore
-        maxTokens: 10,
+        maxOutputTokens: 10,
         temperature: 0,
-      } as any);
+      });
 
       let text = '';
       for await (const chunk of result.textStream) {
@@ -176,19 +211,17 @@ export class AiService {
   /**
    * Classify message safety securely
    */
-  async classifySafeChat(query: string, provider?: 'openai' | 'anthropic' | 'gemini'): Promise<{ category: TopicCategory; shouldRedirect: boolean }> {
+  async classifySafeChat(query: string): Promise<{ category: TopicCategory; shouldRedirect: boolean }> {
     try {
-      const activeProvider = provider || await this.getGlobalProvider();
       const prompt = SAFE_CHAT_PROMPT.replace('{{QUERY}}', query);
-      const model = this.resolveModel(activeProvider, 'simple'); 
+      const { model } = await this.resolveModel('simple'); 
 
       const result = streamText({
         model,
         messages: [{ role: 'user', content: prompt }],
-        // @ts-ignore
-        maxTokens: 20,
+        maxOutputTokens: 20,
         temperature: 0,
-      } as any);
+      });
 
       let text = '';
       for await (const chunk of result.textStream) {
@@ -196,9 +229,12 @@ export class AiService {
       }
 
       let classification = text.trim().toUpperCase().replace(/['"]/g, '');
-      const validCategories = ['ACADEMIC', 'GENERAL', 'HOBBIES', 'LIFE', 'EMOTIONAL', 'MATURE_SOFT', 'AGE_BOUNDARY', 'HARMFUL'];
+      const validCategories: TopicCategory[] = [
+        'ACADEMIC', 'GENERAL', 'HOBBIES', 'LIFE',
+        'EMOTIONAL', 'MATURE_SOFT', 'AGE_BOUNDARY', 'HARMFUL',
+      ];
       
-      if (!validCategories.includes(classification as string)) {
+      if (!validCategories.includes(classification as TopicCategory)) {
         classification = 'ACADEMIC';
       }
 
@@ -210,7 +246,7 @@ export class AiService {
       };
     } catch (error) {
       this.logger.warn('Safe chat classification failed, defaulting to ACADEMIC', error);
-      return { category: 'ACADEMIC' as any, shouldRedirect: false };
+      return { category: 'ACADEMIC' as TopicCategory, shouldRedirect: false };
     }
   }
 
@@ -221,10 +257,9 @@ export class AiService {
   async streamOpenChat(options: {
     userMessage: string;
     chatHistory: ChatHistoryMessage[];
-  }): Promise<{ stream: any; metadata: any }> {
+  }): Promise<StreamResult> {
     const { userMessage, chatHistory } = options;
-    const activeProvider = await this.getGlobalProvider();
-    const model = this.resolveModel(activeProvider, 'simple');
+    const { model, provider: activeProvider } = await this.resolveModel('simple');
 
     const result = streamText({
       model,
@@ -233,10 +268,9 @@ export class AiService {
         ...chatHistory.slice(-10),
         { role: 'user' as const, content: userMessage },
       ],
-      // @ts-ignore
-      maxTokens: 300,
+      maxOutputTokens: 300,
       temperature: 0.6,
-    } as any);
+    });
 
     return {
       stream: result,
@@ -250,19 +284,17 @@ export class AiService {
   /**
    * Stream Gentle Redirect
    */
-  async streamGentleRedirect(userMessage: string, category: TopicCategory): Promise<{ stream: any; metadata: any }> {
-    const activeProvider = await this.getGlobalProvider();
+  async streamGentleRedirect(userMessage: string, category: TopicCategory): Promise<StreamResult> {
     const systemPrompt = GENTLE_REDIRECT_PROMPT.replace('{{SAFE_CATEGORY}}', category);
-    const model = this.resolveModel(activeProvider, 'simple');
+    const { model, provider: activeProvider } = await this.resolveModel('simple');
 
     const result = streamText({
       model,
       system: systemPrompt,
       messages: [{ role: 'user' as const, content: userMessage }],
-      // @ts-ignore
-      maxTokens: 150,
+      maxOutputTokens: 150,
       temperature: 0.3,
-    } as any);
+    });
 
     return {
       stream: result,
@@ -289,8 +321,7 @@ export class AiService {
     subjectName: string,
   ): Promise<AnswerQuality> {
     try {
-      const activeProvider = await this.getGlobalProvider();
-      const model = this.resolveModel(activeProvider, 'simple'); // always use flash
+      const { model } = await this.resolveModel('simple'); // always use flash
 
       const prompt = ANSWER_EVAL_PROMPT
         .replace('{{SUBJECT}}', subjectName)
@@ -300,10 +331,9 @@ export class AiService {
       const result = streamText({
         model,
         messages: [{ role: 'user', content: prompt }],
-        // @ts-ignore
-        maxTokens: 5,
+        maxOutputTokens: 5,
         temperature: 0,
-      } as any);
+      });
 
       let text = '';
       for await (const chunk of result.textStream) {
@@ -331,9 +361,8 @@ export class AiService {
     subjectId: string;
   }): Promise<{ topicId: string; question: string; options: string[]; correctAnswer: string; explanation: string }[]> {
     const { topics, subjectName, questionCount, subjectId } = options;
-    const activeProvider = await this.getGlobalProvider();
     // Use pro model for quiz quality
-    const model = this.resolveModel(activeProvider, 'complex');
+    const { model } = await this.resolveModel('complex');
 
     // Gather RAG context for all topics
     const ragContextParts: string[] = [];
@@ -354,10 +383,9 @@ export class AiService {
     const result = streamText({
       model,
       messages: [{ role: 'user', content: prompt }],
-      // @ts-ignore
-      maxTokens: 4000,
+      maxOutputTokens: 4000,
       temperature: 0.3,
-    } as any);
+    });
 
     let raw = '';
     for await (const chunk of result.textStream) {
@@ -367,7 +395,7 @@ export class AiService {
     // Strip markdown code fences if present
     const jsonStr = raw.replace(/^```[\w]*\n?/, '').replace(/\n?```$/, '').trim();
 
-    let parsed: any[];
+    let parsed: Array<{ topicName?: string; question?: string; options?: unknown[]; correctAnswer?: string; explanation?: string }>;
     try {
       parsed = JSON.parse(jsonStr);
     } catch {
@@ -378,7 +406,7 @@ export class AiService {
     // Map topicName back to topicId
     const topicMap = new Map(topics.map(t => [t.name.toLowerCase(), t.id]));
 
-    return parsed.map((q: any, i: number) => {
+    return parsed.map((q, i) => {
       const topicId = topicMap.get((q.topicName ?? '').toLowerCase())
         ?? topics[i % topics.length]?.id  // fallback: round-robin
         ?? topics[0].id;

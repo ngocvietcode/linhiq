@@ -3,10 +3,22 @@ import { DatabaseService } from '../database/database.service';
 import { RegisterInput, LoginInput } from '@javirs/validators';
 import * as bcrypt from 'bcryptjs';
 import * as jwt from 'jsonwebtoken';
+import type { JwtPayload } from '../../common/interfaces/jwt-payload.interface';
 
 @Injectable()
 export class AuthService {
   constructor(private readonly db: DatabaseService) {}
+
+  /**
+   * Get a required secret from environment, throw if missing.
+   */
+  private getSecret(name: string): string {
+    const value = process.env[name];
+    if (!value) {
+      throw new Error(`FATAL: ${name} environment variable is not configured`);
+    }
+    return value;
+  }
 
   async register(input: RegisterInput) {
     const existing = await this.db.user.findUnique({
@@ -71,7 +83,7 @@ export class AuthService {
 
   async refreshTokens(refreshToken: string) {
     try {
-      const secret = process.env.JWT_REFRESH_SECRET || 'javirs-dev-refresh-secret';
+      const secret = this.getSecret('JWT_REFRESH_SECRET');
       const payload = jwt.verify(refreshToken, secret) as { sub: string };
       
       const user = await this.db.user.findUnique({
@@ -86,8 +98,11 @@ export class AuthService {
       const newRefreshToken = this.generateRefreshToken(user.id);
 
       return { accessToken: newAccessToken, refreshToken: newRefreshToken };
-    } catch {
-      throw new UnauthorizedException('Invalid refresh token');
+    } catch (e) {
+      if (e instanceof jwt.JsonWebTokenError || e instanceof jwt.TokenExpiredError) {
+        throw new UnauthorizedException('Invalid refresh token');
+      }
+      throw e; // Re-throw config errors
     }
   }
 
@@ -111,22 +126,21 @@ export class AuthService {
     return user;
   }
 
-  async validateToken(token: string) {
+  async validateToken(token: string): Promise<JwtPayload> {
     try {
-      const secret = process.env.JWT_SECRET || 'javirs-dev-secret';
-      const payload = jwt.verify(token, secret) as {
-        sub: string;
-        email: string;
-        role: string;
-      };
+      const secret = this.getSecret('JWT_SECRET');
+      const payload = jwt.verify(token, secret) as JwtPayload;
       return payload;
-    } catch {
-      throw new UnauthorizedException('Invalid token');
+    } catch (e) {
+      if (e instanceof jwt.JsonWebTokenError || e instanceof jwt.TokenExpiredError) {
+        throw new UnauthorizedException('Invalid token');
+      }
+      throw e;
     }
   }
 
   private generateAccessToken(userId: string, email: string, role: string): string {
-    const secret = process.env.JWT_SECRET || 'javirs-dev-secret';
+    const secret = this.getSecret('JWT_SECRET');
     return jwt.sign(
       { sub: userId, email, role },
       secret,
@@ -135,7 +149,7 @@ export class AuthService {
   }
 
   private generateRefreshToken(userId: string): string {
-    const secret = process.env.JWT_REFRESH_SECRET || 'javirs-dev-refresh-secret';
+    const secret = this.getSecret('JWT_REFRESH_SECRET');
     return jwt.sign(
       { sub: userId },
       secret,

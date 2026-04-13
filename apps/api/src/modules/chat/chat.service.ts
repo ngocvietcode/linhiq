@@ -39,6 +39,7 @@ export class ChatService {
         subject: true,
         messages: {
           orderBy: { createdAt: 'asc' },
+          take: 50, // Limit to last 50 messages for performance
         },
       },
     });

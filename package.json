@@ -15,19 +15,10 @@
   },
   "devDependencies": {
     "rimraf": "^6.0.0",
-    "turbo": "^2.5.0"
+    "turbo": "^2.9.5"
   },
   "packageManager": "pnpm@10.7.1",
   "engines": {
     "node": ">=20.0.0"
-  },
-  "dependencies": {
-    "@ai-sdk/anthropic": "^3.0.66",
-    "@ai-sdk/google": "^3.0.58",
-    "@ai-sdk/openai": "^3.0.50",
-    "ai": "^6.0.146",
-    "dotenv": "^17.4.0",
-    "llamaindex": "^0.12.1",
-    "tsx": "^4.19.0"
   }
 }

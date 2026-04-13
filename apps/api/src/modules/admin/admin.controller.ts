@@ -33,4 +33,20 @@ export class AdminController {
       throw new HttpException(e.message, HttpStatus.BAD_REQUEST);
     }
   }
+  @Post('settings/models')
+  async updateModels(
+    @Body('simpleQueryModel') simpleQueryModel: string,
+    @Body('complexQueryModel') complexQueryModel: string,
+    @Body('embeddingModel') embeddingModel: string,
+  ) {
+    if (!simpleQueryModel || !complexQueryModel || !embeddingModel) {
+      throw new HttpException('All model IDs are required', HttpStatus.BAD_REQUEST);
+    }
+    try {
+      const settings = await this.adminService.updateModels(simpleQueryModel, complexQueryModel, embeddingModel);
+      return { success: true, data: settings };
+    } catch (e: any) {
+      throw new HttpException(e.message, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
 }

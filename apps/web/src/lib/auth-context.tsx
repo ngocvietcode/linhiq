@@ -37,6 +37,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Add global listeners for auto token refresh
+  useEffect(() => {
+    const handleTokenRefreshed = ((e: CustomEvent<string>) => {
+      setToken(e.detail);
+    }) as EventListener;
+
+    const handleSessionExpired = () => {
+      logout();
+    };
+
+    window.addEventListener('token_refreshed', handleTokenRefreshed);
+    window.addEventListener('session_expired', handleSessionExpired);
+
+    return () => {
+      window.removeEventListener('token_refreshed', handleTokenRefreshed);
+      window.removeEventListener('session_expired', handleSessionExpired);
+    };
+  }, []);
+
   // Restore session on mount
   useEffect(() => {
     const savedToken = localStorage.getItem("javirs_token");
@@ -80,7 +99,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     []
   );
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    try {
+      await api("/auth/logout", { method: "POST", token: localStorage.getItem("javirs_token") || undefined });
+    } catch {
+      // Ignore API errors gracefully on logout
+    }
     setUser(null);
     setToken(null);
     localStorage.removeItem("javirs_token");

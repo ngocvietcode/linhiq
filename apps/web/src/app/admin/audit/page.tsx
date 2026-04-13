@@ -189,7 +189,7 @@ export default function AdminAuditPage() {
                     className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
                     style={{ background: `${meta.color}18` }}
                   >
-                    <Icon size={14} style={{ color: meta.color }} />
+                    <span style={{ color: meta.color }}><Icon size={14} /></span>
                   </div>
 
                   {/* Info */}

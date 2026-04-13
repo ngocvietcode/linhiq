@@ -2,6 +2,7 @@ import { Controller, Post, Param, Body, UseGuards, Req } from '@nestjs/common';
 import { AuthGuard } from '../../common/guards/auth.guard';
 import { QuizService } from './quiz.service';
 import type { GenerateQuizDto, SubmitQuizDto } from './quiz.service';
+import type { RequestWithUser } from '../../common/interfaces/jwt-payload.interface';
 
 @Controller('quiz')
 @UseGuards(AuthGuard)
@@ -14,7 +15,7 @@ export class QuizController {
    * Body: { type: "topic"|"milestone", id: string, subjectId: string }
    */
   @Post('generate')
-  generate(@Req() req: any, @Body() dto: GenerateQuizDto) {
+  generate(@Req() req: RequestWithUser, @Body() dto: GenerateQuizDto) {
     return this.quiz.generateQuiz(req.user.sub, dto);
   }
 
@@ -24,7 +25,7 @@ export class QuizController {
    */
   @Post('attempts/:attemptId/submit')
   submit(
-    @Req() req: any,
+    @Req() req: RequestWithUser,
     @Param('attemptId') attemptId: string,
     @Body() dto: SubmitQuizDto,
   ) {

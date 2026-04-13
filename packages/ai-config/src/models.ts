@@ -7,7 +7,7 @@ export type QueryComplexity = 'simple' | 'complex' | 'grading';
 export interface ModelConfig {
   provider: 'openai' | 'anthropic' | 'gemini';
   model: string;
-  maxTokens: number;
+  maxOutputTokens: number;
   temperature: number;
   costPer1MInput: number;  // USD
   costPer1MOutput: number; // USD
@@ -21,7 +21,7 @@ export const MODEL_ROUTES: Record<QueryComplexity, ModelConfig> = {
   simple: {
     provider: 'gemini',
     model: 'gemini-2.5-flash',
-    maxTokens: 500,
+    maxOutputTokens: 500,
     temperature: 0.3,
     costPer1MInput: 0.15,
     costPer1MOutput: 0.60,
@@ -29,7 +29,7 @@ export const MODEL_ROUTES: Record<QueryComplexity, ModelConfig> = {
   complex: {
     provider: 'gemini',
     model: 'gemini-2.5-pro',
-    maxTokens: 1000,
+    maxOutputTokens: 1000,
     temperature: 0.4,
     costPer1MInput: 3.50,
     costPer1MOutput: 10.50,
@@ -37,7 +37,7 @@ export const MODEL_ROUTES: Record<QueryComplexity, ModelConfig> = {
   grading: {
     provider: 'gemini',
     model: 'gemini-2.5-pro',
-    maxTokens: 1500,
+    maxOutputTokens: 1500,
     temperature: 0.2,
     costPer1MInput: 3.50,
     costPer1MOutput: 10.50,

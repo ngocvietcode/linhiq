@@ -5,6 +5,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import * as jwt from 'jsonwebtoken';
+import type { JwtPayload } from '../interfaces/jwt-payload.interface';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -19,12 +20,18 @@ export class AuthGuard implements CanActivate {
     const token = authHeader.split(' ')[1];
 
     try {
-      const secret = process.env.JWT_SECRET || 'javirs-dev-secret';
-      const payload = jwt.verify(token, secret);
+      const secret = process.env.JWT_SECRET;
+      if (!secret) {
+        throw new Error('FATAL: JWT_SECRET environment variable is not configured');
+      }
+      const payload = jwt.verify(token, secret) as JwtPayload;
       request.user = payload;
       return true;
-    } catch {
-      throw new UnauthorizedException('Invalid or expired token');
+    } catch (e) {
+      if (e instanceof jwt.JsonWebTokenError || e instanceof jwt.TokenExpiredError) {
+        throw new UnauthorizedException('Invalid or expired token');
+      }
+      throw e; // Re-throw FATAL config errors
     }
   }
 }

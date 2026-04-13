@@ -33,4 +33,17 @@ export class AdminService {
       create: { id: 'global', defaultAiProvider: provider },
     });
   }
+  async updateModels(simpleQueryModel: string, complexQueryModel: string, embeddingModel: string) {
+    return await this.db.systemSetting.upsert({
+      where: { id: 'global' },
+      update: { simpleQueryModel, complexQueryModel, embeddingModel },
+      create: { 
+        id: 'global', 
+        defaultAiProvider: 'gemini',
+        simpleQueryModel,
+        complexQueryModel,
+        embeddingModel
+      },
+    });
+  }
 }

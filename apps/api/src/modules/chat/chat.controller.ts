@@ -9,6 +9,7 @@ import {
   Res,
   UseGuards,
   NotFoundException,
+  Logger,
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { ChatService } from './chat.service';
@@ -16,10 +17,14 @@ import { AiService } from '../ai/ai.service';
 import { ProgressService } from '../progress/progress.service';
 import { AuthGuard } from '../../common/guards/auth.guard';
 import { createSessionSchema, sendMessageSchema } from '@javirs/validators';
+import type { RequestWithUser } from '../../common/interfaces/jwt-payload.interface';
+import type { HintLevel as DbHintLevel } from '@javirs/database';
 
 @Controller('chat')
 @UseGuards(AuthGuard)
 export class ChatController {
+  private readonly logger = new Logger(ChatController.name);
+
   constructor(
     private readonly chat: ChatService,
     private readonly ai: AiService,
@@ -27,19 +32,19 @@ export class ChatController {
   ) {}
 
   @Post('sessions')
-  async createSession(@Body() body: unknown, @Req() req: any) {
-    const input = body as any; // Temporary skip zod validation since validator index might not have been updated yet
+  async createSession(@Body() body: unknown, @Req() req: RequestWithUser) {
+    const input = createSessionSchema.parse(body);
     const finalSubjectId = input.subjectId === "undefined" ? undefined : input.subjectId;
     return this.chat.createSession(req.user.sub, finalSubjectId);
   }
 
   @Get('sessions')
-  async getSessions(@Req() req: any) {
+  async getSessions(@Req() req: RequestWithUser) {
     return this.chat.getSessions(req.user.sub);
   }
 
   @Get('sessions/:id')
-  async getSession(@Param('id') id: string, @Req() req: any) {
+  async getSession(@Param('id') id: string, @Req() req: RequestWithUser) {
     const session = await this.chat.getSession(id, req.user.sub);
     if (!session) {
       throw new NotFoundException('Session not found');
@@ -48,7 +53,7 @@ export class ChatController {
   }
 
   @Delete('sessions/:id')
-  async deleteSession(@Param('id') id: string, @Req() req: any) {
+  async deleteSession(@Param('id') id: string, @Req() req: RequestWithUser) {
     await this.chat.deleteSession(id, req.user.sub);
     return { success: true };
   }
@@ -61,7 +66,7 @@ export class ChatController {
   async sendMessage(
     @Param('id') sessionId: string,
     @Body() body: unknown,
-    @Req() req: any,
+    @Req() req: RequestWithUser,
     @Res() res: Response,
   ) {
     try {
@@ -73,53 +78,57 @@ export class ChatController {
       throw new NotFoundException('Session not found');
     }
 
+    const content = input.content || "";
+
     // 1. Classify Safe Chat
-    const { category, shouldRedirect } = await this.ai.classifySafeChat(input.content);
+    const { category, shouldRedirect } = await this.ai.classifySafeChat(content);
 
     // Save user message with topic category
-    await this.chat.saveMessage(sessionId, 'user', input.content, {
+    await this.chat.saveMessage(sessionId, 'user', content, {
       safeCategory: category,
     });
 
     // Auto-generate session title from first message
     if (!session.title) {
       const title =
-        input.content.length > 50
-          ? input.content.substring(0, 47) + '...'
-          : input.content;
+        content.length > 50
+          ? content.substring(0, 47) + '...'
+          : content || 'Image Upload';
       await this.chat.updateSessionTitle(sessionId, title);
     }
 
     // Get chat history
-    const history = session.messages.map((m: any) => ({
+    const history = session.messages.map((m: { role: string; content: string }) => ({
       role: m.role as 'user' | 'assistant',
       content: m.content,
     }));
 
     // Map HintLevel (string-cast to handle Prisma client cache)
-    const hintLevelMap: Record<number, string> = { 1: 'L1', 2: 'L2', 3: 'L3', 4: 'L4', 5: 'L5' };
-    const dbHintLevel = (hintLevelMap[input.hintLevel ?? 1] ?? 'L1') as any;
+    const hintLevelMap: Record<number, DbHintLevel> = { 1: 'L1', 2: 'L2', 3: 'L3', 4: 'L4', 5: 'L5' };
+    const dbHintLevel: DbHintLevel = hintLevelMap[input.hintLevel ?? 1] ?? 'L1';
 
     // Stream AI response: Redirect > Open Chat > Socratic
     let aiResponse;
     if (shouldRedirect) {
       // Safety redirect takes priority in ALL modes
-      aiResponse = await this.ai.streamGentleRedirect(input.content, category);
+      aiResponse = await this.ai.streamGentleRedirect(content, category);
     } else if (session.mode === 'OPEN') {
       // F3: Open Chat — "Chat với Linh" companion mode
       aiResponse = await this.ai.streamOpenChat({
-        userMessage: input.content,
+        userMessage: content,
         chatHistory: history,
       });
     } else {
       // F1: Socratic Tutor — subject study mode
       aiResponse = await this.ai.streamChat({
-        userMessage: input.content,
+        userMessage: content,
         chatHistory: history,
         subjectId: session.subjectId ?? '',
         subjectName: session.subject?.name ?? 'General',
         curriculum: session.subject?.curriculum ?? 'GENERAL',
         hintLevel: input.hintLevel,
+        imageBase64: input.imageBase64,
+        imageMimeType: input.imageMimeType,
       });
     }
 
@@ -143,13 +152,14 @@ export class ChatController {
       let masteryUpdate: { topicId: string; masteryLevel: number; answerQuality: string } | undefined;
 
       if (!shouldRedirect && session.mode !== 'OPEN') {
-        const chunkIds = metadata?.ragSources?.map((r: any) => r.chunkId) ?? [];
+        const ragSources = metadata?.ragSources as Array<{ chunkId: string }> | undefined;
+        const chunkIds = ragSources?.map((r) => r.chunkId) ?? [];
         const topicId = await this.progress.getTopicIdFromChunks(chunkIds);
 
         if (topicId) {
           // Ask AI to evaluate whether the student was answering and how well
           const answerQuality = await this.ai.evaluateAnswer(
-            input.content,
+            content,
             fullResponse,
             session.subject?.name ?? 'General',
           );
@@ -178,27 +188,33 @@ export class ChatController {
 
       // Save complete AI response
       const tokenUsage = await stream.usage;
+      const ragSourceIds = (metadata?.ragSources as Array<{ chunkId: string }> | undefined)?.map((r) => r.chunkId);
       await this.chat.saveMessage(sessionId, 'assistant', fullResponse, {
         hintLevel: dbHintLevel,
-        modelUsed: metadata?.provider,
-        ragSources: metadata?.ragSources?.map((r: any) => r.chunkId),
+        modelUsed: metadata?.provider as string | undefined,
+        ragSources: ragSourceIds,
         tokensUsed: tokenUsage?.totalTokens,
-        wasRedirected: metadata?.wasRedirected,
-        safeCategory: metadata?.safeCategory,
+        wasRedirected: metadata?.wasRedirected as boolean | undefined,
+        safeCategory: metadata?.safeCategory as unknown as import('@javirs/database').TopicCategory | undefined,
       });
     } catch (error) {
-      console.error('LLM Stream Error:', error);
+      this.logger.error('LLM Stream Error:', error);
       res.write(
         `data: ${JSON.stringify({ type: 'error', message: 'Stream failed' })}\n\n`,
       );
     } finally {
       res.end();
     }
-    } catch (e: any) {
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : 'Unknown error';
       if (!res.headersSent) {
-        res.status(500).json({ error: e.message, stack: e.stack });
+        const isDev = process.env.NODE_ENV !== 'production';
+        res.status(500).json({
+          error: message,
+          ...(isDev && e instanceof Error && { stack: e.stack }),
+        });
       } else {
-        res.write(`data: ${JSON.stringify({ type: 'error', message: e.message })}\n\n`);
+        res.write(`data: ${JSON.stringify({ type: 'error', message })}\n\n`);
         res.end();
       }
     }
@@ -214,7 +230,7 @@ export class ChatController {
 
   @Get('analytics/weekly')
   @UseGuards(AuthGuard)
-  async getWeeklyStats(@Req() req: any) {
+  async getWeeklyStats(@Req() req: RequestWithUser) {
     const userId = req.user.sub;
     return this.chat.getWeeklyStats(userId);
   }

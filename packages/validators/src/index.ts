@@ -5,9 +5,14 @@ import { z } from 'zod';
 export const sendMessageSchema = z.object({
   content: z
     .string()
-    .min(1, 'Message cannot be empty')
-    .max(4000, 'Message too long (max 4000 characters)'),
+    .max(4000, 'Message too long (max 4000 characters)')
+    .optional(),
   hintLevel: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5)]).optional(),
+  imageUrl: z.string().nullable().optional(),
+  imageBase64: z.string().nullable().optional(),
+  imageMimeType: z.string().nullable().optional(),
+}).refine(data => (data.content && data.content.trim().length > 0) || data.imageUrl || data.imageBase64, {
+  message: "Either message text or an image is required"
 });
 
 export const createSessionSchema = z.object({

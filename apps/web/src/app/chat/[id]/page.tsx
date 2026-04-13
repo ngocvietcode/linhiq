@@ -102,6 +102,12 @@ function ChatContent() {
   const [hintLevel, setHintLevel] = useState<1 | 2 | 3 | 4 | 5>(1);
   const [showHintInfo, setShowHintInfo] = useState(false);
 
+  // Vision AI state
+  const [imagePreview, setImagePreview] = useState<string | null>(null); // data URL for preview
+  const [imageBase64, setImageBase64] = useState<string | null>(null);   // raw base64 (no prefix)
+  const [imageMimeType, setImageMimeType] = useState<string>("image/jpeg");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   // Roadmap sidebar state
   const [milestones, setMilestones] = useState<MilestoneData[]>([]);
   const [roadmapOpen, setRoadmapOpen] = useState(true);
@@ -156,18 +162,56 @@ function ChatContent() {
     });
   }, [messages, streamingText]);
 
+  // ── Image helpers ──────────────────────────────────────────────────────────
+  const loadImageFile = (file: File) => {
+    const mime = file.type || "image/jpeg";
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string;
+      setImagePreview(dataUrl);
+      // Strip the "data:<mime>;base64," prefix
+      const base64 = dataUrl.split(",")[1];
+      setImageBase64(base64);
+      setImageMimeType(mime);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const clearImage = () => {
+    setImagePreview(null);
+    setImageBase64(null);
+    setImageMimeType("image/jpeg");
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  // Paste image from clipboard
+  const handlePaste = (e: React.ClipboardEvent) => {
+    const items = Array.from(e.clipboardData.items);
+    const imageItem = items.find((item) => item.type.startsWith("image/"));
+    if (imageItem) {
+      const file = imageItem.getAsFile();
+      if (file) loadImageFile(file);
+    }
+  };
+
   // ── Send message ───────────────────────────────────────────────────────────
   const sendMessage = useCallback(async () => {
-    if (!input.trim() || isStreaming || !token) return;
+    if ((!input.trim() && !imageBase64) || isStreaming || !token) return;
     const userMsg = input.trim();
+    const imgBase64 = imageBase64;
+    const imgMime = imageMimeType;
+    const imgPreview = imagePreview;
     setInput("");
+    clearImage();
     setIsStreaming(true);
     setStreamingText("");
 
     const tempUserMsg: Message = {
       id: `temp-${Date.now()}`,
       role: "user",
-      content: userMsg,
+      content: imgPreview
+        ? `${userMsg}${userMsg ? "\n" : ""}![uploaded image](${imgPreview})`
+        : userMsg,
       createdAt: new Date().toISOString(),
     };
     setMessages((prev) => [...prev, tempUserMsg]);
@@ -181,11 +225,15 @@ function ChatContent() {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ content: userMsg, hintLevel }),
+          body: JSON.stringify({ content: userMsg, hintLevel, imageBase64: imgBase64, imageMimeType: imgMime }),
         }
       );
 
-      if (!res.ok || !res.body) throw new Error("Stream failed");
+      if (!res.ok || !res.body) {
+        const errText = await res.text();
+        console.error("STREAM ERROR:", res.status, errText);
+        throw new Error(`Stream failed: ${res.status} ${errText}`);
+      }
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let fullText = "";
@@ -293,7 +341,7 @@ function ChatContent() {
     } finally {
       setIsStreaming(false);
     }
-  }, [input, isStreaming, token, id, hintLevel]);
+  }, [input, imageBase64, imageMimeType, imagePreview, isStreaming, token, id, hintLevel]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -610,7 +658,18 @@ function ChatContent() {
                   }
                 >
                   {msg.role === "user" ? (
-                    msg.content
+                    msg.content.includes("![uploaded image](") ? (
+                      <div className="flex flex-col gap-3">
+                        {msg.content.split(/\!\[uploaded image\]\((data:image\/[^;]+;base64,[^\)]+)\)/).map((part, i) => {
+                          if (part.startsWith("data:image/")) {
+                            return <img key={i} src={part} alt="Uploaded" className="rounded-lg max-h-60 object-contain shadow-sm bg-white/5" />;
+                          }
+                          return part ? <span key={i}>{part}</span> : null;
+                        })}
+                      </div>
+                    ) : (
+                      msg.content
+                    )
                   ) : (
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>
                       {msg.content}
@@ -734,7 +793,8 @@ function ChatContent() {
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 onInput={autoResize}
-                placeholder={isOpen ? "Nói gì với Linh đi..." : "Ask LinhIQ..."}
+                onPaste={handlePaste}
+                placeholder={isOpen ? "Nói gì với Linh đi..." : "Ask LinhIQ... or paste/upload a photo 📷"}
                 disabled={isStreaming}
                 rows={1}
                 className="flex-1 bg-transparent text-sm resize-none outline-none"
@@ -745,25 +805,42 @@ function ChatContent() {
                   lineHeight: "1.6",
                 }}
               />
+              {/* Hidden file input for Camera button */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) loadImageFile(file);
+                }}
+              />
               <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isStreaming}
                 className="flex-shrink-0 p-1 rounded-md transition-colors"
-                style={{ color: "var(--color-text-muted)" }}
-                title="Upload photo"
+                style={{
+                  color: imagePreview
+                    ? "var(--color-accent)"
+                    : "var(--color-text-muted)",
+                }}
+                title="Upload photo (or paste with Ctrl+V)"
               >
                 <Camera size={18} />
               </button>
             </div>
             <button
               onClick={sendMessage}
-              disabled={!input.trim() || isStreaming}
+              disabled={(!input.trim() && !imageBase64) || isStreaming}
               className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200"
               style={{
                 background:
-                  input.trim() && !isStreaming
+                  (input.trim() || imageBase64) && !isStreaming
                     ? "var(--color-accent)"
                     : "var(--color-surface)",
                 color:
-                  input.trim() && !isStreaming
+                  (input.trim() || imageBase64) && !isStreaming
                     ? "#fff"
                     : "var(--color-text-muted)",
                 border: "1px solid var(--color-border-default)",
@@ -772,6 +849,40 @@ function ChatContent() {
               <Send size={16} />
             </button>
           </div>
+
+          {/* Image preview chip */}
+          {imagePreview && (
+            <div className="max-w-2xl mx-auto mt-2 flex items-center gap-2">
+              <div
+                className="inline-flex items-center gap-2 px-2 py-1.5 rounded-lg"
+                style={{
+                  background: "var(--color-elevated)",
+                  border: "1px solid var(--color-border-default)",
+                }}
+              >
+                <img
+                  src={imagePreview}
+                  alt="preview"
+                  className="h-10 w-10 object-cover rounded-md"
+                />
+                <span className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
+                  Image attached
+                </span>
+                <button
+                  onClick={clearImage}
+                  className="p-0.5 rounded-full transition-colors"
+                  style={{ color: "var(--color-text-muted)" }}
+                  title="Remove image"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+              <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+                Ctrl+V to paste another
+              </span>
+            </div>
+          )}
+
           <p
             className="text-center text-xs mt-1.5"
             style={{ color: "var(--color-text-muted)" }}

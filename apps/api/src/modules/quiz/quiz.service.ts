@@ -112,6 +112,7 @@ export class QuizService {
 
   /**
    * Submit answers and grade the quiz (POST /quiz/attempts/:id/submit)
+   * Uses $transaction for batch DB updates.
    * Updates TopicProgress with quiz_weight = 2
    */
   async submitQuiz(userId: string, attemptId: string, dto: SubmitQuizDto) {
@@ -126,11 +127,21 @@ export class QuizService {
     const answerMap = new Map(dto.answers.map(a => [a.questionId, a.answer.toUpperCase()]));
 
     let correctCount = 0;
-    const results: any[] = [];
-    const masteryUpdates: { topicId: string; masteryLevel: number }[] = [];
+    const results: Array<{
+      questionId: string;
+      question: string;
+      options: string[];
+      correctAnswer: string;
+      studentAnswer: string | null;
+      isCorrect: boolean;
+      explanation: string;
+    }> = [];
 
-    // Grade each question & update mastery
+    // Grade each question & aggregate per-topic scores
     const topicScores = new Map<string, { correct: number; total: number }>();
+
+    // Batch update operations for $transaction
+    const questionUpdates: Array<ReturnType<typeof this.db.quizQuestion.update>> = [];
 
     for (const q of attempt.questions) {
       const studentAnswer = answerMap.get(q.id) ?? null;
@@ -155,35 +166,57 @@ export class QuizService {
         explanation: q.explanation,
       });
 
-      // Persist student answer on each question
-      await this.db.quizQuestion.update({
-        where: { id: q.id },
-        data: { studentAnswer, isCorrect },
-      });
+      // Queue the update for batch execution
+      questionUpdates.push(
+        this.db.quizQuestion.update({
+          where: { id: q.id },
+          data: { studentAnswer, isCorrect },
+        }),
+      );
     }
 
-    // Update mastery per topic (weight = QUIZ_WEIGHT)
+    // Execute all question updates + attempt completion in a single transaction
+    await this.db.$transaction([
+      ...questionUpdates,
+      this.db.quizAttempt.update({
+        where: { id: attemptId },
+        data: { score: correctCount, completedAt: new Date() },
+      }),
+    ]);
+
+    // Update mastery per topic (1 call per topic instead of N calls per question)
+    const masteryUpdates: { topicId: string; masteryLevel: number }[] = [];
+
     for (const [topicId, score] of topicScores.entries()) {
-      for (let i = 0; i < score.total; i++) {
-        const wasSuccessful = i < score.correct;
+      // Calculate aggregate: call updateTopicMastery once per correct + once per incorrect
+      // This is more efficient than calling N times in a loop
+      if (score.correct > 0) {
+        await this.progress.updateTopicMastery(
+          userId,
+          topicId,
+          true,
+          QUIZ_WEIGHT * score.correct,
+        );
+      }
+
+      if (score.total - score.correct > 0) {
         const updated = await this.progress.updateTopicMastery(
           userId,
           topicId,
-          wasSuccessful,
-          QUIZ_WEIGHT,
+          false,
+          QUIZ_WEIGHT * (score.total - score.correct),
         );
-        // Only push last update (final mastery for this topic)
-        if (i === score.total - 1) {
-          masteryUpdates.push({ topicId, masteryLevel: updated.masteryLevel });
+        masteryUpdates.push({ topicId, masteryLevel: updated.masteryLevel });
+      } else {
+        // All correct — get final mastery from the last update
+        const progress = await this.db.topicProgress.findUnique({
+          where: { userId_topicId: { userId, topicId } },
+        });
+        if (progress) {
+          masteryUpdates.push({ topicId, masteryLevel: progress.masteryLevel });
         }
       }
     }
-
-    // Mark attempt complete
-    await this.db.quizAttempt.update({
-      where: { id: attemptId },
-      data: { score: correctCount, completedAt: new Date() },
-    });
 
     const pct = Math.round((correctCount / attempt.questions.length) * 100);
     const grade =

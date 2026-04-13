@@ -12,14 +12,12 @@ import {
 interface SystemSetting {
   id: string;
   defaultAiProvider: string;
+  simpleQueryModel?: string;
+  complexQueryModel?: string;
+  embeddingModel?: string;
   updatedAt?: string;
 }
 
-const PROVIDERS = [
-  { value: "gemini",    label: "Google Gemini",    icon: "✨", desc: "Gemini Pro / Flash" },
-  { value: "openai",   label: "OpenAI",            icon: "🤖", desc: "GPT-4o / GPT-4 Turbo" },
-  { value: "anthropic",label: "Anthropic Claude",  icon: "🧠", desc: "Claude 3.5 Sonnet" },
-];
 
 const HINT_LEVELS = [
   { level: "L1", label: "Nudge",       desc: "Minimal guidance — just a gentle push toward the right direction.", color: "#22D3A3" },
@@ -58,8 +56,13 @@ export default function AdminSettingsPage() {
   const { token } = useAuth();
   const [settings, setSettings] = useState<SystemSetting | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedProvider, setSelectedProvider] = useState("gemini");
-  const [savingProvider, setSavingProvider] = useState(false);
+
+  
+  const [simpleModel, setSimpleModel] = useState("gemini-2.5-flash");
+  const [complexModel, setComplexModel] = useState("gemini-2.5-pro");
+  const [embeddingModel, setEmbeddingModel] = useState("gemini-embedding-001");
+  const [savingModels, setSavingModels] = useState(false);
+
   const [toast, setToast] = useState<{ msg: string; type: "ok" | "err" } | null>(null);
   const [maintenanceMode, setMaintenanceMode] = useState(false);
   const [registrationOpen, setRegistrationOpen] = useState(true);
@@ -77,7 +80,9 @@ export default function AdminSettingsPage() {
     try {
       const res = await api<{ data: SystemSetting }>("/admin/settings", { token });
       setSettings(res?.data || null);
-      if (res?.data?.defaultAiProvider) setSelectedProvider(res.data.defaultAiProvider);
+      if (res?.data?.simpleQueryModel) setSimpleModel(res.data.simpleQueryModel);
+      if (res?.data?.complexQueryModel) setComplexModel(res.data.complexQueryModel);
+      if (res?.data?.embeddingModel) setEmbeddingModel(res.data.embeddingModel);
     } catch {
       showToast("Failed to load settings", "err");
     } finally {
@@ -87,17 +92,26 @@ export default function AdminSettingsPage() {
 
   useEffect(() => { loadSettings(); }, [loadSettings]);
 
-  async function saveProvider() {
+
+  async function saveModels() {
     if (!token) return;
-    setSavingProvider(true);
+    setSavingModels(true);
     try {
-      await api("/admin/settings/provider", { method: "POST", token, body: { provider: selectedProvider } });
-      showToast("AI provider updated");
+      await api("/admin/settings/models", { 
+        method: "POST", 
+        token, 
+        body: { 
+          simpleQueryModel: simpleModel, 
+          complexQueryModel: complexModel, 
+          embeddingModel 
+        } 
+      });
+      showToast("Model configurations updated");
       loadSettings();
     } catch (e: any) {
       showToast(e.message, "err");
     } finally {
-      setSavingProvider(false);
+      setSavingModels(false);
     }
   }
 
@@ -160,54 +174,63 @@ export default function AdminSettingsPage() {
       </div>
 
       <div className="space-y-6">
-        {/* AI Provider */}
-        <SettingSection title="AI Provider" icon={Brain as any}>
+        {/* AI Models */}
+        <SettingSection title="AI Models" icon={Brain as any}>
           <p className="text-sm mb-4" style={{ color: "var(--color-text-secondary)" }}>
-            Select the default large language model provider for AI tutoring sessions.
+            Configure the language models used dynamically across the tutoring platform. 
+            These models are proxied through LiteLLM.
           </p>
-          {loading ? (
-            <div className="space-y-3">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="skeleton h-16 rounded-xl" />
-              ))}
+
+          <div className="pt-2">
+            <h3 className="text-sm font-medium mb-4">Model Routing Configuration</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs font-medium" style={{ color: "var(--color-text-secondary)" }}>
+                  Simple Query Model
+                </label>
+                <input
+                  type="text"
+                  value={simpleModel}
+                  onChange={(e) => setSimpleModel(e.target.value)}
+                  className="input mt-1.5 w-full text-sm"
+                  placeholder="e.g., gemini-2.5-flash"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium" style={{ color: "var(--color-text-secondary)" }}>
+                  Complex Query Model (Quiz/Grading)
+                </label>
+                <input
+                  type="text"
+                  value={complexModel}
+                  onChange={(e) => setComplexModel(e.target.value)}
+                  className="input mt-1.5 w-full text-sm"
+                  placeholder="e.g., gemini-2.5-pro"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium" style={{ color: "var(--color-text-secondary)" }}>
+                  Embedding Model
+                </label>
+                <input
+                  type="text"
+                  value={embeddingModel}
+                  onChange={(e) => setEmbeddingModel(e.target.value)}
+                  className="input mt-1.5 w-full text-sm"
+                  placeholder="e.g., gemini-embedding-001"
+                />
+              </div>
             </div>
-          ) : (
-            <div className="space-y-3 mb-5">
-              {PROVIDERS.map(({ value, label, icon, desc }) => (
-                <button
-                  key={value}
-                  onClick={() => setSelectedProvider(value)}
-                  className="w-full flex items-center gap-4 px-4 py-3.5 rounded-xl border transition-all text-left"
-                  style={{
-                    background: selectedProvider === value ? "var(--color-accent-soft)" : "var(--color-elevated)",
-                    borderColor: selectedProvider === value ? "var(--color-accent)" : "var(--color-border-subtle)",
-                  }}
-                >
-                  <span className="text-2xl">{icon}</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm">{label}</p>
-                    <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>{desc}</p>
-                  </div>
-                  {selectedProvider === value && (
-                    <CheckCircle size={18} style={{ color: "var(--color-accent)", flexShrink: 0 }} />
-                  )}
-                </button>
-              ))}
-            </div>
-          )}
-          <button
-            onClick={saveProvider}
-            disabled={savingProvider || selectedProvider === settings?.defaultAiProvider}
-            className="btn-primary gap-2 text-sm"
-          >
-            <Save size={14} />
-            {savingProvider ? "Saving..." : "Save Provider"}
-          </button>
-          {selectedProvider === settings?.defaultAiProvider && (
-            <p className="text-xs mt-2" style={{ color: "var(--color-text-muted)" }}>
-              ✓ Currently active
-            </p>
-          )}
+            
+            <button
+              onClick={saveModels}
+              disabled={savingModels}
+              className="btn-primary gap-2 text-sm mt-5"
+            >
+              <Save size={14} />
+              {savingModels ? "Saving..." : "Save Route Models"}
+            </button>
+          </div>
         </SettingSection>
 
         {/* Hint System */}

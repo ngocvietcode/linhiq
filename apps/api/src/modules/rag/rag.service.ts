@@ -1,4 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { embed } from 'ai';
+import { createOpenAI } from '@ai-sdk/openai';
 import { DatabaseService } from '../database/database.service';
 import { RAG_CONFIG } from '@javirs/ai-config';
 
@@ -10,6 +12,12 @@ interface RagResult {
   page: number | null;
   chapter: string | null;
   topicName: string | null;
+}
+
+interface ChunkMetadata {
+  page?: number;
+  section?: string;
+  chapter?: string;
 }
 
 @Injectable()
@@ -39,13 +47,13 @@ export class RagService {
    */
   private async vectorSearch(query: string, subjectId: string, topK: number): Promise<RagResult[]> {
     // Generate embedding for query using OpenAI
-    const embedding = await this.generateEmbedding(query);
+    const embeddingVector = await this.generateEmbedding(query);
 
     const results = await this.db.$queryRaw<RagResult[]>`
       SELECT
         dc.id as "chunkId",
         dc.content,
-        1 - (dc.embedding <=> ${embedding}::vector) as similarity,
+        1 - (dc.embedding <=> ${embeddingVector}::vector) as similarity,
         d.title as "documentTitle",
         (dc.metadata->>'page')::int as page,
         m.name as chapter,
@@ -56,7 +64,7 @@ export class RagService {
       LEFT JOIN "Milestone" m ON t."milestoneId" = m.id
       WHERE d."subjectId" = ${subjectId}
         AND dc.embedding IS NOT NULL
-      ORDER BY dc.embedding <=> ${embedding}::vector
+      ORDER BY dc.embedding <=> ${embeddingVector}::vector
       LIMIT ${topK}
     `;
 
@@ -89,31 +97,37 @@ export class RagService {
       take: topK,
     });
 
-    return chunks.map((chunk: any) => ({
-      chunkId: chunk.id,
-      content: chunk.content,
-      similarity: 0.5, // Keyword matches get a fixed score
-      documentTitle: chunk.document.title,
-      page: (chunk.metadata as any)?.page ?? null,
-      chapter: chunk.topic?.milestone?.name ?? null,
-      topicName: chunk.topic?.name ?? null,
-    }));
+    return chunks.map((chunk) => {
+      const metadata = chunk.metadata as ChunkMetadata | null;
+      return {
+        chunkId: chunk.id,
+        content: chunk.content,
+        similarity: 0.5, // Keyword matches get a fixed score
+        documentTitle: chunk.document.title,
+        page: metadata?.page ?? null,
+        chapter: chunk.topic?.milestone?.name ?? null,
+        topicName: chunk.topic?.name ?? null,
+      };
+    });
   }
 
   /**
    * Generate embedding vector for a query string using Gemini
    */
   private async generateEmbedding(text: string): Promise<string> {
-    const { embed } = await import('ai');
-    const { createGoogleGenerativeAI } = await import('@ai-sdk/google');
-    const google = createGoogleGenerativeAI({ apiKey: process.env.GEMINI_API_KEY || 'dummy' });
+    const litellm = createOpenAI({ 
+      baseURL: process.env.LITELLM_URL || 'http://localhost:4000/v1',
+      apiKey: process.env.LITELLM_API_KEY || process.env.GEMINI_API_KEY || 'dummy',
+    });
+    const settings = await this.db.systemSetting.findUnique({ where: { id: 'global' } });
+    const embeddingModelStr = settings?.embeddingModel || 'gemini-embedding-001';
     
-    const { embedding } = await embed({
-      model: google.textEmbeddingModel('gemini-embedding-001'),
+    const { embedding: embeddingResult } = await embed({
+      model: litellm.textEmbeddingModel(embeddingModelStr),
       value: text,
-    } as any);
+    });
 
-    return `[${embedding.join(',')}]`;
+    return `[${embeddingResult.join(',')}]`;
   }
 
   /**

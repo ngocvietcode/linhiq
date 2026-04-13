@@ -5,14 +5,20 @@ import { resolve, basename } from 'path';
 import * as dotenv from 'dotenv';
 import * as fs from 'fs/promises';
 import { embed, generateText, generateObject } from 'ai';
-import { google } from '@ai-sdk/google';
+import { createOpenAI } from '@ai-sdk/openai';
 import { z } from 'zod';
 
 // Load environment variables
 dotenv.config({ path: resolve(__dirname, '../../../.env') });
-if (process.env.GEMINI_API_KEY) {
-  process.env.GOOGLE_GENERATIVE_AI_API_KEY = process.env.GEMINI_API_KEY;
+if (process.env.LITELLM_API_KEY) {
+  process.env.OPENAI_API_KEY = process.env.LITELLM_API_KEY;
+} else if (process.env.GEMINI_API_KEY) {
+  process.env.OPENAI_API_KEY = process.env.GEMINI_API_KEY;
 }
+const litellm = createOpenAI({
+  baseURL: process.env.LITELLM_URL || 'http://localhost:4000/v1',
+  apiKey: process.env.OPENAI_API_KEY || 'dummy'
+});
 const prisma = new PrismaClient();
 
 const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
@@ -36,7 +42,7 @@ async function extractKeywords(text: string, retries = 3): Promise<string[]> {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
       const { text: result } = await generateText({
-        model: google('gemini-2.5-flash'),
+        model: litellm('gemini-2.5-flash'),
         system: 'Extract 3-5 core academic scientific keywords from this text. Return them as a comma-separated list without quotes or formatting.',
         prompt: text
       });
@@ -62,7 +68,7 @@ async function generateEmbedding(text: string, retries = 5): Promise<number[]> {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
       const { embedding } = await embed({
-        model: google.textEmbeddingModel('gemini-embedding-001'),
+        model: litellm.textEmbeddingModel('gemini-embedding-001'),
         value: text,
       });
       return embedding;
@@ -104,7 +110,7 @@ async function extractRoadmapFromAI(markdownText: string): Promise<RoadmapType> 
 
   console.log('🤖 Sending Table of Contents to Gemini to infer curriculum structure...');
   const { object } = await generateObject({
-    model: google('gemini-2.5-flash'),
+    model: litellm('gemini-2.5-flash'),
     schema: roadmapSchema,
     prompt: `Dưới đây là danh sách các thẻ heading trích xuất từ sách giáo khoa. Hãy dùng kiến thức của bạn để phân tích và nhóm chúng thành các Mốc Lớn (Milestones/Chapters) và các Bài Học (Topics) nằm bên trong.\nLưu ý: Không phải thẻ nào cũng là Milestone, hãy gom cẩn thận.\n\n${headingsText}`
   });

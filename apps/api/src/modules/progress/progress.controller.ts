@@ -1,6 +1,7 @@
 import { Controller, Get, Req, UseGuards } from '@nestjs/common';
 import { ProgressService } from './progress.service';
 import { AuthGuard } from '../../common/guards/auth.guard';
+import type { RequestWithUser } from '../../common/interfaces/jwt-payload.interface';
 
 @Controller('progress')
 @UseGuards(AuthGuard)
@@ -13,7 +14,7 @@ export class ProgressController {
   }
 
   @Get('overview')
-  async getProgress(@Req() req: any) {
+  async getProgress(@Req() req: RequestWithUser) {
     return await this.progress.getOverview(req.user.sub);
   }
 }

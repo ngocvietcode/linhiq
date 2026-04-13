@@ -13,7 +13,7 @@ exports.MODEL_ROUTES = {
     simple: {
         provider: 'openai',
         model: 'gpt-4o-mini',
-        maxTokens: 500,
+        maxOutputTokens: 500,
         temperature: 0.3,
         costPer1MInput: 0.15,
         costPer1MOutput: 0.60,
@@ -21,7 +21,7 @@ exports.MODEL_ROUTES = {
     complex: {
         provider: 'anthropic',
         model: 'claude-sonnet-4-20250514',
-        maxTokens: 1000,
+        maxOutputTokens: 1000,
         temperature: 0.4,
         costPer1MInput: 3.00,
         costPer1MOutput: 15.00,
@@ -29,7 +29,7 @@ exports.MODEL_ROUTES = {
     grading: {
         provider: 'anthropic',
         model: 'claude-sonnet-4-20250514',
-        maxTokens: 1500,
+        maxOutputTokens: 1500,
         temperature: 0.2, // Lower temp for more deterministic grading
         costPer1MInput: 3.00,
         costPer1MOutput: 15.00,
