@@ -21,23 +21,17 @@ RUN ./node_modules/.bin/prisma generate --schema=./packages/database/prisma/sche
 # Build NestJS
 RUN cd apps/api && pnpm build
 
-# ── Stage 3: Production ──
-FROM node:20-alpine AS runner
-WORKDIR /app
-
 RUN addgroup --system --gid 1001 nestjs && \
     adduser --system --uid 1001 nestjs
 
-ENV NODE_ENV=production
+# Set permissions for node_modules and dist so nestjs user can read/execute
+RUN chown -R nestjs:nestjs /app
 
-# Copy built output and production deps
-COPY --from=builder /app/apps/api/dist ./dist
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/packages/database/prisma ./prisma
+ENV NODE_ENV=production
 
 USER nestjs
 
 EXPOSE 4500
 
-# Run migrations then start
-CMD ["sh", "-c", "./node_modules/.bin/prisma migrate deploy --schema=./prisma/schema.prisma && node dist/main.js"]
+# Run migrations then start relative to the api directory
+CMD ["sh", "-c", "./node_modules/.bin/prisma migrate deploy --schema=./packages/database/prisma/schema.prisma && node apps/api/dist/main.js"]
