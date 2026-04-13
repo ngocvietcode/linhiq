@@ -67,7 +67,7 @@ systemctl restart fail2ban
 echo "🔐 Hardening SSH..."
 sed -i 's/#\?PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config
 sed -i 's/#\?PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config
-systemctl restart sshd
+systemctl restart ssh || systemctl restart sshd
 
 # ── Step 6: Install Docker ──
 echo "🐳 Installing Docker..."
