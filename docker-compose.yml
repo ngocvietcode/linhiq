@@ -29,6 +29,19 @@ services:
       timeout: 5s
       retries: 5
 
+  litellm:
+    image: ghcr.io/berriai/litellm:main-latest
+    container_name: linhiq-litellm
+    ports:
+      - "4000:4000"
+    environment:
+      LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY:-sk-1234}
+      # Pass API keys if needed
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+    command: [ "--port", "4000" ]
+
 volumes:
   pgdata:
   redisdata:
