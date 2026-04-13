@@ -56,7 +56,8 @@ sleep 5
 
 # ── Step 4: Get SSL certificate ──
 echo "🔑 Requesting SSL certificate..."
-docker compose -f docker-compose.prod.yml --env-file .env.prod run --rm certbot certonly \
+docker compose -f docker-compose.prod.yml --env-file .env.prod run -T --rm certbot certonly \
+  --non-interactive \
   --webroot \
   --webroot-path=/var/www/certbot \
   --email "$EMAIL" \
