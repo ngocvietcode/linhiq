@@ -397,7 +397,7 @@ function ChatContent() {
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div className="h-screen flex" style={{ background: "var(--color-base)" }}>
+    <div className="h-[calc(100svh-64px)] md:h-screen flex" style={{ background: "var(--color-base)" }}>
       {/* ── Left Nav Sidebar (desktop) ── */}
       <aside
         className="hidden md:flex flex-col w-56 border-r flex-shrink-0"
@@ -441,7 +441,7 @@ function ChatContent() {
       </aside>
 
       {/* ── Main Chat Column ── */}
-      <div className="flex flex-col flex-1 min-w-0 h-screen">
+      <div className="flex flex-col flex-1 min-w-0 h-full">
         {/* ── Header ── */}
         <header
           className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b"
