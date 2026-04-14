@@ -2,8 +2,8 @@ module.exports = {
   apps: [
     {
       name: "linhiq-api",
-      script: "npx",
-      args: "tsx dist/main.js",
+      script: "../../node_modules/.bin/tsx",
+      args: "dist/main.js",
       cwd: "./apps/api",
       env: {
         NODE_ENV: "production",
