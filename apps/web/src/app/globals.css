@@ -505,10 +505,16 @@ select.input {
   cursor: pointer;
 }
 
+/* ── Scrollbar hide (for horizontal scroll containers) ── */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE/Edge */
+  scrollbar-width: none;     /* Firefox */
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;             /* Chrome/Safari/Opera */
+}
 
-/* ══════════════════════════════════════════════════════════════
-   TAILWIND v4 THEME BRIDGE — map Tailwind class names
-   ══════════════════════════════════════════════════════════════ */
+
 @theme inline {
   --color-bg-void:      var(--color-void);
   --color-bg-base:      var(--color-base);

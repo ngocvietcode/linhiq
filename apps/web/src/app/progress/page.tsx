@@ -174,12 +174,12 @@ function ProgressContent() {
           {/* ── Subject tabs ── */}
           {overview?.subjects && overview.subjects.length > 0 && (
             <>
-              <div className="flex gap-2 mb-5">
+              <div className="flex gap-2 mb-5 overflow-x-auto pb-1 -mx-5 px-5 md:mx-0 md:px-0 md:flex-wrap scrollbar-hide">
                 {overview.subjects.map((s) => (
                   <button
                     key={s.id}
                     onClick={() => setActiveSubject(s.id)}
-                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium border transition-all"
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium border transition-all flex-shrink-0"
                     style={{
                       background: activeSubject === s.id ? "var(--color-accent-soft)" : "var(--color-surface)",
                       borderColor: activeSubject === s.id ? "var(--color-accent)" : "var(--color-border-subtle)",
