@@ -98,8 +98,8 @@ export default function HomePage() {
           >
             {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
           </button>
-          <Link href="/app" className="btn-primary text-sm px-4 py-2 gap-1">
-            Mở ứng dụng <ArrowRight size={14} />
+          <Link href="/login" className="btn-primary text-sm px-4 py-2 gap-1">
+            Đăng nhập <ArrowRight size={14} />
           </Link>
         </div>
       </header>
@@ -124,23 +124,21 @@ export default function HomePage() {
             className="text-5xl sm:text-6xl lg:text-7xl font-bold leading-tight mb-6 animate-fade-up"
             style={{ letterSpacing: "-0.025em" }}
           >
-            Đồng hành cùng con giữa <span className="text-gradient">thời đại AI</span>
+            Dẫn dắt tư duy qua <span className="text-gradient">từng câu hỏi</span>
           </h1>
 
           <p
             className="text-lg sm:text-xl max-w-2xl mx-auto mb-10 animate-fade-up leading-relaxed"
             style={{ color: "var(--color-text-secondary)", animationDelay: "80ms" }}
           >
-            Được xây dựng từ chính mong mỏi lớn lao của ba mẹ khi tìm kiếm công cụ học tập cho con. 
-            LinhIQ là gia sư AI tận tâm, giúp các con tự tin vượt qua các chứng chỉ quốc tế 
-            và mở ra cánh cửa tương lai, mà ba mẹ không cần tốn quá nhiều chi phí gia sư.
+            Được xây dựng bởi sự thấu hiểu của phụ huynh. LinhIQ không đưa ra lời giải tức thì, mà đóng vai trò như một gia sư kiên nhẫn — liên tục đặt câu hỏi và gợi ý từng bước (hints), giúp con tự mình đi tìm đáp án và thực sự làm chủ kiến thức.
           </p>
 
           <div
             className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16 animate-fade-up"
             style={{ animationDelay: "160ms" }}
           >
-            <Link href="/app" className="btn-primary text-base px-8 py-3.5 gap-2 w-full sm:w-auto shadow-lg shadow-purple-500/20">
+            <Link href="/login" className="btn-primary text-base px-8 py-3.5 gap-2 w-full sm:w-auto shadow-lg shadow-purple-500/20">
               Trải nghiệm ngay <ArrowRight size={16} />
             </Link>
           </div>

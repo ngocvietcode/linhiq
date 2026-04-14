@@ -37,7 +37,7 @@ interface SessionPreview {
 
 const NAV_ITEMS = [
   { href: "/dashboard", icon: Home, label: "Home" },
-  { href: "/chat", icon: MessageSquare, label: "Chat" },
+  { href: "/chat", icon: MessageSquare, label: "Chat với Linh" },
   { href: "/progress", icon: TrendingUp, label: "Progress" },
   { href: "/settings", icon: Settings, label: "Settings" },
 ];

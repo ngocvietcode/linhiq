@@ -48,6 +48,7 @@ describe('AuthService', () => {
         email: 'test@example.com',
         password: 'password123',
         name: 'Test User',
+        role: 'STUDENT' as const,
       });
 
       expect(result.user.email).toBe('test@example.com');
@@ -64,6 +65,7 @@ describe('AuthService', () => {
           email: 'test@example.com',
           password: 'password123',
           name: 'Test',
+          role: 'STUDENT' as const,
         }),
       ).rejects.toThrow(ConflictException);
     });
@@ -136,6 +138,7 @@ describe('AuthService', () => {
         email: 'test@example.com',
         password: 'password123',
         name: 'Test',
+        role: 'STUDENT' as const,
       });
 
       const decoded = jwt.verify(result.accessToken, TEST_JWT_SECRET) as any;
@@ -158,6 +161,7 @@ describe('AuthService', () => {
         email: 'test@example.com',
         password: 'password123',
         name: 'Test',
+        role: 'STUDENT' as const,
       });
 
       const decoded = jwt.verify(result.accessToken, TEST_JWT_SECRET) as any;
@@ -266,6 +270,7 @@ describe('AuthService', () => {
           email: 'test@example.com',
           password: 'password123',
           name: 'Test',
+          role: 'STUDENT' as const,
         }),
       ).rejects.toThrow('FATAL: JWT_SECRET');
 

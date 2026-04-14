@@ -5,6 +5,11 @@ import helmet from 'helmet';
 import { GlobalExceptionFilter } from './common/filters/http-exception.filter';
 
 async function bootstrap() {
+  if (process.env.NODE_ENV !== 'production') {
+    // Disable TLS certificate validation in development (allows connecting to VPS by IP)
+    process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
+  }
+
   const app = await NestFactory.create(AppModule);
 
   // Security middleware

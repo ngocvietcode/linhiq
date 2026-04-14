@@ -1,76 +1,89 @@
-// ═══════════════════════════════════════════
-// Query Complexity Classifier Prompt
-// ═══════════════════════════════════════════
+export const CLASSIFIER_PROMPT = `
+<system_role>
+You are a precision query complexity classifier for the LinhIQ educational AI platform (Cambridge IGCSE/A-Level).
+</system_role>
 
-export const CLASSIFIER_PROMPT = `You are a query complexity classifier for the LinhIQ educational AI platform (Cambridge IGCSE/A-Level).
-Classify the following student query into exactly ONE category:
+<classification_task>
+Classify the following student query into exactly ONE of the following categories based on cognitive complexity and intent:
 
-- "simple": Factual recall, definitions, naming, stating. 1–2 mark questions.
-  Examples: "What is osmosis?", "Define photosynthesis", "Name the organelle that produces energy"
-- "complex": Requires reasoning, multi-step explanation, comparison, essay-style response. 3+ mark questions.
-  Examples: "Explain how natural selection leads to evolution", "Compare mitosis and meiosis", "Describe the stages of the carbon cycle"
-- "grading": Student is submitting their own answer for evaluation, or asking you to check/mark their response.
-  Examples: "Is this answer correct: ...", "Grade my response: ...", "Check my answer for this question"
+1. **"simple"**: Factual recall, definitions, naming, stating. Questions typically worth 1–2 marks.
+   - Examples: "What is osmosis?", "Define photosynthesis", "Name the organelle that produces energy", "What is the formula for speed?"
 
-Respond with ONLY the category word in lowercase: simple, complex, or grading.
-Do not include any other text, punctuation, or explanation.
+2. **"complex"**: Requires reasoning, multi-step explanation, comparison, or an essay-style response. Questions typically worth 3+ marks.
+   - Examples: "Explain how natural selection leads to evolution", "Compare mitosis and meiosis", "Describe the stages of the carbon cycle and its impact on the climate."
 
+3. **"grading"**: The student is submitting their own answer for evaluation or explicitly asking you to check/mark their response.
+   - Examples: "Is this answer correct: diffusion is the movement of particles...", "Grade my response: ...", "Check my answer for this question."
+</classification_task>
+
+<rules>
+- You must output ONLY ONE generic word: simple, complex, or grading.
+- Do not wrap the output in quotes. Do not include any explanations, code blocks, or punctuation.
+- If a query mixes simple and complex parts, default to "complex".
+</rules>
+
+<input>
 Student query: "{{QUERY}}"
+</input>
 `;
 
-// ═══════════════════════════════════════════
-// Safe Chat Classifier Prompt
-// ═══════════════════════════════════════════
+export const SAFE_CHAT_PROMPT = `
+<system_role>
+You are a silent, intelligent content safety classifier for LinhIQ, an educational companion platform for teenagers.
+</system_role>
 
-export const SAFE_CHAT_PROMPT = `You are a silent content safety classifier for LinhIQ, a teen education platform.
-Categorize the student's message into exactly ONE of these categories:
+<classification_task>
+Categorize the student's message into exactly ONE of the following precise semantic categories:
 
 - "ACADEMIC": Learning-related — math, science, history, exam prep, homework questions.
-- "GENERAL": Greetings, small talk, harmless general conversation, asking about self.
-- "HOBBIES": Games, sports, art, music, entertainment, movies, books.
-- "LIFE": Daily life questions, generic practical advice, career/future questions.
-- "EMOTIONAL": Expressing stress, mild anxiety, tiredness, loneliness, relationship worries, exam pressure.
-- "MATURE_SOFT": Borderline PG-13 topics — mild dating questions, body image, puberty-related curiosity that is not explicit.
-- "AGE_BOUNDARY": Explicit 18+ content, sexual content requests, extreme profanity, graphic violence outside academic context.
-- "HARMFUL": Self-harm ideation, suicide, violence threats, hate speech, bullying, illegal activities, substance abuse.
+- "GENERAL": Greetings, small talk, harmless general conversation, asking about the AI, basic chitchat.
+- "HOBBIES": Games, sports, art, music, entertainment, movies, books, pop culture.
+- "LIFE": Daily life questions, generic practical advice, lifestyle, career/future questions.
+- "EMOTIONAL": Expressing stress, mild anxiety, tiredness, loneliness, relationship worries, exam pressure, general emotional venting.
+- "MATURE_SOFT": Normal teenager topics & borderline PG-13 — mild dating questions, body image, puberty-related curiosity that is NOT explicitly graphic.
+- "AGE_BOUNDARY": Explicit 18+ content, sexual content requests, extreme profanity, graphic violence outside of a strictly academic/historical context.
+- "HARMFUL": Self-harm ideation, suicide, threats of violence, hate speech, bullying, promotion of illegal activities, substance abuse.
+</classification_task>
 
-Rules:
-- Respond with ONLY the exact category string in ALL CAPS.
-- Do not include quotes, punctuation, or explanation.
-- When in doubt between ACADEMIC and another category, choose ACADEMIC.
-- When in doubt between EMOTIONAL and HARMFUL, choose HARMFUL (err on the side of safety).
+<rules>
+- Output ONLY the exact category string in ALL CAPS (e.g. ACADEMIC).
+- Do not output quotes, explanations, markdown formatting, or punctuation.
+- Priority conflict logic:
+  - When in doubt between ACADEMIC and another category, evaluate if the core intent is studying. If yes, choose ACADEMIC.
+  - When in doubt between EMOTIONAL and HARMFUL (e.g., severe sadness vs suicidal thinking), ALWAYS err on the side of safety and choose HARMFUL.
+</rules>
 
+<input>
 Student message: "{{QUERY}}"
+</input>
 `;
 
-// ═══════════════════════════════════════════
-// Student Answer Evaluator Prompt
-// Used AFTER the AI has streamed its response,
-// to silently evaluate the quality of the
-// student's attempt and update mastery accordingly.
-// ═══════════════════════════════════════════
+export const ANSWER_EVAL_PROMPT = `
+<system_role>
+You evaluate and verify student answers in an AI tutoring system specifically designed for Cambridge IGCSE/A-Level standards.
+</system_role>
 
-export const ANSWER_EVAL_PROMPT = `You evaluate student answers in an AI tutoring system for Cambridge IGCSE/A-Level.
-
-Context:
+<context>
 - Subject: {{SUBJECT}}
 - Student message: "{{STUDENT_MESSAGE}}"
-- AI tutor's reply (for context only): "{{AI_RESPONSE}}"
+- AI tutor's prior reply (for reference constraints): "{{AI_RESPONSE}}"
+</context>
 
-Your task: Determine whether the student was ANSWERING a Socratic question or attempting to explain/demonstrate knowledge, and if so, how well they did.
+<evaluation_task>
+Determine whether the student was ANSWERING a Socratic question or attempting to explain/demonstrate knowledge. If they were, evaluate the mastery and accuracy of their response.
 
-Categories:
-- NOT_ANSWER : Student is asking a new question, giving a greeting, or their message is not an attempt to answer or explain something. No evaluation needed.
-- CORRECT    : Student's answer/explanation is mostly correct, accurate, and shows solid understanding of the concept.
-- PARTIAL    : Student shows some understanding but the answer is incomplete, unclear, or missing key terms/steps.
-- INCORRECT  : Student's answer is wrong, significantly flawed, or shows major misconception about the topic.
+Categories for evaluation:
+- **"NOT_ANSWER"**: The student answered with a greeting, asked a completely new question, or the message is not a valid attempt to solve the prior prompt. (e.g. Just rephrasing the question back).
+- **"CORRECT"**: The student's answer/explanation is mostly correct, highly accurate, and demonstrates a solid understanding of the concepts based on the subject.
+- **"PARTIAL"**: The student shows some understanding but the answer is incomplete, vague, logically slightly flawed, or missing critical Cambridge keywords.
+- **"INCORRECT"**: The student's answer is completely wrong, significantly flawed, or demonstrates major misconceptions about the topic.
+</evaluation_task>
 
-Rules:
-- Reply with ONLY one word: NOT_ANSWER, CORRECT, PARTIAL, or INCORRECT.
-- No punctuation, explanation, or extra text.
-- If the student just rephrases the question back, choose NOT_ANSWER.
-- If unsure between PARTIAL and CORRECT, choose PARTIAL.
+<rules>
+- Respond with exactly ONE word from the allowed categories: NOT_ANSWER, CORRECT, PARTIAL, INCORRECT.
+- Do not include any explanations, punctuation, or code blocks.
+- If unsure between PARTIAL and CORRECT, strictly choose PARTIAL to encourage further learning reinforcement.
+</rules>
 `;
 
 export type AnswerQuality = 'NOT_ANSWER' | 'CORRECT' | 'PARTIAL' | 'INCORRECT';
-

@@ -21,17 +21,9 @@ RUN ./node_modules/.bin/prisma generate --schema=./packages/database/prisma/sche
 # Build NestJS
 RUN cd apps/api && pnpm build
 
-RUN addgroup --system --gid 1001 nestjs && \
-    adduser --system --uid 1001 nestjs
-
-# Set permissions for node_modules and dist so nestjs user can read/execute
-RUN chown -R nestjs:nestjs /app
-
 ENV NODE_ENV=production
-
-USER nestjs
 
 EXPOSE 4500
 
 # Run migrations then start relative to the api directory
-CMD ["sh", "-c", "./node_modules/.bin/prisma migrate deploy --schema=./packages/database/prisma/schema.prisma && ./node_modules/.bin/tsx apps/api/dist/main.js"]
+CMD ["sh", "-c", "./node_modules/.bin/prisma migrate deploy --schema=./packages/database/prisma/schema.prisma && node apps/api/dist/main.js"]

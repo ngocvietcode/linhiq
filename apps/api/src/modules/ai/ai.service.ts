@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { streamText, type LanguageModel } from 'ai';
+import { streamText, generateObject, type LanguageModel } from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
+import { z } from 'zod';
 
 import { RagService } from '../rag/rag.service';
 import { DatabaseService } from '../database/database.service';
@@ -380,26 +381,26 @@ export class AiService {
       .replace('{{RAG_CONTEXT}}', ragContext.substring(0, 6000))
       .replace(/\{\{QUESTION_COUNT\}\}/g, String(questionCount));
 
-    const result = streamText({
-      model,
-      messages: [{ role: 'user', content: prompt }],
-      maxOutputTokens: 4000,
-      temperature: 0.3,
-    });
-
-    let raw = '';
-    for await (const chunk of result.textStream) {
-      raw += chunk;
-    }
-
-    // Strip markdown code fences if present
-    const jsonStr = raw.replace(/^```[\w]*\n?/, '').replace(/\n?```$/, '').trim();
-
-    let parsed: Array<{ topicName?: string; question?: string; options?: unknown[]; correctAnswer?: string; explanation?: string }>;
+    let parsed: Array<{ topicName?: string; question: string; options: string[]; correctAnswer: string; explanation: string }>;
     try {
-      parsed = JSON.parse(jsonStr);
-    } catch {
-      this.logger.error('Quiz generation: failed to parse JSON', jsonStr.substring(0, 300));
+      const result = await generateObject({
+        model,
+        messages: [{ role: 'user', content: prompt }],
+        maxOutputTokens: 8192,
+        temperature: 0.3,
+        schema: z.array(
+          z.object({
+            topicName: z.string().optional(),
+            question: z.string(),
+            options: z.array(z.string()),
+            correctAnswer: z.string(),
+            explanation: z.string(),
+          })
+        ),
+      });
+      parsed = result.object;
+    } catch (e) {
+      this.logger.error('Quiz generation failed', e);
       throw new Error('Quiz generation failed — invalid JSON from LLM');
     }
 

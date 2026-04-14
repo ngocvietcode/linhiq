@@ -80,7 +80,7 @@ const SUBJECT_SUGGESTIONS: Record<string, string[]> = {
 
 const NAV_ITEMS = [
   { href: "/dashboard", icon: Home, label: "Home" },
-  { href: "/chat", icon: MessageSquare, label: "Chat" },
+  { href: "/chat", icon: MessageSquare, label: "Chat với Linh" },
   { href: "/progress", icon: TrendingUp, label: "Progress" },
   { href: "/settings", icon: Settings, label: "Settings" },
 ];
@@ -387,10 +387,10 @@ function ChatContent() {
   const suggestions = session.subject
     ? SUBJECT_SUGGESTIONS[session.subject.name] || ["What would you like to learn?"]
     : [
-        "Hôm nay mình mệt quá 😮‍💨",
-        "Gợi ý một cuốn sách hay",
-        "Mình không biết nên chọn ngành gì",
-        "Let's talk about gaming 🎮",
+        "Mai thi rồi mà chưa học gì 🥲",
+        "Làm sao biết mình hợp ngành nào? 🤔",
+        "Kể chuyện gì vô tri đi Linh 🐧",
+        "Cho mình xin tí động lực học với ✨",
       ];
 
   const currentHintInfo = HINT_LEVELS.find((h) => h.level === hintLevel)!;
@@ -574,7 +574,7 @@ function ChatContent() {
                   style={{ color: "var(--color-text-secondary)" }}
                 >
                   {isOpen
-                    ? "Hey! Mình là Linh — bạn có thể nói chuyện với mình về bất cứ điều gì."
+                    ? "Hey! Mình là Linh — Cứ thoải mái tâm sự với mình nhé! Dù là gỡ rối bài vở, băn khoăn về định hướng tương lai hay chỉ đơn giản là tán nhảm vô tri 😆"
                     : "Ask me anything! I'll guide you with Socratic questions instead of giving direct answers."}
                 </p>
                 {!isOpen && (
