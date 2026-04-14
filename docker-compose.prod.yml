@@ -61,7 +61,7 @@ services:
       GEMINI_API_KEY: ${GEMINI_API_KEY}
     ports:
       - "127.0.0.1:4000:4000"
-    command: [ "--port", "4000" ]
+    command: [ "--port", "4000", "--root_path", "/llm" ]
     deploy:
       resources:
         limits:
