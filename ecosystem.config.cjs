@@ -2,7 +2,7 @@ module.exports = {
   apps: [
     {
       name: "linhiq-api",
-      script: "../../node_modules/.bin/tsx",
+      script: "tsx",
       args: "dist/main.js",
       cwd: "./apps/api",
       env: {
@@ -18,6 +18,7 @@ module.exports = {
       env: {
         NODE_ENV: "production",
         PORT: 3000,
+        HOSTNAME: "0.0.0.0",
       },
       env_file: "../../.env.prod",
     },
