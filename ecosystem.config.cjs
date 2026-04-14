@@ -8,7 +8,7 @@ module.exports = {
       env: {
         NODE_ENV: "production",
       },
-      env_file: "../../.env.prod",
+      env_file: ".env.prod",
     },
     {
       name: "linhiq-web",
@@ -20,7 +20,7 @@ module.exports = {
         PORT: 3000,
         HOSTNAME: "0.0.0.0",
       },
-      env_file: "../../.env.prod",
+      env_file: ".env.prod",
     },
   ],
 };
