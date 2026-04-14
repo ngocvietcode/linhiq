@@ -55,7 +55,7 @@ services:
     container_name: linhiq-litellm
     restart: always
     environment:
-      LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY:-NamCao#0603}
+      LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY:-sk-1234}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
       GEMINI_API_KEY: ${GEMINI_API_KEY}
