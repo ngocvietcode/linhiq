@@ -221,8 +221,8 @@ function ProgressContent() {
                                   background: pct >= 80
                                     ? "linear-gradient(90deg, var(--color-success), #34d399)"
                                     : pct >= 50
-                                    ? "linear-gradient(90deg, var(--color-warning), #fbbf24)"
-                                    : "linear-gradient(90deg, var(--color-text-muted), var(--color-border-default))",
+                                      ? "linear-gradient(90deg, var(--color-warning), #fbbf24)"
+                                      : "linear-gradient(90deg, var(--color-text-muted), var(--color-border-default))",
                                 }}
                               />
                             </div>

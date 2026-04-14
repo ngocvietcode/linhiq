@@ -89,7 +89,7 @@ export default function HomePage() {
             <span style={{ color: "var(--color-accent)" }}>Linh</span>IQ
           </span>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
           <button
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
             className="p-2 rounded-full border transition-colors hover:bg-[var(--color-surface)]"
@@ -98,7 +98,7 @@ export default function HomePage() {
           >
             {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
           </button>
-          <Link href="/login" className="btn-primary text-sm px-4 py-2 gap-1">
+          <Link href="/login" className="btn-primary text-sm px-4 py-2 gap-1 whitespace-nowrap">
             Đăng nhập <ArrowRight size={14} />
           </Link>
         </div>
@@ -121,7 +121,7 @@ export default function HomePage() {
           </div>
 
           <h1
-            className="text-5xl sm:text-6xl lg:text-7xl font-bold leading-tight mb-6 animate-fade-up"
+            className="text-3xl sm:text-5xl lg:text-7xl font-bold leading-tight mb-6 animate-fade-up"
             style={{ letterSpacing: "-0.025em" }}
           >
             Dẫn dắt tư duy qua <span className="text-gradient">từng câu hỏi</span>
@@ -256,7 +256,7 @@ export default function HomePage() {
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-left">
               {/* Bad approach */}
-              <div className="p-8 rounded-3xl border" style={{ borderColor: 'rgba(244,63,94,0.2)', background: 'linear-gradient(135deg, rgba(244,63,94,0.05), transparent)' }}>
+              <div className="p-5 md:p-8 rounded-3xl border" style={{ borderColor: 'rgba(244,63,94,0.2)', background: 'linear-gradient(135deg, rgba(244,63,94,0.05), transparent)' }}>
                 <div className="flex items-center gap-4 mb-6">
                   <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-rose-500/10 text-rose-500 font-bold text-xl">✕</div>
                   <h3 className="text-2xl font-semibold opacity-90">AI Thông Thường</h3>
@@ -270,7 +270,7 @@ export default function HomePage() {
               </div>
 
               {/* Socratic approach */}
-              <div className="p-8 rounded-3xl border relative overflow-hidden" style={{ borderColor: 'rgba(34,211,163,0.4)', background: 'linear-gradient(135deg, rgba(34,211,163,0.1), transparent)' }}>
+              <div className="p-5 md:p-8 rounded-3xl border relative overflow-hidden" style={{ borderColor: 'rgba(34,211,163,0.4)', background: 'linear-gradient(135deg, rgba(34,211,163,0.1), transparent)' }}>
                 <div className="absolute -bottom-4 -right-4 p-4 opacity-5">
                   <Brain size={180} />
                 </div>

@@ -21,6 +21,7 @@ import {
 import Link from "next/link";
 import {
   MilestoneRoadmapSidebar,
+  MilestoneRoadmapContent,
   type MilestoneData,
   type TopicMastery,
 } from "@/components/chat/MilestoneRoadmapSidebar";
@@ -982,15 +983,14 @@ function ChatContent() {
               </button>
             </div>
 
-            {/* Inject the sidebar but force-open style for mobile */}
+            {/* Use MilestoneRoadmapContent (not Sidebar) so it renders on mobile without hidden md:flex */}
             <div className="flex-1 overflow-y-auto">
-              <MilestoneRoadmapSidebar
+              <MilestoneRoadmapContent
                 milestones={milestones}
-                isOpen={true}
-                onToggle={() => setMobileRoadmapOpen(false)}
                 activeTopicId={activeTopicId}
                 recentlyUpdatedTopicId={recentlyUpdatedTopicId}
                 subjectName={undefined}
+                onClose={() => setMobileRoadmapOpen(false)}
                 onTopicClick={(topic: TopicMastery) => {
                   setInput(`Can you help me understand "${topic.name}"?`);
                   setMobileRoadmapOpen(false);
