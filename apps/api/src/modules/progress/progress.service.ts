@@ -25,7 +25,7 @@ export class ProgressService {
     }
 
     const studySessions = await this.db.studySession.findMany({ where: { userId }});
-    const studyTimeMin = studySessions.reduce((sum, s) => sum + s.durationMin, 0);
+    const studyTimeMin = studySessions.reduce((sum: number, s: any) => sum + s.durationMin, 0);
 
     const subjects = await this.db.subject.findMany({
       include: {
@@ -49,7 +49,7 @@ export class ProgressService {
       overallMastery:
         subject.topics.length > 0
           ? subject.topics.reduce(
-              (sum, t) => sum + (t.progress[0]?.masteryLevel || 0),
+              (sum: number, t: any) => sum + (t.progress[0]?.masteryLevel || 0),
               0,
             ) / subject.topics.length
           : 0,

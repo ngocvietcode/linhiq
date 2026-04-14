@@ -20,17 +20,20 @@ export class AdminController {
     }
   }
 
-  @Post('settings/provider')
-  async updateProvider(@Body('provider') provider: string) {
-    if (!provider) {
-      throw new HttpException('Provider required', HttpStatus.BAD_REQUEST);
+  @Post('settings/litellm')
+  async updateLiteLlmConfig(
+    @Body('liteLlmUrl') liteLlmUrl: string,
+    @Body('liteLlmApiKey') liteLlmApiKey: string,
+  ) {
+    if (!liteLlmUrl || !liteLlmApiKey) {
+      throw new HttpException('URL and API Key are required', HttpStatus.BAD_REQUEST);
     }
 
     try {
-      const settings = await this.adminService.updateProvider(provider);
+      const settings = await this.adminService.updateLiteLlmConfig(liteLlmUrl, liteLlmApiKey);
       return { success: true, data: settings };
     } catch (e: any) {
-      throw new HttpException(e.message, HttpStatus.BAD_REQUEST);
+      throw new HttpException(e.message, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
   @Post('settings/models')

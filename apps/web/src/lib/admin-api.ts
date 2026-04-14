@@ -96,7 +96,8 @@ export interface CreateSubjectBody {
 
 export interface SystemSetting {
   id: string;
-  defaultAiProvider: string;
+  liteLlmUrl?: string;
+  liteLlmApiKey?: string;
   updatedAt?: string;
 }
 

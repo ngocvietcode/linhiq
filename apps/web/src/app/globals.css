@@ -8,32 +8,32 @@
 
 @theme inline {
   /* ─── Student (Dark) Background Layers ─── */
-  --color-void:        #080C14;
-  --color-base:        #0F172A;
-  --color-surface:     #1A2235;
-  --color-elevated:    #243044;
+  --color-void:        #09050A;
+  --color-base:        #120914;
+  --color-surface:     #1D1122;
+  --color-elevated:    #291830;
 
   /* ─── Accent / Brand ─── */
-  --color-accent:      #6366F1;
-  --color-accent-soft: rgba(99,102,241,0.12);
-  --color-accent-glow: rgba(99,102,241,0.25);
-  --color-accent-hover:#4F52D8;
+  --color-accent:      #A855F7;
+  --color-accent-soft: rgba(168,85,247,0.15);
+  --color-accent-glow: rgba(168,85,247,0.30);
+  --color-accent-hover:#9333EA;
 
   /* ─── Semantic ─── */
   --color-success:     #22D3A3;
-  --color-warning:     #F59E0B;
-  --color-danger:      #F43F5E;
+  --color-warning:     #FBBF24;
+  --color-danger:      #FB7185;
 
   /* ─── Text Hierarchy ─── */
-  --color-text-primary:   #F1F5F9;
-  --color-text-secondary: #94A3B8;
-  --color-text-muted:     #475569;
-  --color-text-hint:      #818CF8;
+  --color-text-primary:   #FFFFFF;
+  --color-text-secondary: #CBD5E1;
+  --color-text-muted:     #94A3B8;
+  --color-text-hint:      #C084FC;
 
   /* ─── Border ─── */
-  --color-border-subtle:  #1E293B;
-  --color-border-default: #334155;
-  --color-border-focus:   #6366F1;
+  --color-border-subtle:  #3B2346;
+  --color-border-default: #583568;
+  --color-border-focus:   #A855F7;
 
   /* ─── Aliases for Tailwind arbitrary values ─── */
   --color-background: var(--color-base);
@@ -53,7 +53,7 @@
   /* ─── Shadows (Dark) ─── */
   --shadow-sm:   0 1px 2px rgba(0,0,0,0.4);
   --shadow-md:   0 4px 16px rgba(0,0,0,0.5);
-  --shadow-glow: 0 0 20px rgba(99,102,241,0.15);
+  --shadow-glow: 0 0 20px rgba(168,85,247,0.25);
 
   /* ─── Motion ─── */
   --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
@@ -69,32 +69,32 @@
    These must be separate from @theme — @theme is for Tailwind only
    ══════════════════════════════════════════════════════════════ */
 :root {
-  --color-void:        #080C14;
-  --color-base:        #0F172A;
-  --color-surface:     #1A2235;
-  --color-elevated:    #243044;
+  --color-void:        #09050A;
+  --color-base:        #120914;
+  --color-surface:     #1D1122;
+  --color-elevated:    #291830;
 
-  --color-accent:      #6366F1;
-  --color-accent-soft: rgba(99,102,241,0.12);
-  --color-accent-glow: rgba(99,102,241,0.25);
-  --color-accent-hover:#4F52D8;
+  --color-accent:      #A855F7;
+  --color-accent-soft: rgba(168,85,247,0.15);
+  --color-accent-glow: rgba(168,85,247,0.30);
+  --color-accent-hover:#9333EA;
 
   --color-success:     #22D3A3;
-  --color-warning:     #F59E0B;
-  --color-danger:      #F43F5E;
+  --color-warning:     #FBBF24;
+  --color-danger:      #FB7185;
 
-  --color-text-primary:   #F1F5F9;
-  --color-text-secondary: #94A3B8;
-  --color-text-muted:     #475569;
-  --color-text-hint:      #818CF8;
+  --color-text-primary:   #FFFFFF;
+  --color-text-secondary: #CBD5E1;
+  --color-text-muted:     #94A3B8;
+  --color-text-hint:      #C084FC;
 
-  --color-border-subtle:  #1E293B;
-  --color-border-default: #334155;
-  --color-border-focus:   #6366F1;
+  --color-border-subtle:  #3B2346;
+  --color-border-default: #583568;
+  --color-border-focus:   #A855F7;
 
   --shadow-sm:   0 1px 2px rgba(0,0,0,0.4);
   --shadow-md:   0 4px 16px rgba(0,0,0,0.5);
-  --shadow-glow: 0 0 20px rgba(99,102,241,0.15);
+  --shadow-glow: 0 0 20px rgba(168,85,247,0.25);
 
   --radius-sm:   6px;
   --radius-md:   10px;
@@ -134,17 +134,17 @@ body {
    PARENT PORTAL — Light Mode
    ══════════════════════════════════════════════════════════════ */
 html.parent-mode {
-  --color-void:          #F8FAFC;
+  --color-void:          #FAF5FF;
   --color-base:          #FFFFFF;
-  --color-surface:       #F1F5F9;
-  --color-elevated:      #E2E8F0;
+  --color-surface:       #F3E8FF;
+  --color-elevated:      #E9D5FF;
 
   --color-text-primary:   #0F172A;
   --color-text-secondary: #475569;
-  --color-text-muted:     #94A3B8;
+  --color-text-muted:     #64748B;
 
-  --color-border-subtle:  #E2E8F0;
-  --color-border-default: #CBD5E1;
+  --color-border-subtle:  #E9D5FF;
+  --color-border-default: #D8B4FE;
 
   --shadow-sm:   0 1px 3px rgba(0,0,0,0.08);
   --shadow-md:   0 4px 12px rgba(0,0,0,0.10);
@@ -158,24 +158,24 @@ html.parent-mode body {
 
 /* Parent portal route — light mode via wrapper div */
 .parent-mode-wrapper {
-  --color-void:          #F8FAFC;
+  --color-void:          #FAF5FF;
   --color-base:          #FFFFFF;
-  --color-surface:       #F1F5F9;
-  --color-elevated:      #E2E8F0;
+  --color-surface:       #F3E8FF;
+  --color-elevated:      #E9D5FF;
 
   --color-text-primary:   #0F172A;
   --color-text-secondary: #475569;
-  --color-text-muted:     #94A3B8;
+  --color-text-muted:     #64748B;
 
-  --color-border-subtle:  #E2E8F0;
-  --color-border-default: #CBD5E1;
+  --color-border-subtle:  #E9D5FF;
+  --color-border-default: #D8B4FE;
 
   --shadow-sm:   0 1px 3px rgba(0,0,0,0.08);
   --shadow-md:   0 4px 12px rgba(0,0,0,0.10);
   --shadow-card: 0 1px 2px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.06);
 
   min-height: 100vh;
-  background: #F8FAFC;
+  background: #FAF5FF;
   color: #0F172A;
 }
 
@@ -278,7 +278,7 @@ code, pre, .mono {
               transform var(--dur-base) var(--ease-out);
 }
 .card:hover {
-  border-color: rgba(99,102,241,0.4);
+  border-color: rgba(168,85,247,0.4);
   box-shadow: var(--shadow-glow);
   transform: translateY(-1px);
 }
@@ -387,8 +387,8 @@ html.parent-mode .input {
   align-items: center;
   gap: 5px;
   padding: 3px 10px;
-  background: rgba(99,102,241,0.12);
-  border: 1px solid rgba(99,102,241,0.25);
+  background: rgba(168,85,247,0.12);
+  border: 1px solid rgba(168,85,247,0.25);
   border-radius: 999px;
   color: var(--color-text-hint);
   font-size: 12px;

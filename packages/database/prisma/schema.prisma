@@ -374,7 +374,8 @@ model SessionTopicStat {
 
 model SystemSetting {
   id                String  @id @default("global")
-  defaultAiProvider String  @default("gemini")
+  liteLlmUrl        String?
+  liteLlmApiKey     String?
   rateLimitFree     Int     @default(10) // questions/day
   rateLimitPro      Int     @default(999)
   maintenanceMode   Boolean @default(false)

@@ -15,22 +15,18 @@ export class AdminService {
 
     if (!settings) {
       settings = await this.db.systemSetting.create({
-        data: { id: 'global', defaultAiProvider: 'gemini' },
+        data: { id: 'global' },
       });
     }
 
     return settings;
   }
 
-  async updateProvider(provider: string) {
-    if (!['openai', 'anthropic', 'gemini'].includes(provider)) {
-      throw new Error(`Invalid AI provider: ${provider}`);
-    }
-
+  async updateLiteLlmConfig(liteLlmUrl: string, liteLlmApiKey: string) {
     return await this.db.systemSetting.upsert({
       where: { id: 'global' },
-      update: { defaultAiProvider: provider },
-      create: { id: 'global', defaultAiProvider: provider },
+      update: { liteLlmUrl, liteLlmApiKey },
+      create: { id: 'global', liteLlmUrl, liteLlmApiKey },
     });
   }
   async updateModels(simpleQueryModel: string, complexQueryModel: string, embeddingModel: string) {
@@ -39,7 +35,6 @@ export class AdminService {
       update: { simpleQueryModel, complexQueryModel, embeddingModel },
       create: { 
         id: 'global', 
-        defaultAiProvider: 'gemini',
         simpleQueryModel,
         complexQueryModel,
         embeddingModel

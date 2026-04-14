@@ -10,14 +10,9 @@ import { z } from 'zod';
 
 // Load environment variables
 dotenv.config({ path: resolve(__dirname, '../../../.env') });
-if (process.env.LITELLM_API_KEY) {
-  process.env.OPENAI_API_KEY = process.env.LITELLM_API_KEY;
-} else if (process.env.GEMINI_API_KEY) {
-  process.env.OPENAI_API_KEY = process.env.GEMINI_API_KEY;
-}
 const litellm = createOpenAI({
   baseURL: process.env.LITELLM_URL || 'http://localhost:4000/v1',
-  apiKey: process.env.OPENAI_API_KEY || 'dummy'
+  apiKey: process.env.LITELLM_API_KEY || 'dummy'
 });
 const prisma = new PrismaClient();
 

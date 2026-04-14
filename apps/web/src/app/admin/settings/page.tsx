@@ -11,7 +11,8 @@ import {
 
 interface SystemSetting {
   id: string;
-  defaultAiProvider: string;
+  liteLlmUrl?: string;
+  liteLlmApiKey?: string;
   simpleQueryModel?: string;
   complexQueryModel?: string;
   embeddingModel?: string;
@@ -57,7 +58,9 @@ export default function AdminSettingsPage() {
   const [settings, setSettings] = useState<SystemSetting | null>(null);
   const [loading, setLoading] = useState(true);
 
-  
+  const [liteLlmUrl, setLiteLlmUrl] = useState("");
+  const [liteLlmApiKey, setLiteLlmApiKey] = useState("");
+  const [savingLitellm, setSavingLitellm] = useState(false);
   const [simpleModel, setSimpleModel] = useState("gemini-2.5-flash");
   const [complexModel, setComplexModel] = useState("gemini-2.5-pro");
   const [embeddingModel, setEmbeddingModel] = useState("gemini-embedding-001");
@@ -80,6 +83,8 @@ export default function AdminSettingsPage() {
     try {
       const res = await api<{ data: SystemSetting }>("/admin/settings", { token });
       setSettings(res?.data || null);
+      if (res?.data?.liteLlmUrl) setLiteLlmUrl(res.data.liteLlmUrl);
+      if (res?.data?.liteLlmApiKey) setLiteLlmApiKey(res.data.liteLlmApiKey);
       if (res?.data?.simpleQueryModel) setSimpleModel(res.data.simpleQueryModel);
       if (res?.data?.complexQueryModel) setComplexModel(res.data.complexQueryModel);
       if (res?.data?.embeddingModel) setEmbeddingModel(res.data.embeddingModel);
@@ -112,6 +117,24 @@ export default function AdminSettingsPage() {
       showToast(e.message, "err");
     } finally {
       setSavingModels(false);
+    }
+  }
+
+  async function saveLiteLlm() {
+    if (!token) return;
+    setSavingLitellm(true);
+    try {
+      await api("/admin/settings/litellm", { 
+        method: "POST", 
+        token, 
+        body: { liteLlmUrl, liteLlmApiKey } 
+      });
+      showToast("LiteLLM Proxy configuration updated");
+      loadSettings();
+    } catch (e: any) {
+      showToast(e.message, "err");
+    } finally {
+      setSavingLitellm(false);
     }
   }
 
@@ -182,6 +205,42 @@ export default function AdminSettingsPage() {
           </p>
 
           <div className="pt-2">
+            <h3 className="text-sm font-medium mb-4">LiteLLM Proxy Setup</h3>
+            <div className="space-y-4 mb-8">
+              <div>
+                <label className="text-xs font-medium" style={{ color: "var(--color-text-secondary)" }}>
+                  Proxy Base URL
+                </label>
+                <input
+                  type="text"
+                  value={liteLlmUrl}
+                  onChange={(e) => setLiteLlmUrl(e.target.value)}
+                  className="input mt-1.5 w-full text-sm"
+                  placeholder="http://host.docker.internal:4000/v1"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium" style={{ color: "var(--color-text-secondary)" }}>
+                  Proxy Master API Key
+                </label>
+                <input
+                  type="password"
+                  value={liteLlmApiKey}
+                  onChange={(e) => setLiteLlmApiKey(e.target.value)}
+                  className="input mt-1.5 w-full text-sm"
+                  placeholder="sk-..."
+                />
+              </div>
+              <button
+                onClick={saveLiteLlm}
+                disabled={savingLitellm}
+                className="btn-primary gap-2 text-sm mt-2"
+              >
+                <Save size={14} />
+                {savingLitellm ? "Saving..." : "Save Proxy Settings"}
+              </button>
+            </div>
+
             <h3 className="text-sm font-medium mb-4">Model Routing Configuration</h3>
             <div className="space-y-4">
               <div>

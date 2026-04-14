@@ -115,11 +115,11 @@ export class RagService {
    * Generate embedding vector for a query string using Gemini
    */
   private async generateEmbedding(text: string): Promise<string> {
-    const litellm = createOpenAI({ 
-      baseURL: process.env.LITELLM_URL || 'http://localhost:4000/v1',
-      apiKey: process.env.LITELLM_API_KEY || process.env.GEMINI_API_KEY || 'dummy',
-    });
     const settings = await this.db.systemSetting.findUnique({ where: { id: 'global' } });
+    const litellm = createOpenAI({ 
+      baseURL: settings?.liteLlmUrl || process.env.LITELLM_URL || 'http://localhost:4000/v1',
+      apiKey: settings?.liteLlmApiKey || process.env.LITELLM_API_KEY || 'dummy',
+    });
     const embeddingModelStr = settings?.embeddingModel || 'gemini-embedding-001';
     
     const { embedding: embeddingResult } = await embed({

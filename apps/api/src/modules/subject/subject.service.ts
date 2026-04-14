@@ -84,7 +84,7 @@ export class SubjectService {
       const completedTopics = topics.filter((t) => t.masteryLevel >= 0.5).length;
       const milestoneMastery =
         totalTopics > 0
-          ? topics.reduce((sum, t: any) => sum + t.masteryLevel, 0) / totalTopics
+          ? topics.reduce((sum: number, t: any) => sum + t.masteryLevel, 0) / totalTopics
           : 0;
 
       return {

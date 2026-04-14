@@ -1,7 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { streamText, type LanguageModel } from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
-import { createAnthropic } from '@ai-sdk/anthropic';
 
 import { RagService } from '../rag/rag.service';
 import { DatabaseService } from '../database/database.service';
@@ -42,7 +41,8 @@ interface StreamResult {
 
 interface SystemSettings {
   id: string;
-  defaultAiProvider: string;
+  liteLlmUrl?: string | null;
+  liteLlmApiKey?: string | null;
   simpleQueryModel: string;
   complexQueryModel: string;
   embeddingModel: string;
@@ -51,12 +51,6 @@ interface SystemSettings {
 @Injectable()
 export class AiService {
   private readonly logger = new Logger(AiService.name);
-  private readonly openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY || 'dummy' });
-  private readonly anthropic = createAnthropic({ apiKey: process.env.ANTHROPIC_API_KEY || 'dummy' });
-  private readonly litellm = createOpenAI({ 
-    baseURL: process.env.LITELLM_URL || 'http://localhost:4000/v1', 
-    apiKey: process.env.LITELLM_API_KEY || process.env.GEMINI_API_KEY || 'dummy',
-  });
 
   constructor(
     private readonly rag: RagService,
@@ -72,7 +66,8 @@ export class AiService {
     });
     return setting || {
       id: 'global',
-      defaultAiProvider: 'gemini',
+      liteLlmUrl: null,
+      liteLlmApiKey: null,
       simpleQueryModel: 'gemini-2.5-flash',
       complexQueryModel: 'gemini-2.5-pro',
       embeddingModel: 'gemini-embedding-001',
@@ -87,7 +82,12 @@ export class AiService {
     const modelId = complexity === 'simple' ? settings.simpleQueryModel : settings.complexQueryModel;
     
     // Everything routed through litellm proxy now
-    const model = this.litellm(modelId);
+    const litellm = createOpenAI({
+      baseURL: settings.liteLlmUrl || process.env.LITELLM_URL || 'http://localhost:4000/v1',
+      apiKey: settings.liteLlmApiKey || process.env.LITELLM_API_KEY || 'dummy',
+    });
+    
+    const model = litellm(modelId);
 
     return { model, provider: modelId };
   }
