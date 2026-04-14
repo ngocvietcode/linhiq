@@ -59,9 +59,10 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
       GEMINI_API_KEY: ${GEMINI_API_KEY}
+      SERVER_ROOT_PATH: /llm
     ports:
       - "127.0.0.1:4000:4000"
-    command: [ "--port", "4000", "--root_path", "/llm" ]
+    command: [ "--port", "4000" ]
     deploy:
       resources:
         limits:
