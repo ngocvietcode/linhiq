@@ -59,8 +59,12 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
       GEMINI_API_KEY: ${GEMINI_API_KEY}
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-linhiq}:${POSTGRES_PASSWORD}@postgres:5432/litellm"
     ports:
       - "4000:4000"
+    depends_on:
+      postgres:
+        condition: service_healthy
     command: [ "--port", "4000" ]
     deploy:
       resources:
