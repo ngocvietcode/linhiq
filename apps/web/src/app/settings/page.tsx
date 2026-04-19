@@ -3,8 +3,8 @@
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
-import { AuthProvider } from "@/lib/auth-context";
-import { Home, MessageSquare, TrendingUp, Settings, LogOut, Moon, Bell, Shield, User } from "lucide-react";
+import { useTheme } from "@/lib/theme-context";
+import { Home, MessageSquare, TrendingUp, Settings, LogOut, Moon, Sun, Bell, Shield, User } from "lucide-react";
 
 const NAV_ITEMS = [
   { href: "/dashboard", icon: Home, label: "Home" },
@@ -13,27 +13,11 @@ const NAV_ITEMS = [
   { href: "/settings", icon: Settings, label: "Settings" },
 ];
 
-const SETTING_GROUPS = [
-  {
-    title: "Account",
-    items: [
-      { icon: User, label: "Profile", desc: "Name, email, profile photo" },
-      { icon: Shield, label: "Password & Security", desc: "Change password, 2FA" },
-    ],
-  },
-  {
-    title: "Preferences",
-    items: [
-      { icon: Moon, label: "Appearance", desc: "Dark mode · Light mode" },
-      { icon: Bell, label: "Notifications", desc: "Study reminders, streak alerts" },
-    ],
-  },
-];
-
 function SettingsContent() {
   const router = useRouter();
   const pathname = usePathname();
   const { user, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
 
   function handleLogout() {
     logout();
@@ -67,7 +51,7 @@ function SettingsContent() {
       <div className="flex-1 md:ml-56">
         {/* Mobile header */}
         <header className="md:hidden sticky top-0 z-10 px-5 py-4 border-b"
-          style={{ background: "rgba(15,23,42,0.85)", backdropFilter: "blur(16px)", borderColor: "var(--color-border-subtle)" }}>
+          style={{ background: "rgba(23,23,23,0.85)", backdropFilter: "blur(16px)", borderColor: "var(--color-border-subtle)" }}>
           <h1 className="text-lg font-bold">Settings</h1>
         </header>
 
@@ -91,34 +75,93 @@ function SettingsContent() {
             </div>
           </div>
 
-          {/* Settings groups */}
-          {SETTING_GROUPS.map((group) => (
-            <div key={group.title} className="mb-6">
-              <h2 className="text-xs font-semibold mb-2 px-1" style={{ color: "var(--color-text-muted)" }}>
-                {group.title.toUpperCase()}
-              </h2>
-              <div className="rounded-2xl border overflow-hidden"
-                style={{ background: "var(--color-surface)", borderColor: "var(--color-border-subtle)" }}>
-                {group.items.map(({ icon: Icon, label, desc }, i, arr) => (
-                  <button key={label}
-                    className="w-full flex items-center gap-4 px-5 py-4 text-left transition-all"
-                    style={{ borderBottom: i < arr.length - 1 ? "1px solid var(--color-border-subtle)" : "none" }}
-                    onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(99,102,241,0.04)")}
-                    onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "transparent")}>
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                      style={{ background: "var(--color-elevated)" }}>
-                      <Icon size={16} style={{ color: "var(--color-text-secondary)" }} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm">{label}</p>
-                      <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>{desc}</p>
-                    </div>
-                    <span style={{ color: "var(--color-text-muted)", fontSize: 18 }}>›</span>
-                  </button>
-                ))}
-              </div>
+          {/* Account group */}
+          <div className="mb-6">
+            <h2 className="text-xs font-semibold mb-2 px-1" style={{ color: "var(--color-text-muted)" }}>
+              ACCOUNT
+            </h2>
+            <div className="rounded-2xl border overflow-hidden"
+              style={{ background: "var(--color-surface)", borderColor: "var(--color-border-subtle)" }}>
+              {[
+                { icon: User, label: "Profile", desc: "Name, email, profile photo" },
+                { icon: Shield, label: "Password & Security", desc: "Change password, 2FA" },
+              ].map(({ icon: Icon, label, desc }, i, arr) => (
+                <button key={label}
+                  className="w-full flex items-center gap-4 px-5 py-4 text-left transition-all"
+                  style={{ borderBottom: i < arr.length - 1 ? "1px solid var(--color-border-subtle)" : "none" }}
+                  onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(218,119,86,0.04)")}
+                  onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "transparent")}>
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                    style={{ background: "var(--color-elevated)" }}>
+                    <Icon size={16} style={{ color: "var(--color-text-secondary)" }} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm">{label}</p>
+                    <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>{desc}</p>
+                  </div>
+                  <span style={{ color: "var(--color-text-muted)", fontSize: 18 }}>›</span>
+                </button>
+              ))}
             </div>
-          ))}
+          </div>
+
+          {/* Preferences group */}
+          <div className="mb-6">
+            <h2 className="text-xs font-semibold mb-2 px-1" style={{ color: "var(--color-text-muted)" }}>
+              PREFERENCES
+            </h2>
+            <div className="rounded-2xl border overflow-hidden"
+              style={{ background: "var(--color-surface)", borderColor: "var(--color-border-subtle)" }}>
+              {/* Appearance row — functional theme toggle */}
+              <div className="w-full flex items-center gap-4 px-5 py-4"
+                style={{ borderBottom: "1px solid var(--color-border-subtle)" }}>
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                  style={{ background: "var(--color-elevated)" }}>
+                  {theme === "dark" ? (
+                    <Moon size={16} style={{ color: "var(--color-text-secondary)" }} />
+                  ) : (
+                    <Sun size={16} style={{ color: "var(--color-text-secondary)" }} />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm">Appearance</p>
+                  <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+                    {theme === "dark" ? "Dark mode" : "Light mode"}
+                  </p>
+                </div>
+                <button
+                  onClick={toggleTheme}
+                  className="flex items-center gap-2 text-sm px-3 py-1.5 rounded-lg border transition-all"
+                  style={{
+                    background: "var(--color-elevated)",
+                    borderColor: "var(--color-border-default)",
+                    color: "var(--color-text-secondary)",
+                  }}
+                  onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.borderColor = "var(--color-accent)")}
+                  onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.borderColor = "var(--color-border-default)")}
+                >
+                  {theme === "dark" ? <Sun size={14} /> : <Moon size={14} />}
+                  {theme === "dark" ? "Light" : "Dark"}
+                </button>
+              </div>
+
+              {/* Notifications row */}
+              <button
+                className="w-full flex items-center gap-4 px-5 py-4 text-left transition-all"
+                onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(218,119,86,0.04)")}
+                onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "transparent")}>
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                  style={{ background: "var(--color-elevated)" }}>
+                  <Bell size={16} style={{ color: "var(--color-text-secondary)" }} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm">Notifications</p>
+                  <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>Study reminders, streak alerts</p>
+                </div>
+                <span style={{ color: "var(--color-text-muted)", fontSize: 18 }}>›</span>
+              </button>
+            </div>
+          </div>
 
           {/* Sign out */}
           <button
@@ -135,7 +178,7 @@ function SettingsContent() {
 
       {/* Bottom Nav */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-20 flex items-center justify-around h-16 border-t"
-        style={{ background: "rgba(8,12,20,0.9)", backdropFilter: "blur(16px)", borderColor: "var(--color-border-subtle)" }}>
+        style={{ background: "rgba(23,23,23,0.9)", backdropFilter: "blur(16px)", borderColor: "var(--color-border-subtle)" }}>
         {NAV_ITEMS.map(({ href, icon: Icon, label }) => {
           const active = pathname === href;
           return (
@@ -151,9 +194,5 @@ function SettingsContent() {
 }
 
 export default function SettingsPage() {
-  return (
-    <AuthProvider>
-      <SettingsContent />
-    </AuthProvider>
-  );
+  return <SettingsContent />;
 }

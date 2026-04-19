@@ -81,7 +81,7 @@ export default function ParentHomePage() {
               <Link key={href} href={href}
                 className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all"
                 style={{
-                  background: active ? "rgba(99,102,241,0.08)" : "transparent",
+                  background: active ? "rgba(218,119,86,0.08)" : "transparent",
                   color: active ? "var(--color-accent)" : "var(--color-text-secondary)",
                 }}>
                 <Icon size={18} />{label}

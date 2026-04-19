@@ -114,7 +114,6 @@ export default function LoginPage() {
           type="submit"
           disabled={loading}
           className="btn-primary w-full mt-2"
-          style={{ borderRadius: "var(--radius-sm)" }}
         >
           {loading ? (
             <>

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth, AuthProvider } from "@/lib/auth-context";
+import { useAuth } from "@/lib/auth-context";
 import { api } from "@/lib/api";
 
 function ChatInitializer() {
@@ -43,9 +43,5 @@ function ChatInitializer() {
 }
 
 export default function ChatIndexPage() {
-  return (
-    <AuthProvider>
-      <ChatInitializer />
-    </AuthProvider>
-  );
+  return <ChatInitializer />;
 }

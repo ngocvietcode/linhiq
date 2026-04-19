@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
-import { AuthProvider } from "@/lib/auth-context";
 import {
   LayoutDashboard, Users, BookOpen, Brain, MessageSquare,
   Settings, ChevronDown, ChevronRight, LogOut, Shield,
@@ -70,7 +69,7 @@ function AdminSidebarContent({ onClose }: { onClose?: () => void }) {
             <span style={{ color: "var(--color-accent)" }}>Linh</span>IQ
             <span
               className="ml-2 text-xs font-semibold px-1.5 py-0.5 rounded"
-              style={{ background: "rgba(99,102,241,0.15)", color: "var(--color-accent)" }}
+              style={{ background: "rgba(218,119,86,0.15)", color: "var(--color-accent)" }}
             >
               ADMIN
             </span>
@@ -110,7 +109,7 @@ function AdminSidebarContent({ onClose }: { onClose?: () => void }) {
                       color: active ? "var(--color-accent)" : "var(--color-text-secondary)",
                     }}
                     onMouseEnter={(e) => {
-                      if (!active) (e.currentTarget as HTMLElement).style.background = "rgba(99,102,241,0.05)";
+                      if (!active) (e.currentTarget as HTMLElement).style.background = "rgba(218,119,86,0.06)";
                     }}
                     onMouseLeave={(e) => {
                       if (!active) (e.currentTarget as HTMLElement).style.background = "transparent";
@@ -228,7 +227,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
           <header
             className="lg:hidden sticky top-0 z-20 px-4 py-3 flex items-center gap-3 border-b"
             style={{
-              background: "rgba(15,23,42,0.9)",
+              background: "rgba(23,23,23,0.9)",
               backdropFilter: "blur(16px)",
               borderColor: "var(--color-border-subtle)",
             }}
@@ -253,9 +252,5 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
 }
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <AuthProvider>
-      <AdminLayoutInner>{children}</AdminLayoutInner>
-    </AuthProvider>
-  );
+  return <AdminLayoutInner>{children}</AdminLayoutInner>;
 }

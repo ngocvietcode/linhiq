@@ -39,11 +39,11 @@ function getMockedLogs(userEmail: string): AuditLog[] {
 }
 
 const ACTION_META: Record<string, { color: string; icon: React.FC<{ size: number }>; label: string }> = {
-  USER_ROLE_CHANGED: { color: "#6366F1", icon: User,     label: "Role Changed" },
+  USER_ROLE_CHANGED: { color: "var(--color-accent)", icon: User,     label: "Role Changed" },
   USER_BANNED:       { color: "#F59E0B", icon: Lock,     label: "User Banned" },
   USER_DELETED:      { color: "#F43F5E", icon: Trash2,   label: "User Deleted" },
   SUBJECT_CREATED:   { color: "#22D3A3", icon: BookOpen, label: "Subject Created" },
-  SUBJECT_UPDATED:   { color: "#818CF8", icon: BookOpen, label: "Subject Updated" },
+  SUBJECT_UPDATED:   { color: "var(--color-accent)", icon: BookOpen, label: "Subject Updated" },
   DOCUMENT_DELETED:  { color: "#F43F5E", icon: Trash2,   label: "Document Deleted" },
   PROVIDER_CHANGED:  { color: "#F59E0B", icon: Globe,    label: "Provider Changed" },
   SETTINGS_RESET:    { color: "#F43F5E", icon: Settings, label: "Settings Reset" },
@@ -165,7 +165,7 @@ export default function AdminAuditPage() {
           </div>
         ) : (
           filtered.map((log, i) => {
-            const meta = ACTION_META[log.action] || { color: "#6366F1", icon: Shield, label: log.action };
+            const meta = ACTION_META[log.action] || { color: "var(--color-accent)", icon: Shield, label: log.action };
             const Icon = meta.icon;
             const isExpanded = expanded === log.id;
 
@@ -178,7 +178,7 @@ export default function AdminAuditPage() {
                   onClick={() => setExpanded(isExpanded ? null : log.id)}
                   className="w-full flex items-center gap-4 px-5 py-4 text-left transition-colors"
                   onMouseEnter={(e) =>
-                    ((e.currentTarget as HTMLElement).style.background = "rgba(99,102,241,0.025)")
+                    ((e.currentTarget as HTMLElement).style.background = "rgba(218,119,86,0.025)")
                   }
                   onMouseLeave={(e) =>
                     ((e.currentTarget as HTMLElement).style.background = "transparent")

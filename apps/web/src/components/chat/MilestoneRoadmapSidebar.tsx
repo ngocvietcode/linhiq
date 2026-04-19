@@ -109,9 +109,9 @@ function TopicItem({
       className="w-full text-left group relative flex items-start gap-2.5 px-3 py-2 transition-all duration-150"
       style={{
         background: isActive
-          ? "rgba(99,102,241,0.10)"
+          ? "rgba(218,119,86,0.10)"
           : isUpdated
-            ? "rgba(99,102,241,0.05)"
+            ? "rgba(218,119,86,0.05)"
             : "transparent",
         borderLeft: isActive
           ? "2px solid var(--color-accent)"
@@ -123,7 +123,7 @@ function TopicItem({
       onMouseLeave={(e) => {
         if (!isActive)
           (e.currentTarget as HTMLElement).style.background = isUpdated
-            ? "rgba(99,102,241,0.05)"
+            ? "rgba(218,119,86,0.05)"
             : "transparent";
       }}
     >

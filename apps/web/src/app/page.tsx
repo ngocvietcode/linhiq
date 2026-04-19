@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useTheme } from "@/lib/theme-context";
 import { ArrowRight, Brain, Target, Check, Sparkles, LineChart, ShieldCheck, Sun, Moon } from "lucide-react";
 
 const DEMO_MESSAGES = [
@@ -68,18 +69,18 @@ const PARENT_FEATURES = [
 
 export default function HomePage() {
   const [activeTab, setActiveTab] = useState<"students" | "parents">("students");
-  const [theme, setTheme] = useState<"dark" | "light">("dark");
+  const { theme, toggleTheme } = useTheme();
 
   return (
     <div
-      className={`min-h-screen flex flex-col transition-colors duration-300 ${theme === "light" ? "parent-mode-wrapper" : ""}`}
+      className="min-h-screen flex flex-col transition-colors duration-300"
       style={{ background: "var(--color-void)", color: "var(--color-text-primary)" }}
     >
       {/* ── Nav ── */}
       <header
         className="sticky top-0 z-50 px-6 py-4 flex items-center justify-between border-b transition-all"
         style={{
-          background: "rgba(8,12,20,0.8)",
+          background: "rgba(23,23,23,0.8)",
           backdropFilter: "blur(20px)",
           borderColor: "var(--color-border-subtle)",
         }}
@@ -91,7 +92,7 @@ export default function HomePage() {
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            onClick={toggleTheme}
             className="p-2 rounded-full border transition-colors hover:bg-[var(--color-surface)]"
             style={{ borderColor: "var(--color-border-subtle)", color: "var(--color-text-secondary)" }}
             aria-label="Toggle Theme"
@@ -112,7 +113,7 @@ export default function HomePage() {
             className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm mb-8"
             style={{
               background: "var(--color-accent-soft)",
-              border: "1px solid rgba(99,102,241,0.3)",
+              border: "1px solid rgba(218,119,86,0.3)",
               color: "var(--color-text-hint)",
             }}
           >
@@ -138,7 +139,7 @@ export default function HomePage() {
             className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16 animate-fade-up"
             style={{ animationDelay: "160ms" }}
           >
-            <Link href="/login" className="btn-primary text-base px-8 py-3.5 gap-2 w-full sm:w-auto shadow-lg shadow-purple-500/20">
+            <Link href="/login" className="btn-primary text-base px-8 py-3.5 gap-2 w-full sm:w-auto shadow-lg shadow-[var(--color-accent-glow)]">
               Trải nghiệm ngay <ArrowRight size={16} />
             </Link>
           </div>
@@ -150,7 +151,7 @@ export default function HomePage() {
             </p>
             <div className="flex flex-wrap justify-center items-center gap-3 mt-2">
               {PROGRAMS.map((s) => (
-                <span key={s} className="tag transition-colors hover:border-purple-400" style={{ fontSize: 13 }}>
+                <span key={s} className="tag transition-colors hover:border-[var(--color-accent)]" style={{ fontSize: 13 }}>
                   {s}
                 </span>
               ))}
@@ -164,7 +165,7 @@ export default function HomePage() {
               background: "var(--color-surface)",
               borderColor: "var(--color-border-subtle)",
               animationDelay: "240ms",
-              boxShadow: "0 32px 64px rgba(0,0,0,0.6), 0 0 0 1px rgba(99,102,241,0.1)",
+              boxShadow: "0 32px 64px rgba(0,0,0,0.6), 0 0 0 1px rgba(218,119,86,0.1)",
             }}
           >
             {/* window chrome */}
@@ -195,7 +196,7 @@ export default function HomePage() {
                             background: "var(--color-accent)",
                             color: "#fff",
                             borderRadius: "18px 18px 4px 18px",
-                            boxShadow: "0 4px 12px rgba(99,102,241,0.2)",
+                            boxShadow: "0 4px 12px rgba(218,119,86,0.2)",
                           }
                         : {
                             background: "var(--color-elevated)",
@@ -220,7 +221,7 @@ export default function HomePage() {
               ))}
               {/* input */}
               <div
-                className="flex items-center gap-3 px-4 py-3 rounded-xl border mt-4 transition-colors focus-within:border-purple-500/50"
+                className="flex items-center gap-3 px-4 py-3 rounded-xl border mt-4 transition-colors focus-within:border-[var(--color-accent)]/50"
                 style={{ borderColor: "var(--color-border-default)", background: "var(--color-elevated)" }}
               >
                 <span className="flex-1 text-sm outline-none cursor-text" style={{ color: "var(--color-text-muted)" }}>
@@ -253,7 +254,7 @@ export default function HomePage() {
             <p className="text-lg mb-16 max-w-3xl mx-auto leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
               Nhận đáp án có sẵn từ các công cụ AI thông thường khiến con hình thành thói quen lười tư duy, học vẹt. Tại LinhIQ, chúng tôi áp dụng <strong>phương pháp gợi mở Socratic</strong> — tuyệt đối KHÔNG bao giờ "mớm" đáp án trực tiếp làm thui chột tư duy của học sinh.
             </p>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-left">
               {/* Bad approach */}
               <div className="p-5 md:p-8 rounded-3xl border" style={{ borderColor: 'rgba(244,63,94,0.2)', background: 'linear-gradient(135deg, rgba(244,63,94,0.05), transparent)' }}>
@@ -296,7 +297,7 @@ export default function HomePage() {
         >
           {/* Subtle gradient orb */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none flex justify-center">
-            <div className="w-[800px] h-[400px] bg-purple-500/5 blur-[120px] rounded-full translate-y-[-50%]" />
+            <div className="w-[800px] h-[400px] bg-[var(--color-accent)]/5 blur-[120px] rounded-full translate-y-[-50%]" />
           </div>
 
           <div className="max-w-5xl mx-auto relative z-10">
@@ -319,8 +320,8 @@ export default function HomePage() {
                 <button
                   onClick={() => setActiveTab("students")}
                   className={`px-6 py-2.5 rounded-lg text-sm font-semibold transition-all ${
-                    activeTab === "students" 
-                      ? "bg-[var(--color-accent)] text-white shadow-md" 
+                    activeTab === "students"
+                      ? "bg-[var(--color-accent)] text-white shadow-md"
                       : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
                   }`}
                 >
@@ -329,8 +330,8 @@ export default function HomePage() {
                 <button
                   onClick={() => setActiveTab("parents")}
                   className={`px-6 py-2.5 rounded-lg text-sm font-semibold transition-all ${
-                    activeTab === "parents" 
-                      ? "bg-[var(--color-accent)] text-white shadow-md" 
+                    activeTab === "parents"
+                      ? "bg-[var(--color-accent)] text-white shadow-md"
                       : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
                   }`}
                 >
@@ -377,4 +378,3 @@ export default function HomePage() {
     </div>
   );
 }
-

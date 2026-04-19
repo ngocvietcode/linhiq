@@ -1,10 +1,12 @@
 import type { Metadata, Viewport } from "next";
-import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import { Toaster } from "react-hot-toast";
+import { AuthProvider } from "@/lib/auth-context";
+import { ThemeProvider, themeScript } from "@/lib/theme-context";
 import "./globals.css";
 
-const jakarta = Plus_Jakarta_Sans({
-  variable: "--font-jakarta",
+const inter = Inter({
+  variable: "--font-sans",
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700"],
   display: "swap",
@@ -18,7 +20,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const viewport: Viewport = {
-  themeColor: "#080C14",
+  themeColor: "#171717",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -49,8 +51,12 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${jakarta.variable} ${jetbrainsMono.variable} h-full antialiased`}
+      className={`${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body
         className="min-h-full flex flex-col"
         style={{
@@ -59,7 +65,11 @@ export default function RootLayout({
           fontFamily: "var(--font-sans)",
         }}
       >
-        {children}
+        <ThemeProvider>
+          <AuthProvider>
+            {children}
+          </AuthProvider>
+        </ThemeProvider>
         <Toaster
           position="bottom-right"
           toastOptions={{

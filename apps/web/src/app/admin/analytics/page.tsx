@@ -135,7 +135,7 @@ export default function AdminAnalyticsPage() {
 
       {/* Stats row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <StatCard icon={Users as any}        label="Total Users"        value={stats?.totalUsers || 0}       color="#6366F1" sub={`${stats?.activeUsersToday || 0} active today`} />
+        <StatCard icon={Users as any}        label="Total Users"        value={stats?.totalUsers || 0}       color="var(--color-accent)" sub={`${stats?.activeUsersToday || 0} active today`} />
         <StatCard icon={MessageSquare as any}label="Chat Sessions"      value={stats?.totalSessions || 0}    color="#22D3A3" />
         <StatCard icon={Clock as any}        label="Avg Session Length" value={`${stats?.avgSessionMin || 0} min`} color="#F59E0B" />
         <StatCard icon={Activity as any}     label="Subjects Active"    value={stats?.totalSubjects || 0}    color="#F43F5E" />
@@ -154,7 +154,7 @@ export default function AdminAnalyticsPage() {
             <h2 className="font-semibold">Weekly Activity</h2>
             <div className="flex items-center gap-4 text-xs" style={{ color: "var(--color-text-muted)" }}>
               <span className="flex items-center gap-1.5">
-                <span className="w-3 h-2 rounded-sm inline-block" style={{ background: "#6366F1" }} /> Sessions
+                <span className="w-3 h-2 rounded-sm inline-block" style={{ background: "var(--color-accent)" }} /> Sessions
               </span>
               <span className="flex items-center gap-1.5">
                 <span className="w-3 h-2 rounded-sm inline-block" style={{ background: "#22D3A3" }} /> Messages
@@ -191,7 +191,7 @@ export default function AdminAnalyticsPage() {
                         className="w-full rounded-t-md transition-all duration-500"
                         style={{
                           height: `${(sessions / maxSessions) * 150}px`,
-                          background: "linear-gradient(to top, #6366F1, #818CF8)",
+                          background: "linear-gradient(to top, rgba(218,119,86,1), rgba(218,119,86,0.7))",
                           minHeight: 4,
                         }}
                         title={`${sessions} sessions, ${messages} messages`}
@@ -249,7 +249,7 @@ export default function AdminAnalyticsPage() {
       {/* Engagement metrics */}
       <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
-          { label: "Messages per Session", value: loading ? "—" : "12.4", icon: MessageSquare, color: "#6366F1" },
+          { label: "Messages per Session", value: loading ? "—" : "12.4", icon: MessageSquare, color: "var(--color-accent)" },
           { label: "Avg. Hint Level Used", value: loading ? "—" : "L2.3", icon: BarChart2,    color: "#F59E0B" },
           { label: "Return Rate (7d)",      value: loading ? "—" : "64%",  icon: TrendingUp,   color: "#22D3A3" },
         ].map(({ label, value, icon: Icon, color }) => (

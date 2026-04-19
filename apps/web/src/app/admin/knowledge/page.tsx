@@ -148,7 +148,7 @@ export default function AdminKnowledgePage() {
       {/* System info + global stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {[
-          { icon: Database,  label: "Total Chunks",     value: loading ? "—" : stats?.totalChunks.toLocaleString() || "0", color: "#6366F1" },
+          { icon: Database,  label: "Total Chunks",     value: loading ? "—" : stats?.totalChunks.toLocaleString() || "0", color: "var(--color-accent)" },
           { icon: Hash,      label: "Vector Dimension", value: loading ? "—" : stats?.vectorDimension, color: "#22D3A3" },
           { icon: Brain,     label: "Embedding Model",  value: loading ? "—" : stats?.embeddingModel, color: "#F59E0B" },
           { icon: BarChart2, label: "Subjects Indexed", value: loading ? "—" : `${subjects.filter((s) => s.health === "good").length}/${subjects.length}`, color: "#F43F5E" },
@@ -168,7 +168,7 @@ export default function AdminKnowledgePage() {
       {/* Ingestion notice */}
       <div
         className="rounded-2xl border p-5 mb-6 flex items-start gap-4"
-        style={{ background: "rgba(99,102,241,0.05)", borderColor: "rgba(99,102,241,0.2)" }}
+        style={{ background: "rgba(218,119,86,0.05)", borderColor: "rgba(218,119,86,0.2)" }}
       >
         <Zap size={18} style={{ color: "var(--color-accent)", flexShrink: 0, marginTop: 2 }} />
         <div className="flex-1">

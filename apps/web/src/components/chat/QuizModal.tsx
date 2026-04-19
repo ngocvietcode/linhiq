@@ -304,7 +304,7 @@ export function QuizModal({ type, targetId, subjectId, targetName, onClose }: Qu
                       className="w-full text-left px-4 py-3 rounded-xl transition-all duration-150 flex items-start gap-3"
                       style={{
                         background: isSelected
-                          ? "rgba(99,102,241,0.15)"
+                          ? "rgba(218,119,86,0.15)"
                           : "var(--color-void)",
                         border: `1.5px solid ${isSelected ? "var(--color-accent)" : "var(--color-border-subtle)"}`,
                         color: "var(--color-text-primary)",

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { useAuth, AuthProvider } from "@/lib/auth-context";
+import { useAuth } from "@/lib/auth-context";
 import { api } from "@/lib/api";
 import Link from "next/link";
 
@@ -148,9 +148,5 @@ function SubjectDetailContent() {
 }
 
 export default function AdminSubjectDetailPage() {
-  return (
-    <AuthProvider>
-      <SubjectDetailContent />
-    </AuthProvider>
-  );
+  return <SubjectDetailContent />;
 }

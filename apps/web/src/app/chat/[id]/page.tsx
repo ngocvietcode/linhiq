@@ -3,7 +3,6 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter, useParams, usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
-import { AuthProvider } from "@/lib/auth-context";
 import { api } from "@/lib/api";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -447,7 +446,7 @@ function ChatContent() {
         <header
           className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b"
           style={{
-            background: "rgba(15,23,42,0.9)",
+            background: "rgba(23,23,23,0.92)",
             backdropFilter: "blur(16px)",
             borderColor: "var(--color-border-subtle)",
           }}
@@ -637,24 +636,22 @@ function ChatContent() {
                 <div
                   className={`max-w-[80%] sm:max-w-[72%] text-[15px] leading-relaxed ${
                     msg.role === "assistant"
-                      ? "prose prose-invert prose-p:leading-relaxed prose-pre:bg-elevated max-w-none"
+                      ? "prose-chat max-w-none"
                       : ""
                   }`}
                   style={
                     msg.role === "user"
                       ? {
-                          background: "var(--color-accent)",
-                          color: "#fff",
+                          background: "var(--color-elevated)",
+                          color: "var(--color-text-primary)",
                           borderRadius: "18px 18px 4px 18px",
-                          padding: "12px 16px",
+                          padding: "11px 16px",
                           whiteSpace: "pre-wrap",
+                          border: "1px solid var(--color-border-default)",
                         }
                       : {
-                          background: "var(--color-surface)",
-                          border: "1px solid var(--color-border-subtle)",
-                          borderRadius: "4px 18px 18px 18px",
-                          padding: "14px 18px",
                           color: "var(--color-text-primary)",
+                          padding: "2px 0",
                         }
                   }
                 >
@@ -690,13 +687,10 @@ function ChatContent() {
                   {isOpen ? "😊" : chatEmoji}
                 </div>
                 <div
-                  className="max-w-[80%] sm:max-w-[72%] text-[15px] leading-relaxed prose prose-invert prose-p:leading-relaxed max-w-none"
+                  className="max-w-[80%] sm:max-w-[72%] text-[15px] leading-relaxed prose-chat max-w-none"
                   style={{
-                    background: "var(--color-surface)",
-                    border: "1px solid var(--color-border-subtle)",
-                    borderRadius: "4px 18px 18px 18px",
-                    padding: "14px 18px",
                     color: "var(--color-text-primary)",
+                    padding: "2px 0",
                   }}
                 >
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>
@@ -719,14 +713,7 @@ function ChatContent() {
                 >
                   {isOpen ? "😊" : chatEmoji}
                 </div>
-                <div
-                  className="px-5 py-3.5 flex items-center gap-4"
-                  style={{
-                    background: "var(--color-surface)",
-                    border: "1px solid var(--color-border-subtle)",
-                    borderRadius: "4px 18px 18px 18px",
-                  }}
-                >
+                <div className="flex items-center gap-4 py-2">
                   <div className="flex gap-1.5">
                     <div
                       className="w-1.5 h-1.5 rounded-full animate-bounce-dot"
@@ -766,7 +753,7 @@ function ChatContent() {
         <div
           className="flex-shrink-0 px-4 py-3 border-t"
           style={{
-            background: "rgba(15,23,42,0.9)",
+            background: "rgba(23,23,23,0.92)",
             backdropFilter: "blur(16px)",
             borderColor: "var(--color-border-subtle)",
           }}
@@ -919,7 +906,7 @@ function ChatContent() {
       <nav
         className="md:hidden fixed bottom-0 left-0 right-0 z-20 flex items-center justify-around h-16 border-t"
         style={{
-          background: "rgba(8,12,20,0.95)",
+          background: "rgba(23,23,23,0.95)",
           backdropFilter: "blur(16px)",
           borderColor: "var(--color-border-subtle)",
         }}
@@ -1047,12 +1034,6 @@ function ChatContent() {
   );
 }
 
-// ─── Page Export ─────────────────────────────────────────────────────────────
-
 export default function ChatPage() {
-  return (
-    <AuthProvider>
-      <ChatContent />
-    </AuthProvider>
-  );
+  return <ChatContent />;
 }
