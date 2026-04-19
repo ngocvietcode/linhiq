@@ -109,9 +109,9 @@ function TopicItem({
       className="w-full text-left group relative flex items-start gap-2.5 px-3 py-2 transition-all duration-150"
       style={{
         background: isActive
-          ? "rgba(99,102,241,0.10)"
+          ? "rgba(218,119,86,0.10)"
           : isUpdated
-            ? "rgba(99,102,241,0.05)"
+            ? "rgba(218,119,86,0.05)"
             : "transparent",
         borderLeft: isActive
           ? "2px solid var(--color-accent)"
@@ -123,7 +123,7 @@ function TopicItem({
       onMouseLeave={(e) => {
         if (!isActive)
           (e.currentTarget as HTMLElement).style.background = isUpdated
-            ? "rgba(99,102,241,0.05)"
+            ? "rgba(218,119,86,0.05)"
             : "transparent";
       }}
     >
@@ -326,6 +326,139 @@ function MilestoneBlock({
   );
 }
 
+// ─── Roadmap Content (shared between sidebar & mobile sheet) ────────────────
+
+export function MilestoneRoadmapContent({
+  milestones,
+  activeTopicId,
+  onTopicClick,
+  onQuizTopic,
+  onQuizMilestone,
+  subjectName,
+  recentlyUpdatedTopicId,
+  onClose,
+}: Omit<MilestoneRoadmapSidebarProps, "isOpen" | "onToggle"> & { onClose?: () => void }) {
+  const totalTopics = milestones.reduce((s, m) => s + m.totalTopics, 0);
+  const doneTopics = milestones.reduce((s, m) => s + m.completedTopics, 0);
+  const overallPct = totalTopics > 0 ? Math.round((doneTopics / totalTopics) * 100) : 0;
+
+  return (
+    <div className="flex flex-col h-full overflow-hidden">
+      {/* ── Header ── */}
+      <div
+        className="flex-shrink-0 flex items-center justify-between px-3 py-2.5 border-b"
+        style={{ borderColor: "var(--color-border-subtle)" }}
+      >
+        <div className="flex items-center gap-2 min-w-0">
+          <Map size={13} style={{ color: "var(--color-accent)", flexShrink: 0 }} />
+          <div className="min-w-0">
+            <p
+              className="text-[12px] font-semibold truncate"
+              style={{ color: "var(--color-text-primary)" }}
+            >
+              {subjectName ?? "Progress"}
+            </p>
+            <p className="text-[10px]" style={{ color: "var(--color-text-muted)" }}>
+              {doneTopics} of {totalTopics} topics completed
+            </p>
+          </div>
+        </div>
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="flex-shrink-0 p-1 rounded-md transition-colors"
+            style={{ color: "var(--color-text-muted)" }}
+            onMouseEnter={(e) =>
+              ((e.currentTarget as HTMLElement).style.color = "var(--color-text-primary)")
+            }
+            onMouseLeave={(e) =>
+              ((e.currentTarget as HTMLElement).style.color = "var(--color-text-muted)")
+            }
+            title="Close"
+          >
+            <X size={14} />
+          </button>
+        )}
+      </div>
+
+      {/* ── Overall progress ── */}
+      <div
+        className="flex-shrink-0 px-3 py-2 border-b"
+        style={{ borderColor: "var(--color-border-subtle)" }}
+      >
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="text-[10px]" style={{ color: "var(--color-text-muted)" }}>
+            Overall progress
+          </span>
+          <span
+            className="text-[11px] font-bold"
+            style={{ color: tierColor(overallPct / 100) }}
+          >
+            {overallPct}%
+          </span>
+        </div>
+        <div
+          className="h-2 rounded-full overflow-hidden"
+          style={{ background: "var(--color-surface)" }}
+        >
+          <div
+            className="h-full rounded-full transition-all duration-700"
+            style={{
+              width: `${overallPct}%`,
+              background: tierColor(overallPct / 100),
+            }}
+          />
+        </div>
+
+        {/* Tier legend chips */}
+        <div className="flex items-center gap-2 mt-2 flex-wrap">
+          {([
+            ["not_started", "○ Not started"],
+            ["average", "◐ Average"],
+            ["good", "● Good"],
+            ["excellent", "✓ Excellent"],
+          ] as [MasteryTier, string][]).map(([tier, label]) => (
+            <span
+              key={tier}
+              className="text-[9px] font-medium"
+              style={{ color: TIER[tier].color }}
+            >
+              {label}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Topic checklist (all expanded, scrollable) ── */}
+      {milestones.length === 0 ? (
+        <div className="flex-1 flex items-center justify-center px-4">
+          <p
+            className="text-[12px] text-center"
+            style={{ color: "var(--color-text-muted)" }}
+          >
+            No topics found for this subject yet.
+          </p>
+        </div>
+      ) : (
+        <div className="flex-1 overflow-y-auto">
+          {milestones.map((milestone, idx) => (
+            <MilestoneBlock
+              key={milestone.id}
+              milestone={milestone}
+              activeTopicId={activeTopicId}
+              recentlyUpdatedTopicId={recentlyUpdatedTopicId}
+              onTopicClick={onTopicClick}
+              onQuizTopic={onQuizTopic}
+              onQuizMilestone={onQuizMilestone}
+              isLast={idx === milestones.length - 1}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Main Component ──────────────────────────────────────────────────────────
 
 export function MilestoneRoadmapSidebar({
@@ -339,13 +472,9 @@ export function MilestoneRoadmapSidebar({
   subjectName,
   recentlyUpdatedTopicId,
 }: MilestoneRoadmapSidebarProps) {
-  const totalTopics = milestones.reduce((s, m) => s + m.totalTopics, 0);
-  const doneTopics = milestones.reduce((s, m) => s + m.completedTopics, 0);
-  const overallPct = totalTopics > 0 ? Math.round((doneTopics / totalTopics) * 100) : 0;
-
   return (
     <>
-      {/* ── Collapsed strip ── */}
+      {/* ── Collapsed strip (desktop only) ── */}
       {!isOpen && (
         <button
           onClick={onToggle}
@@ -373,7 +502,7 @@ export function MilestoneRoadmapSidebar({
         </button>
       )}
 
-      {/* ── Open sidebar ── */}
+      {/* ── Open sidebar (desktop only) ── */}
       {isOpen && (
         <aside
           className="hidden md:flex flex-col w-64 border-l flex-shrink-0 overflow-hidden"
@@ -382,115 +511,16 @@ export function MilestoneRoadmapSidebar({
             borderColor: "var(--color-border-subtle)",
           }}
         >
-          {/* ── Header ── */}
-          <div
-            className="flex-shrink-0 flex items-center justify-between px-3 py-2.5 border-b"
-            style={{ borderColor: "var(--color-border-subtle)" }}
-          >
-            <div className="flex items-center gap-2 min-w-0">
-              <Map size={13} style={{ color: "var(--color-accent)", flexShrink: 0 }} />
-              <div className="min-w-0">
-                <p
-                  className="text-[12px] font-semibold truncate"
-                  style={{ color: "var(--color-text-primary)" }}
-                >
-                  {subjectName ?? "Progress"}
-                </p>
-                <p className="text-[10px]" style={{ color: "var(--color-text-muted)" }}>
-                  {doneTopics} of {totalTopics} topics completed
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={onToggle}
-              className="flex-shrink-0 p-1 rounded-md transition-colors"
-              style={{ color: "var(--color-text-muted)" }}
-              onMouseEnter={(e) =>
-                ((e.currentTarget as HTMLElement).style.color = "var(--color-text-primary)")
-              }
-              onMouseLeave={(e) =>
-                ((e.currentTarget as HTMLElement).style.color = "var(--color-text-muted)")
-              }
-              title="Collapse"
-            >
-              <X size={14} />
-            </button>
-          </div>
-
-          {/* ── Overall progress ── */}
-          <div
-            className="flex-shrink-0 px-3 py-2 border-b"
-            style={{ borderColor: "var(--color-border-subtle)" }}
-          >
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[10px]" style={{ color: "var(--color-text-muted)" }}>
-                Overall progress
-              </span>
-              <span
-                className="text-[11px] font-bold"
-                style={{ color: tierColor(overallPct / 100) }}
-              >
-                {overallPct}%
-              </span>
-            </div>
-            <div
-              className="h-2 rounded-full overflow-hidden"
-              style={{ background: "var(--color-surface)" }}
-            >
-              <div
-                className="h-full rounded-full transition-all duration-700"
-                style={{
-                  width: `${overallPct}%`,
-                  background: tierColor(overallPct / 100),
-                }}
-              />
-            </div>
-
-            {/* Tier legend chips */}
-            <div className="flex items-center gap-2 mt-2 flex-wrap">
-              {([
-                ["not_started", "○ Not started"],
-                ["average", "◐ Average"],
-                ["good", "● Good"],
-                ["excellent", "✓ Excellent"],
-              ] as [MasteryTier, string][]).map(([tier, label]) => (
-                <span
-                  key={tier}
-                  className="text-[9px] font-medium"
-                  style={{ color: TIER[tier].color }}
-                >
-                  {label}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          {/* ── Topic checklist (all expanded, scrollable) ── */}
-          {milestones.length === 0 ? (
-            <div className="flex-1 flex items-center justify-center px-4">
-              <p
-                className="text-[12px] text-center"
-                style={{ color: "var(--color-text-muted)" }}
-              >
-                No topics found for this subject yet.
-              </p>
-            </div>
-          ) : (
-            <div className="flex-1 overflow-y-auto">
-              {milestones.map((milestone, idx) => (
-                <MilestoneBlock
-                  key={milestone.id}
-                  milestone={milestone}
-                  activeTopicId={activeTopicId}
-                  recentlyUpdatedTopicId={recentlyUpdatedTopicId}
-                  onTopicClick={onTopicClick}
-                  onQuizTopic={onQuizTopic}
-                  onQuizMilestone={onQuizMilestone}
-                  isLast={idx === milestones.length - 1}
-                />
-              ))}
-            </div>
-          )}
+          <MilestoneRoadmapContent
+            milestones={milestones}
+            activeTopicId={activeTopicId}
+            onTopicClick={onTopicClick}
+            onQuizTopic={onQuizTopic}
+            onQuizMilestone={onQuizMilestone}
+            subjectName={subjectName}
+            recentlyUpdatedTopicId={recentlyUpdatedTopicId}
+            onClose={onToggle}
+          />
         </aside>
       )}
     </>

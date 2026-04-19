@@ -22,7 +22,7 @@ interface Session {
 type SortKey = "updatedAt" | "createdAt" | "mode";
 
 const MODE_STYLE: Record<string, { bg: string; color: string }> = {
-  STUDY: { bg: "rgba(99,102,241,0.1)", color: "#6366F1" },
+  STUDY: { bg: "rgba(218,119,86,0.1)", color: "var(--color-accent)" },
   OPEN:  { bg: "rgba(34,211,163,0.1)", color: "#22D3A3" },
 };
 
@@ -223,7 +223,7 @@ export default function AdminSessionsPage() {
                     gridTemplateColumns: "2fr 1.5fr 1fr 80px 80px 80px",
                     borderColor: "var(--color-border-subtle)",
                   }}
-                  onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(99,102,241,0.025)")}
+                  onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(218,119,86,0.025)")}
                   onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "transparent")}
                 >
                   {/* Title */}

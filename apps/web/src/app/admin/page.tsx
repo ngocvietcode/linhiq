@@ -30,7 +30,7 @@ interface RecentUser {
 }
 
 const QUICK_STATS = [
-  { href: "/admin/users",    icon: Users,        label: "Total Users",    key: "totalUsers",    color: "#6366F1", sub: "newUsersThisWeek", subLabel: "new this week" },
+  { href: "/admin/users",    icon: Users,        label: "Total Users",    key: "totalUsers",    color: "var(--color-accent)", sub: "newUsersThisWeek", subLabel: "new this week" },
   { href: "/admin/sessions", icon: MessageSquare,label: "Chat Sessions",  key: "totalSessions", color: "#22D3A3", sub: "activeToday",       subLabel: "active today" },
   { href: "/admin/subjects", icon: BookOpen,     label: "Subjects",       key: "totalSubjects", color: "#F59E0B", sub: null,                subLabel: "" },
   { href: "/admin/analytics",icon: Activity,     label: "Messages",       key: "totalMessages", color: "#F43F5E", sub: null,                subLabel: "" },
@@ -236,7 +236,7 @@ export default function AdminDashboardPage() {
           <div className="p-4 space-y-2">
             {[
               { href: "/admin/subjects/new", label: "Add New Subject", icon: BookOpen, color: "#F59E0B" },
-              { href: "/admin/users", label: "Manage Users", icon: Users, color: "#6366F1" },
+              { href: "/admin/users", label: "Manage Users", icon: Users, color: "var(--color-accent)" },
               { href: "/admin/settings", label: "System Settings", icon: Zap, color: "#22D3A3" },
               { href: "/admin/audit", label: "View Audit Logs", icon: AlertCircle, color: "#F43F5E" },
             ].map(({ href, label, icon: Icon, color }) => (
@@ -246,7 +246,7 @@ export default function AdminDashboardPage() {
                 className="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-150 group"
                 style={{ background: "var(--color-elevated)" }}
                 onMouseEnter={(e) =>
-                  ((e.currentTarget as HTMLElement).style.background = "rgba(99,102,241,0.06)")
+                  ((e.currentTarget as HTMLElement).style.background = "rgba(218,119,86,0.06)")
                 }
                 onMouseLeave={(e) =>
                   ((e.currentTarget as HTMLElement).style.background = "var(--color-elevated)")

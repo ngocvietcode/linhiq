@@ -15,7 +15,7 @@ type SortDir = "asc" | "desc";
 
 const ROLE_COLORS: Record<string, { bg: string; color: string; icon: React.FC<{ size: number }> }> = {
   ADMIN:   { bg: "rgba(244,63,94,0.1)",  color: "#F43F5E",  icon: Shield },
-  STUDENT: { bg: "rgba(99,102,241,0.1)", color: "#6366F1",  icon: GraduationCap },
+  STUDENT: { bg: "rgba(218,119,86,0.1)", color: "var(--color-accent)",  icon: GraduationCap },
   PARENT:  { bg: "rgba(34,211,163,0.1)", color: "#22D3A3",  icon: Users2 },
 };
 
@@ -316,11 +316,11 @@ export default function AdminUsersPage() {
                   style={{
                     gridTemplateColumns: "36px 1fr 1fr 120px 120px 80px",
                     borderColor: "var(--color-border-subtle)",
-                    background: selectedIds.has(u.id) ? "rgba(99,102,241,0.04)" : "transparent",
+                    background: selectedIds.has(u.id) ? "rgba(218,119,86,0.04)" : "transparent",
                   }}
                   onMouseEnter={(e) => {
                     if (!selectedIds.has(u.id))
-                      (e.currentTarget as HTMLElement).style.background = "rgba(99,102,241,0.025)";
+                      (e.currentTarget as HTMLElement).style.background = "rgba(218,119,86,0.025)";
                   }}
                   onMouseLeave={(e) => {
                     if (!selectedIds.has(u.id))
@@ -396,7 +396,7 @@ export default function AdminUsersPage() {
                           onClick={() => { setEditUser(u); setEditRole(u.role); setActionUser(null); }}
                           className="flex items-center gap-2.5 px-4 py-2 w-full text-sm transition-colors"
                           style={{ color: "var(--color-text-secondary)" }}
-                          onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(99,102,241,0.06)")}
+                          onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(218,119,86,0.06)")}
                           onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "transparent")}
                         >
                           <Shield size={13} /> Change Role

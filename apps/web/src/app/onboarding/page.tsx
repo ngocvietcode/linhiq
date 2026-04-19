@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { AuthProvider, useAuth } from "@/lib/auth-context";
+import { useAuth } from "@/lib/auth-context";
 import { api } from "@/lib/api";
 import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 
@@ -120,7 +120,7 @@ function OnboardingContent() {
         className="fixed inset-0 pointer-events-none"
         style={{
           background:
-            "radial-gradient(ellipse 80% 50% at 50% -20%, rgba(99,102,241,0.1), transparent)",
+            "radial-gradient(ellipse 80% 50% at 50% -20%, rgba(218,119,86,0.1), transparent)",
         }}
       />
 
@@ -370,9 +370,5 @@ function OnboardingContent() {
 }
 
 export default function OnboardingPage() {
-  return (
-    <AuthProvider>
-      <OnboardingContent />
-    </AuthProvider>
-  );
+  return <OnboardingContent />;
 }

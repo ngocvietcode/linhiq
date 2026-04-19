@@ -105,7 +105,7 @@ export default function ParentReportPage() {
                   style={{
                     height: `${Math.max((hours / maxH) * 100, 4)}%`,
                     background: hours > 0
-                      ? "linear-gradient(to top, #6366F1, #818CF8)"
+                      ? "linear-gradient(to top, rgba(218,119,86,1), rgba(218,119,86,0.7))"
                       : "var(--color-surface)",
                     transition: "height 0.6s cubic-bezier(0.16,1,0.3,1)",
                   }}
@@ -168,7 +168,7 @@ export default function ParentReportPage() {
                       <span className="text-sm" style={{ color: "var(--color-text-secondary)" }}>{item.label}</span>
                       {item.tag && (
                         <span className="ml-2 text-xs px-1.5 py-0.5 rounded"
-                          style={{ background: "rgba(99,102,241,0.1)", color: "var(--color-accent)" }}>
+                          style={{ background: "rgba(218,119,86,0.1)", color: "var(--color-accent)" }}>
                           {item.tag}
                         </span>
                       )}
@@ -200,7 +200,7 @@ export default function ParentReportPage() {
             ))}
           </ul>
           <div className="rounded-lg p-4 border"
-            style={{ background: "rgba(99,102,241,0.04)", borderColor: "rgba(99,102,241,0.15)" }}>
+            style={{ background: "rgba(218,119,86,0.04)", borderColor: "rgba(218,119,86,0.15)" }}>
             <p className="text-sm" style={{ color: "var(--color-text-secondary)" }}>
               Minh often asks follow-up questions after getting hints — showing good persistence. ✨
             </p>

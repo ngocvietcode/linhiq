@@ -22,7 +22,7 @@ interface SystemSetting {
 
 const HINT_LEVELS = [
   { level: "L1", label: "Nudge",       desc: "Minimal guidance — just a gentle push toward the right direction.", color: "#22D3A3" },
-  { level: "L2", label: "Approach",    desc: "Suggest the problem-solving approach without giving steps.",       color: "#6366F1" },
+  { level: "L2", label: "Approach",    desc: "Suggest the problem-solving approach without giving steps.",       color: "var(--color-accent)" },
   { level: "L3", label: "Partial",     desc: "Guide through key steps, require student to fill in details.",     color: "#F59E0B" },
   { level: "L4", label: "Detailed",    desc: "Walk through the solution step-by-step with partial answers.",     color: "#F97316" },
   { level: "L5", label: "Near Answer", desc: "Provide full methodology — student only needs to write it out.",   color: "#F43F5E" },

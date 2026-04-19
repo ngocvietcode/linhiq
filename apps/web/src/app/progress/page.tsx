@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
-import { AuthProvider } from "@/lib/auth-context";
 import { api } from "@/lib/api";
 import { Home, MessageSquare, TrendingUp, Settings, ChevronRight, AlertTriangle } from "lucide-react";
 
@@ -119,7 +118,7 @@ function ProgressContent() {
       <div className="flex-1 md:ml-56">
         {/* Mobile header */}
         <header className="md:hidden sticky top-0 z-10 px-5 py-4 flex items-center justify-between border-b"
-          style={{ background: "rgba(15,23,42,0.85)", backdropFilter: "blur(16px)", borderColor: "var(--color-border-subtle)" }}>
+          style={{ background: "rgba(23,23,23,0.85)", backdropFilter: "blur(16px)", borderColor: "var(--color-border-subtle)" }}>
           <h1 className="text-lg font-bold">Progress</h1>
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium px-3 py-1.5 rounded-full"
@@ -154,7 +153,7 @@ function ProgressContent() {
                       className="w-full rounded-md transition-all duration-700"
                       style={{
                         height: `${Math.max(pctH, 4)}%`,
-                        background: mins > 0 ? "linear-gradient(to top, var(--color-accent), #818CF8)" : "var(--color-elevated)",
+                        background: mins > 0 ? "var(--color-accent)" : "var(--color-elevated)",
                         opacity: mins > 0 ? 1 : 0.5,
                       }}
                     />
@@ -174,12 +173,12 @@ function ProgressContent() {
           {/* ── Subject tabs ── */}
           {overview?.subjects && overview.subjects.length > 0 && (
             <>
-              <div className="flex gap-2 mb-5">
+              <div className="flex gap-2 mb-5 overflow-x-auto pb-1 -mx-5 px-5 md:mx-0 md:px-0 md:flex-wrap scrollbar-hide">
                 {overview.subjects.map((s) => (
                   <button
                     key={s.id}
                     onClick={() => setActiveSubject(s.id)}
-                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium border transition-all"
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium border transition-all flex-shrink-0"
                     style={{
                       background: activeSubject === s.id ? "var(--color-accent-soft)" : "var(--color-surface)",
                       borderColor: activeSubject === s.id ? "var(--color-accent)" : "var(--color-border-subtle)",
@@ -221,8 +220,8 @@ function ProgressContent() {
                                   background: pct >= 80
                                     ? "linear-gradient(90deg, var(--color-success), #34d399)"
                                     : pct >= 50
-                                    ? "linear-gradient(90deg, var(--color-warning), #fbbf24)"
-                                    : "linear-gradient(90deg, var(--color-text-muted), var(--color-border-default))",
+                                      ? "linear-gradient(90deg, var(--color-warning), #fbbf24)"
+                                      : "linear-gradient(90deg, var(--color-text-muted), var(--color-border-default))",
                                 }}
                               />
                             </div>
@@ -293,7 +292,7 @@ function ProgressContent() {
 
       {/* ── Bottom Nav ── */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-20 flex items-center justify-around h-16 border-t"
-        style={{ background: "rgba(8,12,20,0.9)", backdropFilter: "blur(16px)", borderColor: "var(--color-border-subtle)" }}>
+        style={{ background: "rgba(23,23,23,0.9)", backdropFilter: "blur(16px)", borderColor: "var(--color-border-subtle)" }}>
         {NAV_ITEMS.map(({ href, icon: Icon, label }) => {
           const active = pathname === href;
           return (
@@ -309,9 +308,5 @@ function ProgressContent() {
 }
 
 export default function ProgressPage() {
-  return (
-    <AuthProvider>
-      <ProgressContent />
-    </AuthProvider>
-  );
+  return <ProgressContent />;
 }

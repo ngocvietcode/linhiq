@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
-import { AuthProvider } from "@/lib/auth-context";
 import { api } from "@/lib/api";
 import { Bell, LogOut, Home, MessageSquare, TrendingUp, Settings, Flame, Clock, Zap } from "lucide-react";
 import { usePathname } from "next/navigation";
@@ -210,7 +209,7 @@ function DashboardContent() {
         <header
           className="md:hidden sticky top-0 z-10 px-5 py-4 flex items-center justify-between border-b"
           style={{
-            background: "rgba(15,23,42,0.85)",
+            background: "rgba(23,23,23,0.85)",
             backdropFilter: "blur(16px)",
             borderColor: "var(--color-border-subtle)",
           }}
@@ -269,7 +268,7 @@ function DashboardContent() {
                 <p className="text-xs font-medium uppercase tracking-wider mb-1" style={{ color: "var(--color-text-muted)" }}>
                   Mastery
                 </p>
-                <p className="text-3xl font-bold" style={{ color: "#818CF8" }}>
+                <p className="text-3xl font-bold" style={{ color: "var(--color-accent)" }}>
                   {totalMastery}%
                 </p>
                 <p className="text-xs mt-1" style={{ color: "var(--color-text-secondary)" }}>
@@ -304,15 +303,15 @@ function DashboardContent() {
                 className="w-full rounded-2xl p-5 border text-left transition-all duration-200 group"
                 style={{
                   background:
-                    "linear-gradient(135deg, rgba(99,102,241,0.08), var(--color-surface))",
-                  borderColor: "rgba(99,102,241,0.25)",
+                    "linear-gradient(135deg, rgba(218,119,86,0.08), var(--color-surface))",
+                  borderColor: "rgba(218,119,86,0.25)",
                 }}
                 onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLElement).style.borderColor = "rgba(99,102,241,0.5)";
+                  (e.currentTarget as HTMLElement).style.borderColor = "rgba(218,119,86,0.5)";
                   (e.currentTarget as HTMLElement).style.boxShadow = "var(--shadow-glow)";
                 }}
                 onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLElement).style.borderColor = "rgba(99,102,241,0.25)";
+                  (e.currentTarget as HTMLElement).style.borderColor = "rgba(218,119,86,0.25)";
                   (e.currentTarget as HTMLElement).style.boxShadow = "none";
                 }}
               >
@@ -344,11 +343,11 @@ function DashboardContent() {
             className="w-full rounded-2xl p-5 mb-8 border text-left transition-all duration-200 group flex items-center gap-4"
             style={{
               background:
-                "linear-gradient(135deg, rgba(99,102,241,0.06) 0%, rgba(129,140,248,0.04) 100%)",
+                "linear-gradient(135deg, rgba(218,119,86,0.06) 0%, rgba(218,119,86,0.04) 100%)",
               borderColor: "var(--color-border-subtle)",
             }}
             onMouseEnter={(e) => {
-              (e.currentTarget as HTMLElement).style.borderColor = "rgba(99,102,241,0.35)";
+              (e.currentTarget as HTMLElement).style.borderColor = "rgba(218,119,86,0.35)";
             }}
             onMouseLeave={(e) => {
               (e.currentTarget as HTMLElement).style.borderColor = "var(--color-border-subtle)";
@@ -389,7 +388,7 @@ function DashboardContent() {
                     }}
                     onMouseEnter={(e) => {
                       const el = e.currentTarget as HTMLElement;
-                      el.style.borderColor = "rgba(99,102,241,0.4)";
+                      el.style.borderColor = "rgba(218,119,86,0.4)";
                       el.style.boxShadow = "var(--shadow-glow)";
                       el.style.transform = "translateY(-2px)";
                     }}
@@ -456,8 +455,8 @@ function DashboardContent() {
                       borderColor: "var(--color-border-subtle)",
                     }}
                     onMouseEnter={(e) => {
-                      (e.currentTarget as HTMLElement).style.borderColor = "rgba(99,102,241,0.3)";
-                      (e.currentTarget as HTMLElement).style.background = "rgba(99,102,241,0.04)";
+                      (e.currentTarget as HTMLElement).style.borderColor = "rgba(218,119,86,0.3)";
+                      (e.currentTarget as HTMLElement).style.background = "rgba(218,119,86,0.04)";
                     }}
                     onMouseLeave={(e) => {
                       (e.currentTarget as HTMLElement).style.borderColor = "var(--color-border-subtle)";
@@ -504,7 +503,7 @@ function DashboardContent() {
       <nav
         className="md:hidden fixed bottom-0 left-0 right-0 z-20 flex items-center justify-around h-16 border-t"
         style={{
-          background: "rgba(8,12,20,0.9)",
+          background: "rgba(23,23,23,0.9)",
           backdropFilter: "blur(16px)",
           borderColor: "var(--color-border-subtle)",
         }}
@@ -529,9 +528,5 @@ function DashboardContent() {
 }
 
 export default function DashboardPage() {
-  return (
-    <AuthProvider>
-      <DashboardContent />
-    </AuthProvider>
-  );
+  return <DashboardContent />;
 }

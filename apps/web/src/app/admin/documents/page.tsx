@@ -19,7 +19,7 @@ interface Doc {
 }
 
 const SOURCE_TYPE_STYLE: Record<string, { bg: string; color: string }> = {
-  TEXTBOOK: { bg: "rgba(99,102,241,0.1)",  color: "#6366F1" },
+  TEXTBOOK: { bg: "rgba(218,119,86,0.1)",  color: "var(--color-accent)" },
   NOTES:    { bg: "rgba(34,211,163,0.1)",  color: "#22D3A3" },
   EXAM:     { bg: "rgba(245,158,11,0.1)",  color: "#F59E0B" },
   OTHER:    { bg: "rgba(148,163,184,0.1)", color: "#94A3B8" },
@@ -189,7 +189,7 @@ export default function AdminDocumentsPage() {
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4 mb-6">
         {[
-          { label: "Total Documents", value: docs.length, icon: FileText, color: "#6366F1" },
+          { label: "Total Documents", value: docs.length, icon: FileText, color: "var(--color-accent)" },
           { label: "Total Chunks", value: docs.reduce((s, d) => s + d.chunkCount, 0).toLocaleString(), icon: Database, color: "#22D3A3" },
           { label: "Subjects Covered", value: new Set(docs.map((d) => d.subject?.id)).size, icon: BookOpen, color: "#F59E0B" },
         ].map(({ label, value, icon: Icon, color }) => (
@@ -283,7 +283,7 @@ export default function AdminDocumentsPage() {
                   gridTemplateColumns: "2.5fr 1.5fr 100px 80px 80px 80px",
                   borderColor: "var(--color-border-subtle)",
                 }}
-                onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(99,102,241,0.025)")}
+                onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(218,119,86,0.025)")}
                 onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "transparent")}
               >
                 <div className="flex items-center gap-3 min-w-0">

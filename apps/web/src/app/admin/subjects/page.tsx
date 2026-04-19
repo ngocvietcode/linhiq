@@ -18,7 +18,7 @@ const CURRICULUM_OPTIONS = [
 ];
 
 const CURRICULUM_COLOR: Record<string, { bg: string; color: string }> = {
-  IGCSE:       { bg: "rgba(99,102,241,0.12)",  color: "#6366F1" },
+  IGCSE:       { bg: "rgba(218,119,86,0.12)",  color: "var(--color-accent)" },
   A_LEVEL:     { bg: "rgba(34,211,163,0.12)",  color: "#22D3A3" },
   VN_GRADE_12: { bg: "rgba(245,158,11,0.12)",  color: "#F59E0B" },
   GENERAL:     { bg: "rgba(148,163,184,0.12)", color: "#94A3B8" },
@@ -377,7 +377,7 @@ export default function AdminSubjectsPage() {
                         onClick={() => openEdit(s)}
                         className="flex items-center gap-2.5 px-4 py-2 w-full text-sm"
                         style={{ color: "var(--color-text-secondary)" }}
-                        onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(99,102,241,0.06)")}
+                        onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(218,119,86,0.06)")}
                         onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "transparent")}
                       >
                         <Edit2 size={13} /> Edit
@@ -386,7 +386,7 @@ export default function AdminSubjectsPage() {
                         href={`/admin/subjects/${s.id}`}
                         className="flex items-center gap-2.5 px-4 py-2 w-full text-sm"
                         style={{ color: "var(--color-text-secondary)" }}
-                        onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(99,102,241,0.06)")}
+                        onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(218,119,86,0.06)")}
                         onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "transparent")}
                       >
                         <FileText size={13} /> View Detail
