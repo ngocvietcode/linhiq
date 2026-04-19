@@ -10,6 +10,7 @@ import { AiModule } from './modules/ai/ai.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { SubjectModule } from './modules/subject/subject.module';
 import { QuizModule } from './modules/quiz/quiz.module';
+import { TextbookModule } from './modules/textbook/textbook.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { QuizModule } from './modules/quiz/quiz.module';
     AdminModule,
     SubjectModule,
     QuizModule,
+    TextbookModule,
   ],
 })
 export class AppModule {}

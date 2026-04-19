@@ -129,6 +129,7 @@ export class ChatController {
         hintLevel: input.hintLevel,
         imageBase64: input.imageBase64,
         imageMimeType: input.imageMimeType,
+        readerContext: input.readerContext,
       });
     }
 
