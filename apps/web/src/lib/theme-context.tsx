@@ -43,8 +43,8 @@ function applyTheme(t: Theme) {
   const html = document.documentElement;
   html.classList.remove("dark", "light");
   html.classList.add(t);
-  const bodyBg = t === "light" ? "#ffffff" : "#171717";
-  const bodyColor = t === "light" ? "#1a1a1a" : "#f5f5f5";
+  const bodyBg = t === "light" ? "#ffffff" : "#0D100C";
+  const bodyColor = t === "light" ? "#1A2018" : "#ECF0E8";
   document.body.style.backgroundColor = bodyBg;
   document.body.style.color = bodyColor;
 }
@@ -61,7 +61,7 @@ export const themeScript = `
     var t = localStorage.getItem('linhiq_theme');
     var resolved = t === 'light' ? 'light' : 'dark';
     document.documentElement.classList.add(resolved);
-    document.body && (document.body.style.backgroundColor = resolved === 'light' ? '#ffffff' : '#171717');
+    document.body && (document.body.style.backgroundColor = resolved === 'light' ? '#ffffff' : '#0D100C');
   } catch(e){}
 })();
 `;

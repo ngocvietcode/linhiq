@@ -1,0 +1,29 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "Web (Next.js)",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "web", "dev"],
+      "port": 3000
+    },
+    {
+      "name": "API (NestJS)",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "api", "dev"],
+      "port": 4500
+    },
+    {
+      "name": "Full Stack (Turbo)",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "web", "dev"],
+      "port": 3000
+    },
+    {
+      "name": "Prisma Studio",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["db:studio"],
+      "port": 5555
+    }
+  ]
+}

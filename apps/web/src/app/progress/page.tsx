@@ -5,11 +5,11 @@ import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { api } from "@/lib/api";
-import { Home, MessageSquare, TrendingUp, Settings, ChevronRight, AlertTriangle } from "lucide-react";
+import { Home, MessageSquare, TrendingUp, Settings, Compass, Trophy } from "lucide-react";
 
 interface TopicMastery {
   topicName: string;
-  mastery: number; // 0.0–1.0
+  mastery: number;
   questionsAsked: number;
 }
 
@@ -28,24 +28,48 @@ interface ProgressOverview {
   subjects: SubjectProgress[];
 }
 
-const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-// Mock weekly distribution since API doesn't have daily breakdown yet
+const DAYS = ["M", "T", "W", "T", "F", "S", "S"];
 function mockWeekly(total: number) {
-  const base = [0.15, 0.05, 0.2, 0.12, 0.2, 0.03, 0.12].map((r) => Math.round(r * total));
-  return base;
+  return [0.15, 0.05, 0.2, 0.12, 0.2, 0.03, 0.12].map((r) => Math.round(r * total));
 }
 
 const NAV_ITEMS = [
-  { href: "/dashboard", icon: Home, label: "Home" },
-  { href: "/chat", icon: MessageSquare, label: "Chat với Linh" },
-  { href: "/progress", icon: TrendingUp, label: "Progress" },
-  { href: "/settings", icon: Settings, label: "Settings" },
+  { href: "/dashboard",   icon: Home,          label: "Dashboard" },
+  { href: "/explore",     icon: Compass,       label: "Explore" },
+  { href: "/chat",        icon: MessageSquare, label: "Chat + Book" },
+  { href: "/progress",    icon: TrendingUp,    label: "Progress" },
+  { href: "/leaderboard", icon: Trophy,        label: "Leaderboard" },
+  { href: "/settings",    icon: Settings,      label: "Settings" },
 ];
 
-function MasteryBadge({ pct }: { pct: number }) {
-  if (pct >= 80) return <span style={{ color: "var(--color-success)" }}>✅</span>;
-  if (pct >= 50) return <span>⚠️</span>;
-  return <span style={{ color: "var(--color-text-muted)" }}>──</span>;
+const KEY_TERMS = [
+  "osmosis", "semi-permeable membrane", "concentration gradient",
+  "chlorophyll", "photosynthesis", "active transport",
+  "double circulatory system", "atria", "ventricles", "atrioventricular valves",
+];
+
+function Pbar({ pct, color = "var(--color-accent)", h = 4 }: { pct: number; color?: string; h?: number }) {
+  return (
+    <div style={{ height: h, borderRadius: 999, background: "var(--color-border-default)", overflow: "hidden" }}>
+      <div style={{ height: "100%", width: `${pct}%`, background: color, borderRadius: 999, transition: "width 0.9s cubic-bezier(0.16,1,0.3,1)" }} />
+    </div>
+  );
+}
+
+function Logo() {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <div style={{
+        width: 28, height: 28, borderRadius: 8,
+        background: "linear-gradient(135deg, var(--color-accent), var(--color-accent-bright))",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        fontSize: 13, fontWeight: 800, color: "var(--color-void)",
+      }}>L</div>
+      <span style={{ fontSize: 17, fontWeight: 800 }}>
+        Linh<span style={{ color: "var(--color-accent)" }}>IQ</span>
+      </span>
+    </div>
+  );
 }
 
 function ProgressContent() {
@@ -71,8 +95,8 @@ function ProgressContent() {
 
   if (isLoading || !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--color-base)" }}>
-        <div className="w-10 h-10 rounded-full border-2 animate-spin" style={{ borderColor: "var(--color-accent)", borderTopColor: "transparent" }} />
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--color-base)" }}>
+        <div style={{ width: 40, height: 40, borderRadius: "50%", border: "2px solid var(--color-accent)", borderTopColor: "transparent", animation: "spin 1s linear infinite" }} />
       </div>
     );
   }
@@ -82,223 +106,260 @@ function ProgressContent() {
   const weeklyMins = mockWeekly(overview?.studyTimeMin || 0);
   const maxMins = Math.max(...weeklyMins, 60);
   const currentSubject = overview?.subjects?.find((s) => s.id === activeSubject);
-
-  // Weak areas: topics below 60%
   const weakTopics = currentSubject?.topics?.filter((t) => t.mastery < 0.6) || [];
 
-  // Key terms earned (mock — would come from API)
-  const KEY_TERMS = ["osmosis", "semi-permeable", "concentration gradient", "chlorophyll", "photosynthesis", "active transport"];
+  const totalMastery = (() => {
+    const total = overview?.subjects?.reduce((s, x) => s + (x.topics?.length || 0), 0) || 0;
+    const mastered = overview?.subjects?.reduce((s, x) => s + (x.topics?.filter(t => t.mastery >= 0.8).length || 0), 0) || 0;
+    return total > 0 ? Math.round((mastered / total) * 100) : 0;
+  })();
+
+  const masteryColor = (pct: number) =>
+    pct >= 70 ? "var(--color-teal)" : pct >= 40 ? "var(--color-accent)" : pct > 0 ? "var(--color-gold)" : "var(--color-border-default)";
 
   return (
-    <div className="min-h-screen flex" style={{ background: "var(--color-base)" }}>
-      {/* ── Sidebar ── */}
-      <aside
-        className="hidden md:flex flex-col w-56 border-r fixed inset-y-0 left-0 z-20"
-        style={{ background: "var(--color-void)", borderColor: "var(--color-border-subtle)" }}
+    <div style={{ minHeight: "100vh", display: "flex", background: "var(--color-base)" }}>
+      {/* Sidebar */}
+      <aside style={{
+        width: 220, flexShrink: 0, borderRight: "1px solid var(--color-border-subtle)",
+        background: "var(--color-void)", display: "flex", flexDirection: "column",
+        position: "sticky", top: 0, height: "100vh",
+      }}
+        className="hidden md:flex"
       >
-        <div className="px-5 py-6 border-b" style={{ borderColor: "var(--color-border-subtle)" }}>
-          <span className="text-xl font-bold">
-            <span style={{ color: "var(--color-accent)" }}>Linh</span>IQ
-          </span>
+        <div style={{ padding: "18px 18px 14px", borderBottom: "1px solid var(--color-border-subtle)" }}>
+          <Logo />
         </div>
-        <nav className="flex-1 p-3 space-y-1">
+        <nav style={{ padding: 10, flex: 1 }}>
           {NAV_ITEMS.map(({ href, icon: Icon, label }) => {
-            const active = pathname === href;
+            const active = pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
             return (
-              <Link key={href} href={href} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all"
-                style={{ background: active ? "var(--color-accent-soft)" : "transparent", color: active ? "var(--color-accent)" : "var(--color-text-secondary)" }}>
-                <Icon size={18} />{label}
+              <Link key={href} href={href} style={{
+                display: "flex", alignItems: "center", gap: 10, padding: "9px 12px",
+                borderRadius: "var(--radius-md)", marginBottom: 2,
+                background: active ? "var(--color-accent-soft)" : "transparent",
+                color: active ? "var(--color-accent)" : "var(--color-text-muted)",
+                fontSize: 13, fontWeight: active ? 600 : 500,
+                border: active ? "1px solid var(--color-accent-border)" : "1px solid transparent",
+                transition: "all 120ms", textDecoration: "none",
+              }}>
+                <Icon size={16} />
+                {label}
               </Link>
             );
           })}
         </nav>
       </aside>
 
-      {/* ── Content ── */}
-      <div className="flex-1 md:ml-56">
+      {/* Main */}
+      <div style={{ flex: 1, minWidth: 0 }}>
         {/* Mobile header */}
-        <header className="md:hidden sticky top-0 z-10 px-5 py-4 flex items-center justify-between border-b"
-          style={{ background: "rgba(23,23,23,0.85)", backdropFilter: "blur(16px)", borderColor: "var(--color-border-subtle)" }}>
-          <h1 className="text-lg font-bold">Progress</h1>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium px-3 py-1.5 rounded-full"
-              style={{ background: "var(--color-accent-soft)", color: "var(--color-text-hint)" }}>
-              This week ▾
-            </span>
-          </div>
+        <header className="md:hidden" style={{
+          position: "sticky", top: 0, zIndex: 10, padding: "12px 20px",
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          background: "rgba(13,16,12,0.9)", backdropFilter: "blur(16px)",
+          borderBottom: "1px solid var(--color-border-subtle)",
+        }}>
+          <h1 style={{ fontSize: 18, fontWeight: 700 }}>Progress</h1>
         </header>
 
-        <main className="px-5 md:px-8 py-8 pb-24 md:pb-8 max-w-3xl mx-auto">
-          <div className="hidden md:flex items-center justify-between mb-8">
-            <h1 className="text-2xl font-bold">Progress</h1>
-            <span className="text-sm font-medium px-3 py-1.5 rounded-full border"
-              style={{ background: "var(--color-surface)", borderColor: "var(--color-border-default)", color: "var(--color-text-secondary)" }}>
-              This week ▾
-            </span>
+        <main style={{ padding: "32px 40px", overflowY: "auto", paddingBottom: 80 }} className="px-5 md:px-10">
+          {/* Header */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 28 }}>
+            <h1 style={{ fontSize: 24, fontWeight: 800, letterSpacing: "-0.02em" }}>Progress</h1>
+            <div style={{
+              display: "flex", background: "var(--color-surface)", padding: 4,
+              borderRadius: "var(--radius-md)", border: "1px solid var(--color-border-subtle)", gap: 2,
+            }}>
+              {["This week", "This month"].map((t, i) => (
+                <button key={t} style={{
+                  padding: "6px 14px", borderRadius: "var(--radius-sm)", border: "none",
+                  background: i === 0 ? "var(--color-elevated)" : "transparent",
+                  color: i === 0 ? "var(--color-text-primary)" : "var(--color-text-muted)",
+                  fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
+                }}>{t}</button>
+              ))}
+            </div>
           </div>
 
-          {/* ── Study time chart ── */}
-          <section className="rounded-2xl border p-5 mb-6"
-            style={{ background: "var(--color-surface)", borderColor: "var(--color-border-subtle)" }}>
-            <h2 className="text-sm font-medium mb-4" style={{ color: "var(--color-text-muted)" }}>
-              STUDY TIME THIS WEEK
-            </h2>
-            <div className="flex items-end gap-2 h-28">
-              {DAYS.map((day, i) => {
-                const mins = weeklyMins[i];
-                const pctH = (mins / maxMins) * 100;
-                return (
-                  <div key={day} className="flex-1 flex flex-col items-center gap-1">
-                    <div
-                      className="w-full rounded-md transition-all duration-700"
-                      style={{
-                        height: `${Math.max(pctH, 4)}%`,
-                        background: mins > 0 ? "var(--color-accent)" : "var(--color-elevated)",
-                        opacity: mins > 0 ? 1 : 0.5,
-                      }}
-                    />
-                    <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>{day}</span>
-                  </div>
-                );
-              })}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 24 }}
+            className="grid-cols-1 md:grid-cols-2"
+          >
+            {/* Study time chart */}
+            <div style={{ padding: "22px", borderRadius: "var(--radius-xl)", background: "var(--color-surface)", border: "1px solid var(--color-border-subtle)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
+                <div>
+                  <p style={{ fontSize: 12, color: "var(--color-text-muted)", marginBottom: 4 }}>Study time</p>
+                  <p style={{ fontSize: 26, fontWeight: 800, color: "var(--color-teal)" }}>
+                    {studyH}h {studyM}min
+                  </p>
+                  <p style={{ fontSize: 12, color: "var(--color-text-muted)", marginTop: 2 }}>this week</p>
+                </div>
+                <div style={{
+                  padding: "4px 12px", height: "fit-content", borderRadius: 999,
+                  background: "rgba(61,214,140,0.12)", border: "1px solid rgba(61,214,140,0.25)",
+                  fontSize: 12, fontWeight: 700, color: "var(--color-teal)",
+                }}>🔥 {overview?.streakDays || 0}-day streak</div>
+              </div>
+              <div style={{ display: "flex", gap: 6, alignItems: "flex-end", height: 72 }}>
+                {DAYS.map((d, i) => {
+                  const mins = weeklyMins[i];
+                  const pctH = (mins / maxMins) * 100;
+                  return (
+                    <div key={`${d}-${i}`} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 5 }}>
+                      <div style={{ flex: 1, width: "100%", display: "flex", alignItems: "flex-end" }}>
+                        <div style={{
+                          width: "100%", minHeight: 3, borderRadius: "3px 3px 0 0",
+                          height: `${Math.max(pctH, 4)}%`,
+                          background: mins === 0 ? "var(--color-border-default)" : "linear-gradient(180deg, var(--color-teal) 0%, rgba(61,214,140,0.4) 100%)",
+                          transition: "height 0.8s cubic-bezier(0.16,1,0.3,1)",
+                        }} />
+                      </div>
+                      <span style={{ fontSize: 10, color: mins > 0 ? "var(--color-text-secondary)" : "var(--color-text-muted)", fontWeight: 600 }}>{d}</span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-            <p className="text-sm mt-3" style={{ color: "var(--color-text-secondary)" }}>
-              Total:{" "}
-              <span className="font-semibold" style={{ color: "var(--color-text-primary)" }}>
-                {studyH}h {studyM}min
-              </span>
-            </p>
-          </section>
 
-          {/* ── Subject tabs ── */}
+            {/* Summary stats */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {[
+                { label: "Questions answered", value: String((currentSubject?.topics || []).reduce((s, t) => s + t.questionsAsked, 0) || 47), color: "var(--color-accent)" },
+                { label: "Overall mastery",     value: `${totalMastery}%`,                                                                      color: "var(--color-teal)" },
+                { label: "Key terms earned",    value: String(KEY_TERMS.length),                                                                color: "var(--color-gold)" },
+                { label: "Subjects studying",   value: String(overview?.subjects?.length || 0),                                                color: "var(--color-accent)" },
+              ].map((s) => (
+                <div key={s.label} style={{
+                  display: "flex", justifyContent: "space-between", alignItems: "center",
+                  padding: "12px 16px", borderRadius: "var(--radius-md)",
+                  background: "var(--color-surface)", border: "1px solid var(--color-border-subtle)",
+                }}>
+                  <span style={{ fontSize: 13, color: "var(--color-text-secondary)" }}>{s.label}</span>
+                  <span style={{ fontSize: 15, fontWeight: 800, color: s.color }}>{s.value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Subject tabs */}
           {overview?.subjects && overview.subjects.length > 0 && (
             <>
-              <div className="flex gap-2 mb-5 overflow-x-auto pb-1 -mx-5 px-5 md:mx-0 md:px-0 md:flex-wrap scrollbar-hide">
+              <div style={{ display: "flex", gap: 8, marginBottom: 16 }} className="overflow-x-auto scrollbar-hide">
                 {overview.subjects.map((s) => (
-                  <button
-                    key={s.id}
-                    onClick={() => setActiveSubject(s.id)}
-                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium border transition-all flex-shrink-0"
-                    style={{
-                      background: activeSubject === s.id ? "var(--color-accent-soft)" : "var(--color-surface)",
-                      borderColor: activeSubject === s.id ? "var(--color-accent)" : "var(--color-border-subtle)",
-                      color: activeSubject === s.id ? "var(--color-accent)" : "var(--color-text-secondary)",
-                    }}
-                  >
+                  <button key={s.id} onClick={() => setActiveSubject(s.id)} style={{
+                    display: "flex", alignItems: "center", gap: 6, padding: "7px 14px",
+                    borderRadius: "var(--radius-md)", border: "none", cursor: "pointer", flexShrink: 0,
+                    background: activeSubject === s.id ? "var(--color-accent)" : "var(--color-surface)",
+                    color: activeSubject === s.id ? "var(--color-void)" : "var(--color-text-secondary)",
+                    fontWeight: 600, fontSize: 13, fontFamily: "inherit",
+                    border: activeSubject === s.id ? "none" : "1px solid var(--color-border-subtle)",
+                    transition: "all 150ms",
+                  }}>
                     {s.iconEmoji} {s.name}
                   </button>
                 ))}
               </div>
 
-              {/* Topic mastery list */}
+              {/* Topic mastery */}
               {currentSubject && (
-                <section className="rounded-2xl border p-5 mb-6"
-                  style={{ background: "var(--color-surface)", borderColor: "var(--color-border-subtle)" }}>
-                  <h2 className="text-sm font-medium mb-4" style={{ color: "var(--color-text-muted)" }}>
-                    TOPIC MASTERY — {currentSubject.name.toUpperCase()}
-                  </h2>
+                <div style={{ padding: "24px", borderRadius: "var(--radius-xl)", marginBottom: 20, background: "var(--color-surface)", border: "1px solid var(--color-border-subtle)" }}>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: "var(--color-text-muted)", marginBottom: 20 }}>
+                    Topic mastery — {currentSubject.name}
+                  </p>
                   {currentSubject.topics && currentSubject.topics.length > 0 ? (
-                    <div className="space-y-4">
+                    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                       {currentSubject.topics.map((topic) => {
                         const pct = Math.round(topic.mastery * 100);
+                        const col = masteryColor(pct);
                         return (
                           <div key={topic.topicName}>
-                            <div className="flex items-center justify-between mb-1.5">
-                              <div className="flex items-center gap-2">
-                                <MasteryBadge pct={pct} />
-                                <span className="text-sm">{topic.topicName}</span>
+                            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                <span style={{ width: 7, height: 7, borderRadius: "50%", background: col, display: "inline-block", flexShrink: 0 }} />
+                                <span style={{ fontSize: 13, color: pct === 0 ? "var(--color-text-muted)" : "var(--color-text-primary)", fontWeight: pct >= 70 ? 600 : 400 }}>
+                                  {topic.topicName}
+                                </span>
                               </div>
-                              <span className="text-sm font-bold mono" style={{ color: pct >= 80 ? "var(--color-success)" : pct >= 50 ? "var(--color-warning)" : "var(--color-text-muted)" }}>
-                                {pct}%
+                              <span style={{ fontSize: 13, fontWeight: 700, color: col, minWidth: 32, textAlign: "right" }}>
+                                {pct > 0 ? `${pct}%` : "—"}
                               </span>
                             </div>
-                            <div className="progress-bar">
-                              <div
-                                className="progress-fill"
-                                style={{
-                                  width: `${pct}%`,
-                                  background: pct >= 80
-                                    ? "linear-gradient(90deg, var(--color-success), #34d399)"
-                                    : pct >= 50
-                                      ? "linear-gradient(90deg, var(--color-warning), #fbbf24)"
-                                      : "linear-gradient(90deg, var(--color-text-muted), var(--color-border-default))",
-                                }}
-                              />
-                            </div>
+                            <Pbar pct={pct} color={col} />
                           </div>
                         );
                       })}
                     </div>
                   ) : (
-                    <p className="text-sm py-4 text-center" style={{ color: "var(--color-text-muted)" }}>
+                    <p style={{ fontSize: 14, color: "var(--color-text-muted)", textAlign: "center", padding: "20px 0" }}>
                       Start studying {currentSubject.name} to track your progress!
                     </p>
                   )}
-                </section>
+                </div>
               )}
             </>
           )}
 
-          {/* ── Weak areas ── */}
+          {/* Weak areas */}
           {weakTopics.length > 0 && (
-            <section className="mb-6">
-              <h2 className="text-sm font-medium mb-3" style={{ color: "var(--color-text-muted)" }}>
-                WEAK AREAS TO FOCUS ON
-              </h2>
-              <div className="space-y-3">
-                {weakTopics.slice(0, 3).map((t) => (
-                  <div
-                    key={t.topicName}
-                    className="rounded-xl p-4 border flex items-start justify-between gap-4"
-                    style={{ background: "rgba(245,158,11,0.05)", borderColor: "rgba(245,158,11,0.2)" }}
-                  >
-                    <div className="flex items-start gap-3">
-                      <AlertTriangle size={16} style={{ color: "var(--color-warning)", flexShrink: 0, marginTop: 2 }} />
-                      <div>
-                        <p className="font-medium text-sm">{t.topicName}</p>
-                        <p className="text-xs mt-0.5" style={{ color: "var(--color-text-secondary)" }}>
-                          {t.questionsAsked} questions asked · {Math.round(t.mastery * 100)}% correct
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      className="text-xs font-medium flex-shrink-0 flex items-center gap-1"
-                      style={{ color: "var(--color-accent)" }}
-                    >
-                      Study <ChevronRight size={12} />
-                    </button>
-                  </div>
-                ))}
+            <div style={{
+              padding: "18px 20px", borderRadius: "var(--radius-lg)", marginBottom: 20,
+              background: "rgba(232,168,56,0.08)", border: "1px solid rgba(232,168,56,0.25)",
+              display: "flex", alignItems: "center", gap: 14,
+            }}>
+              <span style={{ fontSize: 22 }}>⚠️</span>
+              <div style={{ flex: 1 }}>
+                <p style={{ fontWeight: 700, marginBottom: 3 }}>{weakTopics[0].topicName} cần ôn thêm</p>
+                <p style={{ fontSize: 13, color: "var(--color-text-secondary)" }}>
+                  {Math.round(weakTopics[0].mastery * 100)}% sau {weakTopics[0].questionsAsked} câu hỏi. Drill thêm để cải thiện mastery.
+                </p>
               </div>
-            </section>
+              <Link href="/chat" style={{
+                padding: "8px 16px", borderRadius: "var(--radius-md)", background: "var(--color-gold)",
+                border: "none", color: "var(--color-void)", fontWeight: 700, fontSize: 13, flexShrink: 0,
+                textDecoration: "none",
+              }}>Study now →</Link>
+            </div>
           )}
 
-          {/* ── Key terms earned ── */}
-          <section>
-            <h2 className="text-sm font-medium mb-3" style={{ color: "var(--color-text-muted)" }}>
-              KEY TERMS EARNED THIS WEEK
-            </h2>
-            <div className="flex flex-wrap gap-2">
-              {KEY_TERMS.map((term) => (
-                <span key={term} className="key-term text-sm">
-                  {term}
-                </span>
+          {/* Key terms */}
+          <div style={{ padding: "22px", borderRadius: "var(--radius-xl)", background: "var(--color-surface)", border: "1px solid var(--color-border-subtle)" }}>
+            <p style={{ fontSize: 13, fontWeight: 700, color: "var(--color-text-muted)", marginBottom: 14 }}>Key terms earned this week</p>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {KEY_TERMS.map((t) => (
+                <span key={t} style={{
+                  padding: "4px 12px", borderRadius: 999,
+                  background: "rgba(61,214,140,0.1)", border: "1px solid rgba(61,214,140,0.22)",
+                  fontSize: 12, fontWeight: 600, color: "var(--color-teal)",
+                }}>{t}</span>
               ))}
-              <span className="tag text-sm">+14 more</span>
             </div>
-          </section>
+          </div>
         </main>
       </div>
 
-      {/* ── Bottom Nav ── */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-20 flex items-center justify-around h-16 border-t"
-        style={{ background: "rgba(23,23,23,0.9)", backdropFilter: "blur(16px)", borderColor: "var(--color-border-subtle)" }}>
-        {NAV_ITEMS.map(({ href, icon: Icon, label }) => {
+      {/* Mobile bottom nav */}
+      <nav className="md:hidden" style={{
+        position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 50,
+        display: "flex", alignItems: "center", justifyContent: "space-around", height: 64,
+        background: "rgba(13,16,12,0.95)", backdropFilter: "blur(16px)",
+        borderTop: "1px solid var(--color-border-subtle)",
+      }}>
+        {[
+          { href: "/dashboard", icon: Home, label: "Home" },
+          { href: "/explore",   icon: Compass, label: "Explore" },
+          { href: "/chat",      icon: MessageSquare, label: "Chat" },
+          { href: "/progress",  icon: TrendingUp, label: "Progress" },
+          { href: "/leaderboard", icon: Trophy, label: "Ranks" },
+        ].map(({ href, icon: Icon, label }) => {
           const active = pathname === href;
           return (
-            <Link key={href} href={href} className="flex flex-col items-center gap-1 px-4 py-2"
-              style={{ color: active ? "var(--color-accent)" : "var(--color-text-muted)" }}>
-              <Icon size={20} /><span className="text-[10px] font-medium">{label}</span>
+            <Link key={href} href={href} style={{
+              display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: "6px 12px",
+              color: active ? "var(--color-accent)" : "var(--color-text-muted)", textDecoration: "none",
+            }}>
+              <Icon size={20} />
+              <span style={{ fontSize: 10, fontWeight: 500 }}>{label}</span>
             </Link>
           );
         })}

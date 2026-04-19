@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, MessageSquare, TrendingUp, Settings } from "lucide-react";
+import { Home, MessageSquare, TrendingUp, Compass, Trophy } from "lucide-react";
 
 const navItems = [
-  { href: "/dashboard", icon: Home, label: "Home" },
-  { href: "/chat", icon: MessageSquare, label: "Chat với Linh" },
-  { href: "/progress", icon: TrendingUp, label: "Progress" },
-  { href: "/settings", icon: Settings, label: "Settings" },
+  { href: "/dashboard",   icon: Home,          label: "Home" },
+  { href: "/explore",     icon: Compass,       label: "Explore" },
+  { href: "/chat",        icon: MessageSquare, label: "Chat" },
+  { href: "/progress",    icon: TrendingUp,    label: "Progress" },
+  { href: "/leaderboard", icon: Trophy,        label: "Ranks" },
 ];
 
 export function BottomNav() {

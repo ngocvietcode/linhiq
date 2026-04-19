@@ -1,379 +1,335 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { useTheme } from "@/lib/theme-context";
-import { ArrowRight, Brain, Target, Check, Sparkles, LineChart, ShieldCheck, Sun, Moon } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ArrowRight, Send, BookOpen, Brain, Target, BarChart2, Trophy, Compass } from "lucide-react";
 
 const DEMO_MESSAGES = [
-  { role: "user", content: "Làm sao để đạt band 7.0 Writing IELTS task 2?" },
+  { role: "user", content: "How does the heart pump blood?" },
   {
     role: "assistant",
+    hint: 1,
     content:
-      "Một mục tiêu tuyệt vời! Để đạt 7.0, tiêu chí quan trọng nhất là **Task Response** và **Coherence**. Bạn định viết về chủ đề gì trước tiên?",
+      "Great topic! Before I explain — what do you already know about the *chambers* of the heart? How many are there?",
   },
-  {
-    role: "user",
-    content: "Mình định viết về ưu nhược điểm của công nghệ trong giáo dục.",
-  },
-  {
-    role: "assistant",
-    content:
-      "✅ Điểm tốt! Để phát triển ý (develop ideas) sâu hơn thay vì liệt kê, hãy thử dùng cấu trúc: **Idea -> Explain -> Example**. Bạn có thể đưa ra một lợi ích cụ thể và giải thích nó không?",
-  },
-];
-const PROGRAMS = [
-  "Cambridge IGCSE",
-  "A-Level",
-  "IELTS",
-  "TOEIC",
-  "Toán thi Đại học",
-  "Khoa học Tự nhiên",
+  { role: "user", content: "4 chambers? Left and right sides?" },
+  { role: "assistant", hint: 2, typing: true, content: "" },
 ];
 
-const STUDENT_FEATURES = [
+const DEMO_FULL = [
+  ...DEMO_MESSAGES.slice(0, -1),
   {
-    icon: Sparkles,
-    title: "Học tập không áp lực",
-    desc: "AI đóng vai trò như một người bạn đồng hành giải đáp mọi thắc mắc mọi lúc mọi nơi.",
-  },
-  {
-    icon: Brain,
-    title: "Phương pháp Socratic",
-    desc: "Không chỉ đưa ra đáp án, AI sẽ hướng dẫn bạn tự suy nghĩ để tìm ra câu trả lời.",
-  },
-  {
-    icon: Target,
-    title: "Luyện thi thực chiến",
-    desc: "Cọ xát với các bộ đề thi IGCSE, A-Level, IELTS sát với thực tế nhất.",
+    role: "assistant",
+    hint: 2,
+    keyterm: "atria and ventricles",
+    content:
+      "Exactly! The 4 chambers are: 2 *atria* (top, receive blood) and 2 *ventricles* (bottom, pump blood out). Now — which side pumps to the *lungs*, and which to the *body*?",
   },
 ];
 
-const PARENT_FEATURES = [
-  {
-    icon: Check,
-    title: "Chấm điểm chuẩn Mark Scheme",
-    desc: "Đánh giá chính xác theo barem của Cambridge và các kỳ thi quốc tế.",
-  },
-  {
-    icon: LineChart,
-    title: "Theo dõi tiến độ chi tiết",
-    desc: "Nắm bắt được sự tiến bộ của con qua từng bài học một cách rõ ràng.",
-  },
-  {
-    icon: ShieldCheck,
-    title: "Tiết kiệm chi phí, an tâm tuyệt đối",
-    desc: "Sử dụng AI thông minh với chi phí cực kỳ tối ưu, nội dung an toàn.",
-  },
+const FEATURES = [
+  { icon: Brain,    title: "Socratic Chat",     desc: "AI không đưa đáp án. Mỗi câu trả lời kết thúc bằng một câu hỏi gợi mở." },
+  { icon: BookOpen, title: "Chat + Sách",        desc: "Đọc sách bên trái, chat với AI bên phải. Click để AI giải thích ngay." },
+  { icon: Target,   title: "Practice Mode",      desc: "Luyện đề IGCSE/A-Level chuẩn Mark Scheme, 5 cấp hint thông minh." },
+  { icon: Compass,  title: "Explore Topics",     desc: "Khám phá toàn bộ curriculum, tìm điểm yếu và học có hệ thống." },
+  { icon: Trophy,   title: "Leaderboard",        desc: "Thi đua cùng bạn bè, giữ streak và leo bảng xếp hạng." },
+  { icon: BarChart2,title: "Progress Tracking",  desc: "Mastery từng topic, key terms kiếm được, weak areas cần ôn." },
 ];
+
+const TAGS = ["Cambridge IGCSE", "A-Level", "THPT Việt Nam", "Biology", "Chemistry", "Mathematics", "Physics", "Economics"];
+
+function TypingDots() {
+  return (
+    <div style={{ display: "flex", gap: 5, padding: "4px 2px", alignItems: "center" }}>
+      {[0, 1, 2].map((i) => (
+        <span
+          key={i}
+          style={{
+            width: 7, height: 7, borderRadius: "50%",
+            background: "var(--color-text-muted)",
+            display: "inline-block",
+            animation: `bounce-dot 1.4s ease-in-out infinite`,
+            animationDelay: `${i * 0.15}s`,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+function HintBadge({ level }: { level: number }) {
+  return (
+    <div style={{
+      display: "inline-flex", alignItems: "center", gap: 5, padding: "3px 10px",
+      borderRadius: 20, background: "var(--color-accent-soft)", border: "1px solid var(--color-accent-border)",
+      fontSize: 11, fontWeight: 600, color: "var(--color-accent)", marginBottom: 6,
+    }}>
+      💡 Hint Level {level}
+    </div>
+  );
+}
 
 export default function HomePage() {
-  const [activeTab, setActiveTab] = useState<"students" | "parents">("students");
-  const { theme, toggleTheme } = useTheme();
+  const [showFull, setShowFull] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setShowFull(true), 2400);
+    return () => clearTimeout(t);
+  }, []);
+
+  const msgs = showFull ? DEMO_FULL : DEMO_MESSAGES;
 
   return (
-    <div
-      className="min-h-screen flex flex-col transition-colors duration-300"
-      style={{ background: "var(--color-void)", color: "var(--color-text-primary)" }}
-    >
-      {/* ── Nav ── */}
-      <header
-        className="sticky top-0 z-50 px-6 py-4 flex items-center justify-between border-b transition-all"
-        style={{
-          background: "rgba(23,23,23,0.8)",
-          backdropFilter: "blur(20px)",
-          borderColor: "var(--color-border-subtle)",
-        }}
-      >
-        <div className="flex items-center gap-2">
-          <span className="text-2xl font-bold">
-            <span style={{ color: "var(--color-accent)" }}>Linh</span>IQ
+    <div style={{ minHeight: "100vh", background: "var(--color-void)", color: "var(--color-text-primary)", overflowX: "hidden" }}>
+
+      {/* Background grid */}
+      <div style={{
+        position: "fixed", top: 0, left: 0, right: 0, height: 600, pointerEvents: "none", zIndex: 0,
+        backgroundImage: "linear-gradient(var(--color-border-subtle) 1px, transparent 1px), linear-gradient(90deg, var(--color-border-subtle) 1px, transparent 1px)",
+        backgroundSize: "52px 52px",
+        maskImage: "radial-gradient(ellipse at 50% 0%, black 20%, transparent 70%)",
+        WebkitMaskImage: "radial-gradient(ellipse at 50% 0%, black 20%, transparent 70%)",
+      }} />
+      {/* Background orb */}
+      <div style={{
+        position: "fixed", top: -100, left: "40%", width: 700, height: 700, pointerEvents: "none", zIndex: 0,
+        borderRadius: "50%", background: "radial-gradient(ellipse, rgba(93,184,112,0.07) 0%, transparent 70%)", filter: "blur(4px)",
+      }} />
+
+      {/* Nav */}
+      <nav style={{
+        position: "sticky", top: 0, zIndex: 50,
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        padding: "14px 32px",
+        background: "rgba(8,9,10,0.7)", backdropFilter: "blur(20px)",
+        borderBottom: "1px solid var(--color-border-subtle)",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{
+            width: 30, height: 30, borderRadius: 9,
+            background: "linear-gradient(135deg, var(--color-accent), var(--color-accent-bright))",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 15, fontWeight: 800, color: "var(--color-void)",
+            boxShadow: "0 2px 12px var(--color-accent-glow)",
+          }}>L</div>
+          <span style={{ fontSize: 17, fontWeight: 800, color: "var(--color-text-primary)" }}>
+            Linh<span style={{ color: "var(--color-accent)" }}>IQ</span>
           </span>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={toggleTheme}
-            className="p-2 rounded-full border transition-colors hover:bg-[var(--color-surface)]"
-            style={{ borderColor: "var(--color-border-subtle)", color: "var(--color-text-secondary)" }}
-            aria-label="Toggle Theme"
-          >
-            {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
-          </button>
-          <Link href="/login" className="btn-primary text-sm px-4 py-2 gap-1 whitespace-nowrap">
-            Đăng nhập <ArrowRight size={14} />
+        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <Link href="/login" style={{ fontSize: 13, color: "var(--color-text-secondary)", textDecoration: "none", cursor: "pointer" }}>
+            Sign in
+          </Link>
+          <Link href="/dashboard" style={{
+            padding: "8px 20px", borderRadius: "var(--radius-md)",
+            background: "var(--color-accent)", color: "var(--color-void)",
+            fontSize: 13, fontWeight: 700, textDecoration: "none",
+            boxShadow: "0 4px 16px var(--color-accent-glow)",
+          }}>
+            Get started →
           </Link>
         </div>
-      </header>
+      </nav>
 
-      {/* ── Hero ── */}
-      <main className="flex-1">
-        <section className="max-w-5xl mx-auto px-6 pt-24 pb-20 text-center">
-          {/* Eyebrow */}
-          <div
-            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm mb-8"
-            style={{
-              background: "var(--color-accent-soft)",
-              border: "1px solid rgba(218,119,86,0.3)",
-              color: "var(--color-text-hint)",
-            }}
-          >
-            <span className="w-2 h-2 rounded-full bg-current animate-pulse" />
-            Tâm huyết từ những người làm cha mẹ ❤️
-          </div>
+      {/* Hero */}
+      <section style={{ textAlign: "center", padding: "80px 24px 64px", position: "relative", zIndex: 5 }}>
+        <div style={{
+          display: "inline-flex", alignItems: "center", gap: 8, padding: "5px 14px",
+          borderRadius: 999, background: "var(--color-accent-soft)", border: "1px solid var(--color-accent-border)",
+          fontSize: 12, fontWeight: 600, color: "var(--color-accent)", marginBottom: 24,
+        }}>
+          <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--color-accent)", display: "inline-block", animation: "pulse-dot 2s infinite" }} />
+          Cambridge IGCSE · A-Level · THPT Việt Nam
+        </div>
 
-          <h1
-            className="text-3xl sm:text-5xl lg:text-7xl font-bold leading-tight mb-6 animate-fade-up"
-            style={{ letterSpacing: "-0.025em" }}
-          >
-            Dẫn dắt tư duy qua <span className="text-gradient">từng câu hỏi</span>
-          </h1>
+        <h1 style={{
+          fontSize: "clamp(38px, 8vw, 78px)", fontWeight: 800,
+          lineHeight: 1.06, letterSpacing: "-0.035em", marginBottom: 20,
+        }}>
+          Người bạn thông minh<br />
+          <span className="text-gradient">của em.</span>
+        </h1>
 
-          <p
-            className="text-lg sm:text-xl max-w-2xl mx-auto mb-10 animate-fade-up leading-relaxed"
-            style={{ color: "var(--color-text-secondary)", animationDelay: "80ms" }}
-          >
-            Được xây dựng bởi sự thấu hiểu của phụ huynh. LinhIQ không đưa ra lời giải tức thì, mà đóng vai trò như một gia sư kiên nhẫn — liên tục đặt câu hỏi và gợi ý từng bước (hints), giúp con tự mình đi tìm đáp án và thực sự làm chủ kiến thức.
-          </p>
+        <p style={{ fontSize: "clamp(15px, 2vw, 19px)", color: "var(--color-text-secondary)", maxWidth: 520, margin: "0 auto 32px", lineHeight: 1.7 }}>
+          AI không đưa đáp án — mà dạy em <strong style={{ color: "var(--color-text-primary)" }}>cách tư duy</strong>. Socratic method, bám sát giáo trình, đọc sách thông minh.
+        </p>
 
-          <div
-            className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16 animate-fade-up"
-            style={{ animationDelay: "160ms" }}
-          >
-            <Link href="/login" className="btn-primary text-base px-8 py-3.5 gap-2 w-full sm:w-auto shadow-lg shadow-[var(--color-accent-glow)]">
-              Trải nghiệm ngay <ArrowRight size={16} />
-            </Link>
-          </div>
+        <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap", marginBottom: 48 }}>
+          <Link href="/dashboard" style={{
+            padding: "14px 32px", borderRadius: "var(--radius-md)",
+            background: "var(--color-accent)", color: "var(--color-void)",
+            fontSize: 15, fontWeight: 700, textDecoration: "none",
+            boxShadow: "0 8px 32px var(--color-accent-glow)",
+            animation: "glow-pulse 3s ease-in-out infinite",
+          }}>
+            Trải nghiệm ngay →
+          </Link>
+          <Link href="/chat" style={{
+            padding: "14px 32px", borderRadius: "var(--radius-md)",
+            background: "transparent", border: "1px solid var(--color-border-default)",
+            color: "var(--color-text-secondary)", fontSize: 15, fontWeight: 600, textDecoration: "none",
+          }}>
+            Xem Chat + Sách
+          </Link>
+        </div>
 
-          {/* Subjects row */}
-          <div className="flex flex-col items-center gap-3 mb-24 animate-fade-up" style={{ animationDelay: "200ms" }}>
-            <p className="max-w-2xl text-center text-sm sm:text-base leading-relaxed px-4" style={{ color: "var(--color-text-muted)" }}>
-              Hỗ trợ đắc lực <strong>bám sát chương trình học</strong> trên trường lớp, kết hợp hoàn hảo cùng <strong>Learnbook</strong> tương tác, tạo đà vững chắc cho mọi lộ trình của con:
-            </p>
-            <div className="flex flex-wrap justify-center items-center gap-3 mt-2">
-              {PROGRAMS.map((s) => (
-                <span key={s} className="tag transition-colors hover:border-[var(--color-accent)]" style={{ fontSize: 13 }}>
-                  {s}
-                </span>
-              ))}
-            </div>
-          </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center", marginBottom: 64 }}>
+          {TAGS.map((t) => (
+            <span key={t} className="tag">{t}</span>
+          ))}
+        </div>
 
-          {/* ── Chat Demo ── */}
-          <div
-            className="rounded-2xl border overflow-hidden max-w-3xl mx-auto animate-fade-up transform transition-all hover:scale-[1.02]"
-            style={{
-              background: "var(--color-surface)",
-              borderColor: "var(--color-border-subtle)",
-              animationDelay: "240ms",
-              boxShadow: "0 32px 64px rgba(0,0,0,0.6), 0 0 0 1px rgba(218,119,86,0.1)",
-            }}
-          >
-            {/* window chrome */}
-            <div
-              className="flex items-center gap-2 px-4 py-3 border-b"
-              style={{ borderColor: "var(--color-border-subtle)", background: "var(--color-elevated)" }}
-            >
-              <span className="w-3 h-3 rounded-full bg-danger/70" />
-              <span className="w-3 h-3 rounded-full bg-warning/70" />
-              <span className="w-3 h-3 rounded-full bg-success/70" />
-              <span className="flex-1 text-center text-xs font-medium" style={{ color: "var(--color-text-muted)" }}>
-                🇬🇧 Tiếng Anh · IELTS Writing
-              </span>
-            </div>
-            {/* messages */}
-            <div className="p-6 space-y-5 text-left">
-              {DEMO_MESSAGES.map((msg, i) => (
-                <div
-                  key={i}
-                  className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"} animate-fade-up`}
-                  style={{ animationDelay: `${300 + i * 120}ms` }}
-                >
-                  <div
-                    className="max-w-[85%] rounded-2xl px-5 py-3.5 text-sm leading-relaxed"
-                    style={
-                      msg.role === "user"
-                        ? {
-                            background: "var(--color-accent)",
-                            color: "#fff",
-                            borderRadius: "18px 18px 4px 18px",
-                            boxShadow: "0 4px 12px rgba(218,119,86,0.2)",
-                          }
-                        : {
-                            background: "var(--color-elevated)",
-                            color: "var(--color-text-primary)",
-                            border: "1px solid var(--color-border-subtle)",
-                            borderRadius: "4px 18px 18px 18px",
-                            boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-                          }
-                    }
-                  >
-                    {msg.content.split("**").map((part, pi) =>
-                      pi % 2 === 1 ? (
-                        <strong key={pi} className="key-term px-1.5 py-0.5 rounded">
-                          {part}
-                        </strong>
-                      ) : (
-                        <span key={pi}>{part}</span>
-                      )
-                    )}
-                  </div>
-                </div>
-              ))}
-              {/* input */}
-              <div
-                className="flex items-center gap-3 px-4 py-3 rounded-xl border mt-4 transition-colors focus-within:border-[var(--color-accent)]/50"
-                style={{ borderColor: "var(--color-border-default)", background: "var(--color-elevated)" }}
-              >
-                <span className="flex-1 text-sm outline-none cursor-text" style={{ color: "var(--color-text-muted)" }}>
-                  Hỏi bài tập của bạn...
-                </span>
-                <button className="btn-primary text-xs px-4 py-2 rounded-lg">→</button>
-              </div>
-            </div>
-            <div
-              className="px-6 py-2.5 text-center text-xs border-t font-medium"
-              style={{ borderColor: "var(--color-border-subtle)", color: "var(--color-text-muted)", background: "var(--color-elevated)" }}
-            >
-              Trải nghiệm trực tiếp không giới hạn
-            </div>
-          </div>
-        </section>
-
-        {/* ── Socratic Method Section ── */}
-        <section
-          className="py-24 px-6 relative"
-          style={{ background: "var(--color-void)", borderTop: "1px solid var(--color-border-subtle)" }}
-        >
-          <div className="max-w-5xl mx-auto text-center">
-            <h2
-              className="text-3xl sm:text-4xl font-bold mb-6"
-              style={{ letterSpacing: "-0.02em" }}
-            >
-              Học thật, <span className="text-gradient">Hiểu sâu</span>
-            </h2>
-            <p className="text-lg mb-16 max-w-3xl mx-auto leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
-              Nhận đáp án có sẵn từ các công cụ AI thông thường khiến con hình thành thói quen lười tư duy, học vẹt. Tại LinhIQ, chúng tôi áp dụng <strong>phương pháp gợi mở Socratic</strong> — tuyệt đối KHÔNG bao giờ "mớm" đáp án trực tiếp làm thui chột tư duy của học sinh.
-            </p>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-left">
-              {/* Bad approach */}
-              <div className="p-5 md:p-8 rounded-3xl border" style={{ borderColor: 'rgba(244,63,94,0.2)', background: 'linear-gradient(135deg, rgba(244,63,94,0.05), transparent)' }}>
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-rose-500/10 text-rose-500 font-bold text-xl">✕</div>
-                  <h3 className="text-2xl font-semibold opacity-90">AI Thông Thường</h3>
-                </div>
-                <ul className="space-y-4" style={{ color: "var(--color-text-secondary)" }}>
-                  <li className="flex gap-3"><span className="text-rose-500 mt-1">▪</span> Cung cấp đáp án và bài giải chi tiết ngay lập tức.</li>
-                  <li className="flex gap-3"><span className="text-rose-500 mt-1">▪</span> Học sinh chỉ việc sao chép lại để nộp bài cho xong.</li>
-                  <li className="flex gap-3"><span className="text-rose-500 mt-1">▪</span> Điểm số ảo trên lớp cao, nhưng mất gốc kiến thức căn bản.</li>
-                  <li className="flex gap-3"><span className="text-rose-500 mt-1">▪</span> Quen với sự dễ dãi, sợ suy nghĩ khi gặp bài khó trong phòng thi.</li>
-                </ul>
-              </div>
-
-              {/* Socratic approach */}
-              <div className="p-5 md:p-8 rounded-3xl border relative overflow-hidden" style={{ borderColor: 'rgba(34,211,163,0.4)', background: 'linear-gradient(135deg, rgba(34,211,163,0.1), transparent)' }}>
-                <div className="absolute -bottom-4 -right-4 p-4 opacity-5">
-                  <Brain size={180} />
-                </div>
-                <div className="flex items-center gap-4 mb-6 relative z-10">
-                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-emerald-500/10 text-emerald-400 font-bold text-xl">✓</div>
-                  <h3 className="text-2xl font-semibold text-emerald-400">Gia sư LinhIQ</h3>
-                </div>
-                <ul className="space-y-4 relative z-10">
-                  <li className="flex gap-3"><span className="text-emerald-400 mt-1">▪</span> Đặt các câu hỏi gợi mở ngược lại để kích thích não bộ hoạt động.</li>
-                  <li className="flex gap-3"><span className="text-emerald-400 mt-1">▪</span> Chia nhỏ vấn đề thành các bước để con tự tìm ra mấu chốt.</li>
-                  <li className="flex gap-3"><span className="text-emerald-400 mt-1">▪</span> Cung cấp 5 cấp độ gợi ý (Hints) tùy thuộc vào sức học của con.</li>
-                  <li className="flex gap-3 font-medium text-white"><span className="text-emerald-400 mt-1">▪</span> Giúp con thực sự làm chủ kiến thức và tự tin giải quyết vấn đề.</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ── Audience Section (Students / Parents) ── */}
-        <section
-          className="py-24 px-6 relative"
-          style={{ background: "var(--color-base)", borderTop: "1px solid var(--color-border-subtle)" }}
-        >
-          {/* Subtle gradient orb */}
-          <div className="absolute inset-0 overflow-hidden pointer-events-none flex justify-center">
-            <div className="w-[800px] h-[400px] bg-[var(--color-accent)]/5 blur-[120px] rounded-full translate-y-[-50%]" />
-          </div>
-
-          <div className="max-w-5xl mx-auto relative z-10">
-            <div className="text-center mb-16">
-              <h2
-                className="text-3xl sm:text-4xl font-bold mb-4"
-                style={{ letterSpacing: "-0.02em" }}
-              >
-                Góc nhìn trọn vẹn
-              </h2>
-              <p className="text-lg max-w-2xl mx-auto" style={{ color: "var(--color-text-secondary)" }}>
-                Được tạo ra bởi chính những phụ huynh, chúng tôi thấu hiểu những khó khăn
-                khi con lấp lửng giữa biển kiến thức khổng lồ và nỗi lo âu của ba mẹ.
-              </p>
-            </div>
-
-            {/* Toggle */}
-            <div className="flex justify-center mb-12">
-              <div className="inline-flex bg-[var(--color-surface)] p-1 rounded-xl border border-[var(--color-border-default)] shadow-sm">
-                <button
-                  onClick={() => setActiveTab("students")}
-                  className={`px-6 py-2.5 rounded-lg text-sm font-semibold transition-all ${
-                    activeTab === "students"
-                      ? "bg-[var(--color-accent)] text-white shadow-md"
-                      : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
-                  }`}
-                >
-                  Dành cho Học Sinh
-                </button>
-                <button
-                  onClick={() => setActiveTab("parents")}
-                  className={`px-6 py-2.5 rounded-lg text-sm font-semibold transition-all ${
-                    activeTab === "parents"
-                      ? "bg-[var(--color-accent)] text-white shadow-md"
-                      : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
-                  }`}
-                >
-                  Dành cho Phụ Huynh
-                </button>
-              </div>
-            </div>
-
-            {/* Cards Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-fade-in" key={activeTab}>
-              {(activeTab === "students" ? STUDENT_FEATURES : PARENT_FEATURES).map(({ icon: Icon, title, desc }) => (
-                <div key={title} className="card text-center hover:-translate-y-1 transition-transform duration-300">
-                  <div
-                    className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-inner"
-                    style={{ background: "var(--color-accent-soft)" }}
-                  >
-                    <Icon size={26} style={{ color: "var(--color-accent)" }} />
-                  </div>
-                  <h3 className="font-semibold text-lg mb-3">{title}</h3>
-                  <p className="text-sm leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
-                    {desc}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      </main>
-
-      {/* ── Footer ── */}
-      <footer
-        className="py-10 px-6 text-center text-sm border-t"
-        style={{ borderColor: "var(--color-border-subtle)", color: "var(--color-text-muted)" }}
-      >
-        <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2 text-base font-bold">
-            <span style={{ color: "var(--color-text-primary)" }}>
-              <span style={{ color: "var(--color-accent)" }}>Linh</span>IQ
+        {/* Demo chat window */}
+        <div style={{
+          maxWidth: 560, margin: "0 auto",
+          background: "var(--color-surface)", border: "1px solid var(--color-border-default)",
+          borderRadius: 22, overflow: "hidden",
+          boxShadow: "0 40px 80px rgba(0,0,0,0.6), 0 0 0 1px var(--color-accent-border)",
+        }}>
+          {/* Window chrome */}
+          <div style={{
+            display: "flex", alignItems: "center", gap: 8, padding: "12px 16px",
+            background: "var(--color-elevated)", borderBottom: "1px solid var(--color-border-subtle)",
+          }}>
+            <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#F45B69", opacity: 0.8 }} />
+            <span style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--color-gold)", opacity: 0.8 }} />
+            <span style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--color-accent)", opacity: 0.8 }} />
+            <span style={{ flex: 1, textAlign: "center", fontSize: 12, color: "var(--color-text-muted)", fontWeight: 500 }}>
+              🧬 Biology IGCSE · Chat + Textbook
             </span>
           </div>
-          <div>© {new Date().getFullYear()} LinhIQ. Phát triển từ tình yêu thương của cha mẹ dành cho con.</div>
+          {/* Messages */}
+          <div style={{ padding: "18px", display: "flex", flexDirection: "column", gap: 14, minHeight: 200 }}>
+            {msgs.map((m, i) =>
+              m.role === "user" ? (
+                <div key={i} style={{ display: "flex", justifyContent: "flex-end" }}>
+                  <div style={{
+                    maxWidth: "72%", padding: "11px 15px",
+                    borderRadius: "16px 16px 4px 16px",
+                    background: "var(--color-accent)", color: "var(--color-void)",
+                    fontSize: 13, lineHeight: 1.6, fontWeight: 500,
+                    boxShadow: "0 4px 16px var(--color-accent-glow)",
+                  }}>
+                    {m.content}
+                  </div>
+                </div>
+              ) : (
+                <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                  <div style={{
+                    width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+                    background: "linear-gradient(135deg, var(--color-accent), var(--color-accent-bright))",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 13, fontWeight: 800, color: "var(--color-void)",
+                  }}>L</div>
+                  <div style={{ maxWidth: "76%" }}>
+                    {m.hint && <HintBadge level={m.hint} />}
+                    <div style={{
+                      padding: "11px 15px", borderRadius: "4px 16px 16px 16px",
+                      background: "var(--color-elevated)", border: "1px solid var(--color-border-subtle)",
+                      fontSize: 13, lineHeight: 1.65, color: "var(--color-text-primary)",
+                    }}>
+                      {m.typing ? (
+                        <TypingDots />
+                      ) : m.keyterm ? (
+                        <>
+                          <span style={{
+                            display: "inline-flex", alignItems: "center", gap: 6, padding: "3px 10px",
+                            borderRadius: 6, background: "rgba(0,180,120,0.14)", border: "1px solid rgba(0,180,120,0.28)",
+                            fontSize: 12, fontWeight: 600, color: "var(--color-teal)", marginBottom: 8, marginRight: 4,
+                          }}>✅ KEY TERM: {m.keyterm}</span>
+                          <span style={{ color: "var(--color-text-primary)" }}>{m.content}</span>
+                        </>
+                      ) : (
+                        m.content.split("*").map((seg, si) =>
+                          si % 2 === 1
+                            ? <em key={si} style={{ fontStyle: "normal", fontWeight: 600, color: "var(--color-text-hint)" }}>{seg}</em>
+                            : <span key={si}>{seg}</span>
+                        )
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )
+            )}
+          </div>
+          {/* Input bar */}
+          <div style={{ padding: "0 16px 16px" }}>
+            <div style={{
+              display: "flex", gap: 10, alignItems: "center",
+              background: "var(--color-elevated)", border: "1px solid var(--color-border-default)",
+              borderRadius: "var(--radius-lg)", padding: "10px 14px",
+            }}>
+              <span style={{ flex: 1, fontSize: 13, color: "var(--color-text-muted)" }}>Hỏi LinhIQ bất cứ điều gì...</span>
+              <div style={{
+                width: 30, height: 30, borderRadius: 8, background: "var(--color-accent)",
+                display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
+              }}>
+                <Send size={13} color="var(--color-void)" />
+              </div>
+            </div>
+          </div>
         </div>
+      </section>
+
+      {/* Features */}
+      <section style={{ padding: "72px 32px", borderTop: "1px solid var(--color-border-subtle)", position: "relative", zIndex: 5 }}>
+        <div style={{ maxWidth: 960, margin: "0 auto" }}>
+          <h2 style={{ textAlign: "center", fontSize: "clamp(26px, 4vw, 42px)", fontWeight: 800, letterSpacing: "-0.025em", marginBottom: 16 }}>
+            Tính năng nổi bật
+          </h2>
+          <p style={{ textAlign: "center", color: "var(--color-text-secondary)", fontSize: 16, maxWidth: 440, margin: "0 auto 56px", lineHeight: 1.65 }}>
+            Từ đọc sách thông minh đến luyện đề — tất cả trong một nền tảng.
+          </p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16 }}>
+            {FEATURES.map((f) => {
+              const Icon = f.icon;
+              return (
+                <div
+                  key={f.title}
+                  className="card"
+                  style={{ cursor: "default" }}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLDivElement).style.borderColor = "var(--color-accent-border)";
+                    (e.currentTarget as HTMLDivElement).style.transform = "translateY(-2px)";
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLDivElement).style.borderColor = "var(--color-border-subtle)";
+                    (e.currentTarget as HTMLDivElement).style.transform = "none";
+                  }}
+                >
+                  <div style={{
+                    width: 40, height: 40, borderRadius: 10, background: "var(--color-accent-soft)",
+                    display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14,
+                  }}>
+                    <Icon size={18} style={{ color: "var(--color-accent)" }} />
+                  </div>
+                  <h4 style={{ fontWeight: 700, fontSize: 14, marginBottom: 8, color: "var(--color-text-primary)" }}>{f.title}</h4>
+                  <p style={{ fontSize: 13, color: "var(--color-text-secondary)", lineHeight: 1.65 }}>{f.desc}</p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer style={{
+        padding: "28px 32px", borderTop: "1px solid var(--color-border-subtle)",
+        display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12,
+        position: "relative", zIndex: 5,
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{
+            width: 24, height: 24, borderRadius: 7,
+            background: "linear-gradient(135deg, var(--color-accent), var(--color-accent-bright))",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 12, fontWeight: 800, color: "var(--color-void)",
+          }}>L</div>
+          <span style={{ fontSize: 15, fontWeight: 800 }}>
+            Linh<span style={{ color: "var(--color-accent)" }}>IQ</span>
+          </span>
+        </div>
+        <span style={{ fontSize: 13, color: "var(--color-text-muted)" }}>© 2026 LinhIQ · "Người bạn thông minh của em."</span>
       </footer>
     </div>
   );
