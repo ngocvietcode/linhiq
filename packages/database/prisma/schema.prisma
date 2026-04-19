@@ -34,6 +34,16 @@ enum SourceType {
   SYLLABUS
 }
 
+enum BookType {
+  COURSEBOOK   // Sách giáo khoa chính
+  WORKBOOK     // Sách bài tập
+  REVISION_GUIDE
+  PAST_PAPER
+  SYLLABUS
+  TEACHER_GUIDE
+}
+
+
 enum HintLevel {
   L1 // Conceptual Nudge (Khơi gợi)
   L2 // Structural Scaffold (Gợi ý cấu trúc)
@@ -130,6 +140,7 @@ model Subject {
   topics       Topic[]
   milestones   Milestone[]
   documents    Document[]
+  bookVolumes  BookVolume[] // ← textbook reader books
   enrollments  SubjectEnrollment[]
   chatSessions ChatSession[]
   quizAttempts QuizAttempt[]
@@ -168,6 +179,7 @@ model Topic {
   progress    TopicProgress[]
   diagnostics DiagnosticQuestion[]
   quizAttempts QuizAttempt[]
+  pageTopics  BookPageTopic[] // ← reader page→topic mapping
 
   @@unique([subjectId, name])
   @@index([subjectId])
@@ -199,7 +211,8 @@ model Document {
   isProcessed Boolean    @default(false)
   processedAt DateTime?
 
-  chunks DocumentChunk[]
+  chunks     DocumentChunk[]
+  bookVolume BookVolume? // ← reverse relation (1:1)
 
   createdAt DateTime @default(now())
 
@@ -222,6 +235,51 @@ model DocumentChunk {
   createdAt DateTime @default(now())
 
   @@index([documentId])
+  @@index([topicId])
+}
+
+// ── TEXTBOOK READER ────────────────────────────
+
+model BookVolume {
+  id         String   @id @default(cuid())
+  subjectId  String
+  subject    Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  title      String   // "Cambridge IGCSE Biology Coursebook 4th Ed"
+  shortTitle String   // "Coursebook" — tab display
+  bookType   BookType
+  isDefault  Boolean  @default(false) // shown first in reader
+  coverColor String?  // "#4CAF50" — tab accent color
+
+  // Viewer metadata
+  totalPages Int?
+  pagesDir   String?  // "apps/data/pages/{id}/" — webp images per page
+
+  // Link to RAG Document (1:1)
+  documentId String?   @unique
+  document   Document? @relation(fields: [documentId], references: [id])
+
+  // Page → Topic mapping
+  pageTopics BookPageTopic[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([subjectId])
+  @@index([isDefault])
+}
+
+model BookPageTopic {
+  id           String     @id @default(cuid())
+  bookVolumeId String
+  bookVolume   BookVolume @relation(fields: [bookVolumeId], references: [id], onDelete: Cascade)
+  pageNumber   Int
+  topicId      String?
+  topic        Topic?     @relation(fields: [topicId], references: [id])
+  chapterName  String?    // "Chapter 4: Biological Molecules"
+
+  @@unique([bookVolumeId, pageNumber])
+  @@index([bookVolumeId])
   @@index([topicId])
 }
 

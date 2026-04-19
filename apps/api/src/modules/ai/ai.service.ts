@@ -24,6 +24,14 @@ interface ChatHistoryMessage {
   content: string;
 }
 
+interface ReaderContext {
+  bookVolumeId?: string;
+  topicId?: string;
+  pageNumber?: number;
+  chapterName?: string;
+  topicName?: string;
+}
+
 interface StreamChatOptions {
   userMessage: string;
   chatHistory: ChatHistoryMessage[];
@@ -33,7 +41,9 @@ interface StreamChatOptions {
   hintLevel?: HintLevel;
   imageBase64?: string | null;   // base64-encoded image (no data: prefix)
   imageMimeType?: string | null; // e.g. "image/jpeg"
+  readerContext?: ReaderContext; // context from textbook reader
 }
+
 
 interface StreamResult {
   stream: ReturnType<typeof streamText>;
@@ -106,29 +116,35 @@ export class AiService {
       hintLevel = 1,
       imageBase64,
       imageMimeType = 'image/jpeg',
+      readerContext,
     } = options;
 
     // 1. Classify query complexity (images are always complex)
     const complexity = imageBase64 ? 'complex' : await this.classifyQuery(userMessage);
 
-    // 2. RAG search using text (image descriptions aren't available yet, use text or fallback)
-    const searchQuery = userMessage.trim() || `image question in ${subjectName}`;
-    const ragResults = await this.rag.search(searchQuery, subjectId);
+    // 2. Build context-boosted search query when in reader mode
+    let searchQuery = userMessage.trim() || `image question in ${subjectName}`;
+    if (readerContext?.topicName) {
+      searchQuery = `[Context: ${readerContext.chapterName ? `${readerContext.chapterName} - ` : ''}${readerContext.topicName}] ${searchQuery}`;
+    }
+
+    // 3. RAG search — pass priorityTopicId to boost reader-page-topic results
+    const ragResults = await this.rag.search(searchQuery, subjectId, undefined, readerContext?.topicId);
     const ragContext = this.rag.formatContext(ragResults);
 
-    // 3. Build system prompt with RAG context
+    // 4. Build system prompt with RAG context
     const systemPrompt = SOCRATIC_SYSTEM_PROMPT
       .replaceAll('{{SUBJECT}}', subjectName)
       .replaceAll('{{CURRICULUM}}', curriculum)
       .replaceAll('{{HINT_LEVEL}}', String(hintLevel))
       .replaceAll('{{RAG_CONTEXT}}', ragContext);
 
-    // 4. Select model instance
+    // 5. Select model instance
     const { model, provider: activeProvider } = await this.resolveModel(complexity);
     this.logger.log(`Query classified as: ${complexity} using ${activeProvider}`);
     const modelConfig = MODEL_ROUTES[complexity];
 
-    // 5. Build user content — text-only or multipart vision
+    // 6. Build user content — text-only or multipart vision
     let userContent: string | Array<{ type: string; image?: string; text?: string }>;
     if (imageBase64) {
       userContent = [
@@ -145,7 +161,7 @@ export class AiService {
       userContent = userMessage;
     }
 
-    // 6. Stream response
+    // 7. Stream response
     try {
       const result = streamText({
         model,
@@ -164,6 +180,7 @@ export class AiService {
           provider: activeProvider,
           complexity,
           hasImage: !!imageBase64,
+          readerContext: readerContext ?? null,
           ragSources: ragResults.map((r) => ({
             chunkId: r.chunkId,
             documentTitle: r.documentTitle,
@@ -177,6 +194,7 @@ export class AiService {
       throw e;
     }
   }
+
 
   /**
    * Classify query complexity

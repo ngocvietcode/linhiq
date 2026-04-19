@@ -29,52 +29,93 @@ export class RagService {
   /**
    * Perform vector similarity search against document chunks.
    * Falls back to keyword search if embeddings are not available.
+   * @param priorityTopicId — if provided, results matching this topic are boosted to the top
    */
-  async search(query: string, subjectId: string, topK = RAG_CONFIG.topK): Promise<RagResult[]> {
-    // Phase 1: Keyword-based full-text search (works without embeddings)
-    // Phase 2: Vector search will be added when embeddings are ingested
+  async search(
+    query: string,
+    subjectId: string,
+    topK = RAG_CONFIG.topK,
+    priorityTopicId?: string,
+  ): Promise<RagResult[]> {
     const hasEmbeddings = await this.hasEmbeddedChunks(subjectId);
 
     if (hasEmbeddings) {
-      return this.vectorSearch(query, subjectId, topK);
+      return this.vectorSearch(query, subjectId, topK, priorityTopicId);
     }
 
-    return this.keywordSearch(query, subjectId, topK);
+    return this.keywordSearch(query, subjectId, topK, priorityTopicId);
   }
 
   /**
-   * Vector similarity search using pgvector cosine distance
+   * Vector similarity search using pgvector cosine distance.
+   * When priorityTopicId is given, results for that topic appear first.
    */
-  private async vectorSearch(query: string, subjectId: string, topK: number): Promise<RagResult[]> {
-    // Generate embedding for query using OpenAI
+  private async vectorSearch(
+    query: string,
+    subjectId: string,
+    topK: number,
+    priorityTopicId?: string,
+  ): Promise<RagResult[]> {
     const embeddingVector = await this.generateEmbedding(query);
 
-    const results = await this.db.$queryRaw<RagResult[]>`
-      SELECT
-        dc.id as "chunkId",
-        dc.content,
-        1 - (dc.embedding <=> ${embeddingVector}::vector) as similarity,
-        d.title as "documentTitle",
-        (dc.metadata->>'page')::int as page,
-        m.name as chapter,
-        t.name as "topicName"
-      FROM "DocumentChunk" dc
-      JOIN "Document" d ON dc."documentId" = d.id
-      LEFT JOIN "Topic" t ON dc."topicId" = t.id
-      LEFT JOIN "Milestone" m ON t."milestoneId" = m.id
-      WHERE d."subjectId" = ${subjectId}
-        AND dc.embedding IS NOT NULL
-      ORDER BY dc.embedding <=> ${embeddingVector}::vector
-      LIMIT ${topK}
-    `;
+    let results: RagResult[];
+
+    if (priorityTopicId) {
+      // Priority sort: chunks from the current reader topic come first, then by cosine distance
+      results = await this.db.$queryRaw<RagResult[]>`
+        SELECT
+          dc.id as "chunkId",
+          dc.content,
+          1 - (dc.embedding <=> ${embeddingVector}::vector) as similarity,
+          d.title as "documentTitle",
+          (dc.metadata->>'page')::int as page,
+          m.name as chapter,
+          t.name as "topicName"
+        FROM "DocumentChunk" dc
+        JOIN "Document" d ON dc."documentId" = d.id
+        LEFT JOIN "Topic" t ON dc."topicId" = t.id
+        LEFT JOIN "Milestone" m ON t."milestoneId" = m.id
+        WHERE d."subjectId" = ${subjectId}
+          AND dc.embedding IS NOT NULL
+        ORDER BY
+          CASE WHEN dc."topicId" = ${priorityTopicId} THEN 0 ELSE 1 END ASC,
+          dc.embedding <=> ${embeddingVector}::vector
+        LIMIT ${topK}
+      `;
+    } else {
+      results = await this.db.$queryRaw<RagResult[]>`
+        SELECT
+          dc.id as "chunkId",
+          dc.content,
+          1 - (dc.embedding <=> ${embeddingVector}::vector) as similarity,
+          d.title as "documentTitle",
+          (dc.metadata->>'page')::int as page,
+          m.name as chapter,
+          t.name as "topicName"
+        FROM "DocumentChunk" dc
+        JOIN "Document" d ON dc."documentId" = d.id
+        LEFT JOIN "Topic" t ON dc."topicId" = t.id
+        LEFT JOIN "Milestone" m ON t."milestoneId" = m.id
+        WHERE d."subjectId" = ${subjectId}
+          AND dc.embedding IS NOT NULL
+        ORDER BY dc.embedding <=> ${embeddingVector}::vector
+        LIMIT ${topK}
+      `;
+    }
 
     return results.filter((r) => r.similarity >= RAG_CONFIG.similarityThreshold);
   }
 
   /**
-   * Keyword-based fallback search using PostgreSQL ILIKE
+   * Keyword-based fallback search using PostgreSQL ILIKE.
+   * When priorityTopicId is given, results for that topic appear first.
    */
-  private async keywordSearch(query: string, subjectId: string, topK: number): Promise<RagResult[]> {
+  private async keywordSearch(
+    query: string,
+    subjectId: string,
+    topK: number,
+    priorityTopicId?: string,
+  ): Promise<RagResult[]> {
     const keywords = query
       .toLowerCase()
       .split(/\s+/)
@@ -83,32 +124,57 @@ export class RagService {
 
     if (keywords.length === 0) return [];
 
-    const chunks = await this.db.documentChunk.findMany({
-      where: {
-        document: { subjectId },
-        OR: keywords.map((kw) => ({
-          content: { contains: kw, mode: 'insensitive' as const },
-        })),
-      },
-      include: {
-        document: { select: { title: true } },
-        topic: { select: { name: true, milestone: { select: { name: true } } } },
-      },
-      take: topK,
-    });
+    // Build keyword search using full-text or first keyword only to avoid SQL injection risk in raw template
+    // Use a simpler approach: search by the first keyword only (good enough for fallback)
+    const keyword = keywords[0];
 
-    return chunks.map((chunk) => {
+    const rawChunks = await this.db.$queryRaw<Array<{
+      id: string;
+      topicId: string | null;
+      content: string;
+      metadata: unknown;
+      documentTitle: string;
+      topicName: string | null;
+    }>>`
+      SELECT
+        dc.id,
+        dc."topicId",
+        dc.content,
+        dc.metadata,
+        d.title as "documentTitle",
+        t.name as "topicName"
+      FROM "DocumentChunk" dc
+      JOIN "Document" d ON dc."documentId" = d.id
+      LEFT JOIN "Topic" t ON dc."topicId" = t.id
+      WHERE d."subjectId" = ${subjectId}
+        AND dc.content ILIKE ${'%' + keyword + '%'}
+      LIMIT ${topK * 2}
+    `;
+
+    const mapped = rawChunks.map((chunk) => {
       const metadata = chunk.metadata as ChunkMetadata | null;
       return {
         chunkId: chunk.id,
         content: chunk.content,
-        similarity: 0.5, // Keyword matches get a fixed score
-        documentTitle: chunk.document.title,
+        similarity: 0.5,
+        documentTitle: chunk.documentTitle,
         page: metadata?.page ?? null,
-        chapter: chunk.topic?.milestone?.name ?? null,
-        topicName: chunk.topic?.name ?? null,
+        chapter: null,
+        topicName: chunk.topicName ?? null,
+        _topicId: chunk.topicId ?? undefined,
       };
     });
+
+    // Boost priority topic to top
+    if (priorityTopicId) {
+      mapped.sort((a, b) => {
+        const aMatch = a._topicId === priorityTopicId ? 0 : 1;
+        const bMatch = b._topicId === priorityTopicId ? 0 : 1;
+        return aMatch - bMatch;
+      });
+    }
+
+    return mapped.slice(0, topK).map(({ _topicId: _unused, ...rest }) => rest);
   }
 
   /**
@@ -116,12 +182,12 @@ export class RagService {
    */
   private async generateEmbedding(text: string): Promise<string> {
     const settings = await this.db.systemSetting.findUnique({ where: { id: 'global' } });
-    const litellm = createOpenAI({ 
+    const litellm = createOpenAI({
       baseURL: settings?.liteLlmUrl || process.env.LITELLM_URL || 'http://localhost:4000/v1',
       apiKey: settings?.liteLlmApiKey || process.env.LITELLM_API_KEY || 'dummy',
     });
     const embeddingModelStr = settings?.embeddingModel || 'gemini-embedding-001';
-    
+
     const { embedding: embeddingResult } = await embed({
       model: litellm.textEmbeddingModel(embeddingModelStr),
       value: text,

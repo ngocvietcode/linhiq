@@ -2,6 +2,15 @@ import { z } from 'zod';
 
 // ── Chat Validators ──────────────────────
 
+// Reader context — sent when chatting from within the Textbook Reader
+const readerContextSchema = z.object({
+  bookVolumeId: z.string().optional(),
+  topicId: z.string().optional(),
+  pageNumber: z.number().int().positive().optional(),
+  chapterName: z.string().optional(),
+  topicName: z.string().optional(),
+}).optional();
+
 export const sendMessageSchema = z.object({
   content: z
     .string()
@@ -11,6 +20,8 @@ export const sendMessageSchema = z.object({
   imageUrl: z.string().nullable().optional(),
   imageBase64: z.string().nullable().optional(),
   imageMimeType: z.string().nullable().optional(),
+  // Reader context: topic/page being viewed when message is sent
+  readerContext: readerContextSchema,
 }).refine(data => (data.content && data.content.trim().length > 0) || data.imageUrl || data.imageBase64, {
   message: "Either message text or an image is required"
 });
