@@ -4,33 +4,31 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { api } from "@/lib/api";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import {
-  ChevronLeft,
-  ChevronRight,
-  BookOpen,
-  MessageSquare,
   ArrowLeft,
-  List,
-  X,
-  Send,
+  BookOpen,
+  PanelLeft,
+  PanelRight,
+  Sparkles,
 } from "lucide-react";
+import { SlideSummarizeButton } from "@/components/slides/SlideSummarizeButton";
+import {
+  LeftSidebar,
+  type BookVolume,
+  type TocEntry,
+} from "@/components/reader/LeftSidebar";
+import { FloatingPageNav, type ZoomValue } from "@/components/reader/FloatingPageNav";
+import { AiPanel, type ChatMessage } from "@/components/reader/AiPanel";
+import {
+  getMaxPageReached,
+  setMaxPageReached,
+  getLastPage,
+  setLastPage,
+  getBookmarks,
+  toggleBookmark as toggleBookmarkStorage,
+} from "@/lib/reader-storage";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4500/api";
-
-// ─── Types ──────────────────────────────────────────────────────────────────
-
-interface BookVolume {
-  id: string;
-  title: string;
-  shortTitle: string;
-  bookType: string;
-  isDefault: boolean;
-  totalPages: number | null;
-  coverColor: string | null;
-  subjectId: string;
-}
 
 interface PageContext {
   pageNumber: number;
@@ -40,96 +38,132 @@ interface PageContext {
   bookVolumeId: string;
 }
 
-interface TocEntry {
-  chapterName: string;
-  topicName: string | null;
-  topicId: string | null;
-  startPage: number;
-}
-
-interface ChatMessage {
-  id: string;
-  role: "user" | "assistant";
+interface RagSourceMeta {
+  chunkId: string;
+  documentTitle: string;
   content: string;
+  similarity: number;
 }
-
-// ─── Book type icons ─────────────────────────────────────────────────────────
-
-const BOOK_ICONS: Record<string, string> = {
-  COURSEBOOK: "📗",
-  WORKBOOK: "📘",
-  REVISION_GUIDE: "📙",
-  PAST_PAPER: "📝",
-  SYLLABUS: "📋",
-  TEACHER_GUIDE: "👩‍🏫",
-};
-
-// ─── Reader Page ─────────────────────────────────────────────────────────────
 
 export default function ReaderPage() {
   const { subjectId } = useParams<{ subjectId: string }>();
   const router = useRouter();
   const { user, token, isLoading: authLoading } = useAuth();
 
-  // Book volumes
+  // Books
   const [books, setBooks] = useState<BookVolume[]>([]);
   const [activeBook, setActiveBook] = useState<BookVolume | null>(null);
+  const [booksLoaded, setBooksLoaded] = useState(false);
 
-  // Viewer state
+  // Page state
   const [currentPage, setCurrentPage] = useState(1);
   const [pageContext, setPageContext] = useState<PageContext | null>(null);
-  const [pageInput, setPageInput] = useState("1");
   const [imgSrc, setImgSrc] = useState<string | null>(null);
   const [imgLoading, setImgLoading] = useState(false);
   const [imgError, setImgError] = useState(false);
 
-  // ToC sidebar
-  const [tocOpen, setTocOpen] = useState(false);
+  // ToC
   const [toc, setToc] = useState<TocEntry[]>([]);
 
-  // Chat panel
+  // Layout panels
+  const [leftOpen, setLeftOpen] = useState(true);
+  const [rightOpen, setRightOpen] = useState(true);
+
+  // Reading progress + bookmarks
+  const [maxReached, setMaxReached] = useState(0);
+  const [bookmarks, setBookmarks] = useState<number[]>([]);
+
+  // Zoom
+  const [zoom, setZoom] = useState<ZoomValue>("fit");
+  const viewerRef = useRef<HTMLDivElement>(null);
+
+  // Chat
   const [chatSessionId, setChatSessionId] = useState<string | null>(null);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamingText, setStreamingText] = useState("");
-  const chatScrollRef = useRef<HTMLDivElement>(null);
 
-  // ── Auth guard ───────────────────────────────────────────────────────────
+  // ── Auth guard ──
   useEffect(() => {
     if (!authLoading && !user) router.push("/login");
   }, [user, authLoading, router]);
 
-  // ── Load book volumes ────────────────────────────────────────────────────
+  // ── Responsive defaults ──
+  useEffect(() => {
+    const apply = () => {
+      if (typeof window === "undefined") return;
+      if (window.innerWidth < 1024) {
+        setLeftOpen(false);
+        setRightOpen(false);
+      }
+    };
+    apply();
+    window.addEventListener("resize", apply);
+    return () => window.removeEventListener("resize", apply);
+  }, []);
+
+  // ── Load books ──
   useEffect(() => {
     if (!token || !subjectId) return;
+    setBooksLoaded(false);
     api<BookVolume[]>(`/textbooks?subjectId=${subjectId}`, { token })
       .then((data) => {
         setBooks(data);
+        setBooksLoaded(true);
         const defaultBook = data.find((b) => b.isDefault) ?? data[0];
         if (defaultBook) setActiveBook(defaultBook);
       })
-      .catch(() => setBooks([]));
+      .catch(() => {
+        setBooks([]);
+        setBooksLoaded(true);
+      });
   }, [token, subjectId]);
 
-  // ── Load ToC when book changes ───────────────────────────────────────────
+  // ── Load ToC + restore last page + bookmarks/progress when book changes ──
   useEffect(() => {
     if (!token || !activeBook) return;
-    setCurrentPage(1);
-    setPageInput("1");
+    const startPage = getLastPage(activeBook.id) ?? 1;
+    setCurrentPage(startPage);
+    setZoom("fit");
+    setMaxReached(getMaxPageReached(activeBook.id));
+    setBookmarks(getBookmarks(activeBook.id));
+
     api<TocEntry[]>(`/textbooks/${activeBook.id}/toc`, { token })
       .then(setToc)
       .catch(() => setToc([]));
   }, [token, activeBook]);
 
-  // ── Load page image & context ────────────────────────────────────────────
+  // ── Ctrl+wheel zoom ──
+  useEffect(() => {
+    const el = viewerRef.current;
+    if (!el) return;
+    const handler = (e: WheelEvent) => {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      setZoom((z) => {
+        if (e.deltaY < 0) {
+          if (z === "fit" || z === "fit-width") return 125;
+          const steps = [25, 50, 75, 100, 125, 150, 175, 200, 250, 300];
+          return steps.find((s) => s > z) ?? 300;
+        } else {
+          if (z === "fit" || z === "fit-width") return 75;
+          const steps = [25, 50, 75, 100, 125, 150, 175, 200, 250, 300];
+          return [...steps].reverse().find((s) => s < z) ?? 25;
+        }
+      });
+    };
+    el.addEventListener("wheel", handler, { passive: false });
+    return () => el.removeEventListener("wheel", handler);
+  }, []);
+
+  // ── Load page image + context ──
   useEffect(() => {
     if (!token || !activeBook) return;
 
     setImgLoading(true);
     setImgError(false);
 
-    // Build authenticated image URL via fetch + object URL to avoid cookie/token issues
     const controller = new AbortController();
     const url = `${API_URL}/textbooks/${activeBook.id}/pages/${currentPage}/img`;
 
@@ -151,13 +185,16 @@ export default function ReaderPage() {
         }
       });
 
-    // Load page context
     api<PageContext>(
       `/textbooks/${activeBook.id}/pages/${currentPage}/context`,
       { token }
     )
       .then(setPageContext)
       .catch(() => setPageContext(null));
+
+    // Persist progress
+    setLastPage(activeBook.id, currentPage);
+    setMaxReached(setMaxPageReached(activeBook.id, currentPage));
 
     return () => {
       controller.abort();
@@ -166,7 +203,7 @@ export default function ReaderPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, activeBook, currentPage]);
 
-  // ── Create chat session for this subject ────────────────────────────────
+  // ── Create chat session ──
   useEffect(() => {
     if (!token || !subjectId) return;
     api<{ id: string }>("/chat/sessions", {
@@ -178,126 +215,179 @@ export default function ReaderPage() {
       .catch(() => {});
   }, [token, subjectId]);
 
-  // ── Auto-scroll chat ─────────────────────────────────────────────────────
-  useEffect(() => {
-    chatScrollRef.current?.scrollTo({
-      top: chatScrollRef.current.scrollHeight,
-      behavior: "smooth",
-    });
-  }, [chatMessages, streamingText]);
-
-  // ── Navigation helpers ───────────────────────────────────────────────────
+  // ── Navigation ──
   const totalPages = activeBook?.totalPages ?? null;
 
   const goToPage = useCallback(
     (page: number) => {
-      if (!totalPages) return;
+      if (!totalPages) {
+        setCurrentPage(Math.max(1, page));
+        return;
+      }
       const clamped = Math.max(1, Math.min(page, totalPages));
       setCurrentPage(clamped);
-      setPageInput(String(clamped));
     },
     [totalPages]
   );
 
-  // ── Keyboard navigation ──────────────────────────────────────────────────
+  // ── Keyboard shortcuts ──
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement).tagName;
+      if (e.ctrlKey) {
+        if (e.key === "=" || e.key === "+") {
+          e.preventDefault();
+          setZoom((z) => {
+            if (z === "fit" || z === "fit-width") return 125;
+            const steps = [25, 50, 75, 100, 125, 150, 175, 200, 250, 300];
+            return steps.find((s) => s > z) ?? 300;
+          });
+          return;
+        }
+        if (e.key === "-") {
+          e.preventDefault();
+          setZoom((z) => {
+            if (z === "fit" || z === "fit-width") return 75;
+            const steps = [25, 50, 75, 100, 125, 150, 175, 200, 250, 300];
+            return [...steps].reverse().find((s) => s < z) ?? 25;
+          });
+          return;
+        }
+        if (e.key === "0") {
+          e.preventDefault();
+          setZoom("fit");
+          return;
+        }
+      }
       if (tag === "INPUT" || tag === "TEXTAREA") return;
-      if (e.key === "ArrowRight" || e.key === "PageDown") goToPage(currentPage + 1);
-      if (e.key === "ArrowLeft" || e.key === "PageUp") goToPage(currentPage - 1);
+      if (e.key === "ArrowRight" || e.key === "PageDown")
+        goToPage(currentPage + 1);
+      if (e.key === "ArrowLeft" || e.key === "PageUp")
+        goToPage(currentPage - 1);
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [currentPage, goToPage]);
 
-  // ── Send chat message ────────────────────────────────────────────────────
-  const sendMessage = useCallback(async () => {
-    if (!chatInput.trim() || isStreaming || !token || !chatSessionId) return;
+  // ── Bookmarks ──
+  const handleToggleBookmark = useCallback(() => {
+    if (!activeBook) return;
+    const next = toggleBookmarkStorage(activeBook.id, currentPage);
+    setBookmarks(next);
+  }, [activeBook, currentPage]);
 
-    const userMsg = chatInput.trim();
-    setChatInput("");
-    setIsStreaming(true);
-    setStreamingText("");
+  const handleRemoveBookmark = useCallback(
+    (page: number) => {
+      if (!activeBook) return;
+      const next = toggleBookmarkStorage(activeBook.id, page);
+      setBookmarks(next);
+    },
+    [activeBook]
+  );
 
-    setChatMessages((prev) => [
-      ...prev,
-      { id: `u-${Date.now()}`, role: "user", content: userMsg },
-    ]);
+  // ── Send chat ──
+  const sendMessage = useCallback(
+    async (overrideContent?: string) => {
+      const content = (overrideContent ?? chatInput).trim();
+      if (!content || isStreaming || !token || !chatSessionId) return;
 
-    try {
-      const res = await fetch(`${API_URL}/chat/sessions/${chatSessionId}/message`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          content: userMsg,
-          hintLevel: 1,
-          readerContext: pageContext
-            ? {
-                bookVolumeId: pageContext.bookVolumeId,
-                topicId: pageContext.topicId,
-                pageNumber: pageContext.pageNumber,
-                topicName: pageContext.topicName,
-                chapterName: pageContext.chapterName,
-              }
-            : undefined,
-        }),
-      });
-
-      if (!res.ok || !res.body) throw new Error("Stream failed");
-
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let fullText = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const chunk = decoder.decode(value, { stream: true });
-
-        for (const line of chunk.split("\n")) {
-          if (!line.startsWith("data: ")) continue;
-          try {
-            const data = JSON.parse(line.slice(6));
-            if (data.type === "text") {
-              fullText += data.content;
-              setStreamingText(fullText);
-            } else if (data.type === "done") {
-              setChatMessages((prev) => [
-                ...prev,
-                { id: `a-${Date.now()}`, role: "assistant", content: fullText },
-              ]);
-              setStreamingText("");
-            }
-          } catch {
-            /* skip malformed */
-          }
-        }
-      }
-    } catch {
+      setChatInput("");
+      setIsStreaming(true);
       setStreamingText("");
+
       setChatMessages((prev) => [
         ...prev,
-        {
-          id: `err-${Date.now()}`,
-          role: "assistant",
-          content: "⚠️ Error — please try again.",
-        },
+        { id: `u-${Date.now()}`, role: "user", content },
       ]);
-    } finally {
-      setIsStreaming(false);
-    }
-  }, [chatInput, isStreaming, token, chatSessionId, pageContext]);
 
-  // ── Loading ──────────────────────────────────────────────────────────────
-  if (authLoading || books.length === 0) {
+      try {
+        const res = await fetch(
+          `${API_URL}/chat/sessions/${chatSessionId}/message`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              content,
+              hintLevel: 1,
+              readerContext: pageContext
+                ? {
+                    bookVolumeId: pageContext.bookVolumeId,
+                    topicId: pageContext.topicId,
+                    pageNumber: pageContext.pageNumber,
+                    topicName: pageContext.topicName,
+                    chapterName: pageContext.chapterName,
+                  }
+                : undefined,
+            }),
+          }
+        );
+
+        if (!res.ok || !res.body) throw new Error("Stream failed");
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let fullText = "";
+        let sources: RagSourceMeta[] | undefined;
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          const chunk = decoder.decode(value, { stream: true });
+
+          for (const line of chunk.split("\n")) {
+            if (!line.startsWith("data: ")) continue;
+            try {
+              const data = JSON.parse(line.slice(6));
+              if (data.type === "text") {
+                fullText += data.content;
+                setStreamingText(fullText);
+              } else if (data.type === "done") {
+                sources = data.metadata?.ragSources as RagSourceMeta[] | undefined;
+                setChatMessages((prev) => [
+                  ...prev,
+                  {
+                    id: `a-${Date.now()}`,
+                    role: "assistant",
+                    content: fullText,
+                    sources: sources?.map((s) => ({
+                      chunkId: s.chunkId,
+                      documentTitle: s.documentTitle,
+                    })),
+                  },
+                ]);
+                setStreamingText("");
+              }
+            } catch {
+              /* skip malformed */
+            }
+          }
+        }
+      } catch {
+        setStreamingText("");
+        setChatMessages((prev) => [
+          ...prev,
+          {
+            id: `err-${Date.now()}`,
+            role: "assistant",
+            content: "⚠️ Lỗi kết nối — vui lòng thử lại.",
+          },
+        ]);
+      } finally {
+        setIsStreaming(false);
+      }
+    },
+    [chatInput, isStreaming, token, chatSessionId, pageContext]
+  );
+
+  // ── Loading state ──
+  if (authLoading || !booksLoaded) {
     return (
       <div
         className="min-h-screen flex items-center justify-center"
-        style={{ background: "var(--color-base)" }}
+        style={{ background: "var(--color-surface-2)" }}
       >
         <div
           className="w-10 h-10 rounded-full border-2 animate-spin"
@@ -310,479 +400,312 @@ export default function ReaderPage() {
     );
   }
 
-  // ── Render ───────────────────────────────────────────────────────────────
+  if (booksLoaded && books.length === 0) {
+    return (
+      <div
+        className="min-h-screen flex flex-col items-center justify-center p-6 text-center"
+        style={{ background: "var(--color-surface-2)" }}
+      >
+        <div
+          className="w-16 h-16 rounded-full flex items-center justify-center mb-4"
+          style={{
+            background: "var(--color-surface)",
+            color: "var(--color-text-muted)",
+          }}
+        >
+          <BookOpen size={32} />
+        </div>
+        <h2 className="text-xl font-bold mb-2">Không tìm thấy tài liệu</h2>
+        <p
+          className="text-sm mb-6 max-w-sm"
+          style={{ color: "var(--color-text-muted)" }}
+        >
+          Chưa có sách nào được ánh xạ cho môn học này.
+        </p>
+        <button
+          onClick={() => router.push("/dashboard")}
+          className="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+          style={{
+            background: "var(--color-surface)",
+            border: "1px solid var(--color-border-subtle)",
+          }}
+        >
+          Quay lại Dashboard
+        </button>
+      </div>
+    );
+  }
+
+  const progressPct = totalPages
+    ? Math.round((maxReached / totalPages) * 100)
+    : 0;
+  const currentBookmarked = bookmarks.includes(currentPage);
+
   return (
     <div
       className="h-screen flex flex-col overflow-hidden"
-      style={{ background: "var(--color-base)" }}
+      style={{ background: "var(--color-surface-2)" }}
     >
-      {/* ── Top Header ── */}
+      {/* ── Header ── */}
       <header
-        className="flex-shrink-0 flex items-center gap-3 px-4 py-2.5 border-b"
+        className="flex-shrink-0 flex items-center gap-3 px-3 md:px-4 py-2.5 border-b"
         style={{
-          background: "rgba(23,23,23,0.95)",
-          backdropFilter: "blur(16px)",
+          background: "var(--color-surface-2)",
           borderColor: "var(--color-border-subtle)",
           minHeight: "52px",
         }}
       >
-        {/* Back button */}
         <button
           onClick={() => router.push("/dashboard")}
           className="p-1.5 rounded-lg transition-colors flex-shrink-0"
           style={{ color: "var(--color-text-muted)" }}
-          title="Back to Dashboard"
+          title="Về Dashboard"
         >
           <ArrowLeft size={18} />
         </button>
 
-        {/* Book selector tabs */}
-        <div className="flex items-center gap-1.5 overflow-x-auto flex-1 min-w-0">
-          {books.map((book) => {
-            const isActive = activeBook?.id === book.id;
-            const icon = BOOK_ICONS[book.bookType] ?? "📚";
-            return (
-              <button
-                key={book.id}
-                onClick={() => setActiveBook(book)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap flex-shrink-0"
-                style={{
-                  background: isActive
-                    ? book.coverColor ?? "var(--color-accent)"
-                    : "var(--color-surface)",
-                  color: isActive ? "#fff" : "var(--color-text-secondary)",
-                  border: isActive
-                    ? `1px solid ${book.coverColor ?? "var(--color-accent)"}`
-                    : "1px solid var(--color-border-subtle)",
-                }}
-              >
-                <span>{icon}</span>
-                <span>{book.shortTitle}</span>
-                {isActive && (
-                  <span
-                    className="w-1.5 h-1.5 rounded-full"
-                    style={{ background: "rgba(255,255,255,0.8)" }}
-                  />
-                )}
-              </button>
-            );
-          })}
-        </div>
+        <button
+          onClick={() => setLeftOpen((o) => !o)}
+          className="p-1.5 rounded-lg transition-colors flex-shrink-0"
+          style={{
+            color: leftOpen ? "var(--color-accent)" : "var(--color-text-muted)",
+            background: leftOpen ? "var(--color-accent-soft)" : "transparent",
+          }}
+          title="Sách & Mục lục"
+        >
+          <PanelLeft size={17} />
+        </button>
 
-        {/* Page context breadcrumb */}
-        {pageContext?.chapterName && (
-          <div
-            className="hidden md:flex items-center gap-2 text-xs flex-shrink-0 max-w-xs truncate"
-            style={{ color: "var(--color-text-muted)" }}
-          >
-            <BookOpen size={13} />
-            <span className="truncate">
-              {pageContext.chapterName}
-              {pageContext.topicName && (
-                <span style={{ color: "var(--color-text-secondary)" }}>
-                  {" "}
-                  › {pageContext.topicName}
+        {/* Book title + topic + progress */}
+        <div className="flex-1 min-w-0 flex items-center gap-3">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <span
+                className="text-sm font-semibold truncate"
+                style={{ fontFamily: "var(--font-heading)" }}
+              >
+                {activeBook?.shortTitle ?? "Reader"}
+              </span>
+              {pageContext?.chapterName && (
+                <span
+                  className="hidden md:inline text-xs truncate"
+                  style={{ color: "var(--color-text-muted)" }}
+                >
+                  · {pageContext.chapterName}
+                  {pageContext.topicName && ` › ${pageContext.topicName}`}
                 </span>
               )}
-            </span>
+            </div>
+            {totalPages && (
+              <div className="flex items-center gap-2 mt-1">
+                <div
+                  className="h-1 rounded-full overflow-hidden flex-1 max-w-[200px]"
+                  style={{ background: "var(--color-border-subtle)" }}
+                >
+                  <div
+                    className="h-full transition-all"
+                    style={{
+                      width: `${progressPct}%`,
+                      background: "var(--color-accent)",
+                    }}
+                  />
+                </div>
+                <span
+                  className="text-[10px] tabular-nums"
+                  style={{ color: "var(--color-text-muted)" }}
+                >
+                  {maxReached}/{totalPages}
+                </span>
+              </div>
+            )}
           </div>
+        </div>
+
+        {activeBook && (
+          <SlideSummarizeButton
+            bookId={activeBook.id}
+            currentPage={currentPage}
+            totalPages={activeBook.totalPages}
+            topicId={pageContext?.topicId ?? null}
+            topicName={pageContext?.topicName ?? null}
+            className="flex-shrink-0"
+          />
         )}
 
-        {/* ToC toggle */}
         <button
-          onClick={() => setTocOpen((o) => !o)}
-          className="flex-shrink-0 p-1.5 rounded-lg transition-colors"
+          onClick={() => setRightOpen((o) => !o)}
+          className="p-1.5 rounded-lg transition-colors flex-shrink-0"
           style={{
-            color: tocOpen ? "var(--color-accent)" : "var(--color-text-muted)",
-            background: tocOpen ? "var(--color-accent-soft)" : "transparent",
+            color: rightOpen ? "var(--color-accent)" : "var(--color-text-muted)",
+            background: rightOpen ? "var(--color-accent-soft)" : "transparent",
           }}
-          title="Table of Contents"
+          title="Linh AI"
         >
-          <List size={18} />
+          {rightOpen ? <PanelRight size={17} /> : <Sparkles size={17} />}
         </button>
       </header>
 
-      {/* ── Main body ── */}
+      {/* ── Body ── */}
       <div className="flex-1 flex overflow-hidden relative">
-        {/* ── ToC Sidebar ── */}
-        {tocOpen && (
-          <aside
-            className="w-72 flex-shrink-0 border-r overflow-y-auto"
-            style={{
-              background: "var(--color-void)",
-              borderColor: "var(--color-border-subtle)",
-            }}
-          >
+        {/* Left sidebar */}
+        {leftOpen && (
+          <>
+            {/* Mobile backdrop */}
             <div
-              className="flex items-center justify-between px-4 py-3 border-b sticky top-0"
+              className="md:hidden absolute inset-0 z-30 bg-black/40"
+              onClick={() => setLeftOpen(false)}
+            />
+            <aside
+              className="absolute md:relative z-40 md:z-auto h-full flex-shrink-0 border-r"
               style={{
-                background: "var(--color-void)",
+                width: 300,
                 borderColor: "var(--color-border-subtle)",
               }}
             >
-              <span className="text-sm font-semibold">Table of Contents</span>
-              <button
-                onClick={() => setTocOpen(false)}
-                className="p-1 rounded"
-                style={{ color: "var(--color-text-muted)" }}
-              >
-                <X size={16} />
-              </button>
-            </div>
-            <div className="py-2">
-              {toc.length === 0 ? (
-                <p
-                  className="text-xs px-4 py-6 text-center"
-                  style={{ color: "var(--color-text-muted)" }}
-                >
-                  No table of contents available
-                </p>
-              ) : (
-                toc.map((entry, i) => (
-                  <button
-                    key={i}
-                    onClick={() => {
-                      goToPage(entry.startPage);
-                      setTocOpen(false);
-                    }}
-                    className="w-full text-left px-4 py-2.5 text-xs transition-colors hover:bg-white/5"
-                    style={{
-                      color:
-                        pageContext?.topicId === entry.topicId && entry.topicId
-                          ? "var(--color-accent)"
-                          : "var(--color-text-secondary)",
-                      borderLeft:
-                        pageContext?.topicId === entry.topicId && entry.topicId
-                          ? "2px solid var(--color-accent)"
-                          : "2px solid transparent",
-                    }}
-                  >
-                    <div className="font-medium">{entry.chapterName}</div>
-                    {entry.topicName && (
-                      <div
-                        className="text-[11px] mt-0.5"
-                        style={{ color: "var(--color-text-muted)" }}
-                      >
-                        {entry.topicName}
-                      </div>
-                    )}
-                    <div
-                      className="text-[10px] mt-0.5"
-                      style={{ color: "var(--color-text-muted)" }}
-                    >
-                      p. {entry.startPage}
-                    </div>
-                  </button>
-                ))
-              )}
-            </div>
-          </aside>
+              <LeftSidebar
+                books={books}
+                activeBook={activeBook}
+                onSelectBook={(b) => setActiveBook(b)}
+                toc={toc}
+                currentTopicId={pageContext?.topicId ?? null}
+                bookmarks={bookmarks}
+                currentPage={currentPage}
+                onJumpPage={(p) => {
+                  goToPage(p);
+                  if (typeof window !== "undefined" && window.innerWidth < 768) {
+                    setLeftOpen(false);
+                  }
+                }}
+                onRemoveBookmark={handleRemoveBookmark}
+                onClose={() => setLeftOpen(false)}
+              />
+            </aside>
+          </>
         )}
 
-        {/* ── PDF Viewer (70%) ── */}
-        <div
-          className="flex flex-col overflow-hidden"
-          style={{ flex: "0 0 65%", minWidth: 0 }}
-        >
-          {/* Page image */}
+        {/* Center viewer */}
+        <div className="flex-1 min-w-0 relative flex flex-col">
           <div
-            className="flex-1 flex items-center justify-center overflow-hidden p-4"
-            style={{ background: "var(--color-base)" }}
+            ref={viewerRef}
+            className="flex-1 overflow-auto"
+            style={{ background: "var(--color-surface-2)" }}
           >
-            {imgLoading && (
-              <div
-                className="w-10 h-10 rounded-full border-2 animate-spin"
-                style={{
-                  borderColor: "var(--color-accent)",
-                  borderTopColor: "transparent",
-                }}
-              />
-            )}
-            {imgError && !imgLoading && (
-              <div
-                className="text-center py-16"
-                style={{ color: "var(--color-text-muted)" }}
-              >
-                <BookOpen size={48} className="mx-auto mb-4 opacity-30" />
-                <p className="text-sm">Page image not available</p>
-                <p className="text-xs mt-1 opacity-60">
-                  Run the register-book script to process this book
-                </p>
-              </div>
-            )}
-            {imgSrc && !imgLoading && !imgError && (
-              // DRM: no drag, no right-click, no user-select
-              <img
-                src={imgSrc}
-                alt={`Page ${currentPage}`}
-                className="max-w-full max-h-full object-contain rounded shadow-lg select-none"
-                style={{
-                  pointerEvents: "none",
-                  userSelect: "none",
-                  WebkitUserSelect: "none",
-                  boxShadow: "0 4px 24px rgba(0,0,0,0.4)",
-                }}
-                draggable={false}
-                onContextMenu={(e) => e.preventDefault()}
-              />
-            )}
-          </div>
-
-          {/* Page navigation bar */}
-          <div
-            className="flex-shrink-0 flex items-center justify-center gap-4 px-4 py-3 border-t"
-            style={{
-              background: "rgba(23,23,23,0.9)",
-              borderColor: "var(--color-border-subtle)",
-            }}
-          >
-            <button
-              onClick={() => goToPage(currentPage - 1)}
-              disabled={currentPage <= 1}
-              className="p-2 rounded-lg transition-colors disabled:opacity-30"
+            <div
+              className="flex items-center justify-center"
               style={{
-                background: "var(--color-surface)",
-                color: "var(--color-text-primary)",
+                minHeight: "100%",
+                minWidth: "100%",
+                padding:
+                  typeof zoom === "number" && zoom > 100 ? "32px" : "16px",
+                paddingBottom: "80px",
               }}
             >
-              <ChevronLeft size={18} />
-            </button>
-
-            {/* Page input */}
-            <div className="flex items-center gap-2">
-              <input
-                type="number"
-                value={pageInput}
-                onChange={(e) => setPageInput(e.target.value)}
-                onBlur={() => {
-                  const n = parseInt(pageInput);
-                  if (!isNaN(n)) goToPage(n);
-                  else setPageInput(String(currentPage));
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    const n = parseInt(pageInput);
-                    if (!isNaN(n)) goToPage(n);
-                  }
-                }}
-                className="w-14 text-center text-sm font-medium rounded-lg px-2 py-1.5 border outline-none"
-                style={{
-                  background: "var(--color-surface)",
-                  borderColor: "var(--color-border-default)",
-                  color: "var(--color-text-primary)",
-                }}
-                min={1}
-                max={totalPages ?? 9999}
-              />
-              {totalPages && (
-                <span
-                  className="text-sm"
+              {imgLoading && (
+                <div
+                  className="w-10 h-10 rounded-full border-2 animate-spin"
+                  style={{
+                    borderColor: "var(--color-accent)",
+                    borderTopColor: "transparent",
+                  }}
+                />
+              )}
+              {imgError && !imgLoading && (
+                <div
+                  className="text-center py-16"
                   style={{ color: "var(--color-text-muted)" }}
                 >
-                  / {totalPages}
-                </span>
+                  <BookOpen size={48} className="mx-auto mb-4 opacity-30" />
+                  <p className="text-sm">Trang không khả dụng</p>
+                  <p className="text-xs mt-1 opacity-60">
+                    Hãy chạy script ingest để xử lý sách này
+                  </p>
+                </div>
+              )}
+              {imgSrc && !imgLoading && !imgError && (
+                <img
+                  src={imgSrc}
+                  alt={`Trang ${currentPage}`}
+                  className="rounded shadow-lg select-none"
+                  style={
+                    zoom === "fit"
+                      ? {
+                          maxWidth: "100%",
+                          maxHeight: "calc(100vh - 160px)",
+                          objectFit: "contain",
+                          pointerEvents: "none",
+                          userSelect: "none",
+                          WebkitUserSelect: "none",
+                          boxShadow: "0 4px 24px rgba(0,0,0,0.4)",
+                        }
+                      : zoom === "fit-width"
+                      ? {
+                          width: "100%",
+                          maxWidth: "none",
+                          height: "auto",
+                          pointerEvents: "none",
+                          userSelect: "none",
+                          WebkitUserSelect: "none",
+                          boxShadow: "0 4px 24px rgba(0,0,0,0.4)",
+                        }
+                      : {
+                          width: `${zoom}%`,
+                          maxWidth: "none",
+                          height: "auto",
+                          pointerEvents: "none",
+                          userSelect: "none",
+                          WebkitUserSelect: "none",
+                          boxShadow: "0 4px 24px rgba(0,0,0,0.4)",
+                        }
+                  }
+                  draggable={false}
+                  onContextMenu={(e) => e.preventDefault()}
+                />
               )}
             </div>
-
-            <button
-              onClick={() => goToPage(currentPage + 1)}
-              disabled={totalPages !== null && currentPage >= totalPages}
-              className="p-2 rounded-lg transition-colors disabled:opacity-30"
-              style={{
-                background: "var(--color-surface)",
-                color: "var(--color-text-primary)",
-              }}
-            >
-              <ChevronRight size={18} />
-            </button>
           </div>
+
+          <FloatingPageNav
+            currentPage={currentPage}
+            totalPages={totalPages}
+            zoom={zoom}
+            bookmarked={currentBookmarked}
+            onPageChange={goToPage}
+            onZoomChange={setZoom}
+            onToggleBookmark={handleToggleBookmark}
+          />
         </div>
 
-        {/* ── Chat Panel (30%) ── */}
-        <div
-          className="flex flex-col border-l"
-          style={{
-            flex: "0 0 35%",
-            minWidth: 0,
-            background: "var(--color-void)",
-            borderColor: "var(--color-border-subtle)",
-          }}
-        >
-          {/* Chat header */}
-          <div
-            className="flex-shrink-0 flex items-center gap-2 px-4 py-3 border-b"
-            style={{ borderColor: "var(--color-border-subtle)" }}
-          >
-            <MessageSquare size={15} style={{ color: "var(--color-accent)" }} />
-            <span className="text-sm font-semibold">Chat với Linh</span>
-            {pageContext?.topicName && (
-              <span
-                className="ml-auto text-xs px-2 py-0.5 rounded-full"
-                style={{
-                  background: "var(--color-accent-soft)",
-                  color: "var(--color-accent)",
-                }}
-              >
-                {pageContext.topicName}
-              </span>
-            )}
-          </div>
-
-          {/* Context indicator */}
-          {pageContext?.chapterName && (
+        {/* Right AI panel */}
+        {rightOpen && (
+          <>
             <div
-              className="flex-shrink-0 px-4 py-2 text-xs border-b"
+              className="md:hidden absolute inset-0 z-30 bg-black/40"
+              onClick={() => setRightOpen(false)}
+            />
+            <aside
+              className="absolute md:relative right-0 z-40 md:z-auto h-full flex-shrink-0 border-l"
               style={{
-                background: "rgba(218,119,86,0.06)",
+                width: "min(420px, 100%)",
                 borderColor: "var(--color-border-subtle)",
-                color: "var(--color-text-muted)",
               }}
             >
-              📖 {activeBook?.shortTitle} — p.{currentPage}
-              {pageContext.chapterName && ` · ${pageContext.chapterName}`}
-            </div>
-          )}
-
-          {/* Messages */}
-          <div
-            ref={chatScrollRef}
-            className="flex-1 overflow-y-auto px-3 py-4 space-y-4"
-          >
-            {chatMessages.length === 0 && !streamingText && (
-              <div
-                className="text-center py-10"
-                style={{ color: "var(--color-text-muted)" }}
-              >
-                <div
-                  className="w-10 h-10 rounded-xl flex items-center justify-center text-xl mx-auto mb-3"
-                  style={{ background: "var(--color-accent-soft)" }}
-                >
-                  📚
-                </div>
-                <p className="text-xs">
-                  Hỏi Linh về trang này — AI sẽ dùng ngữ cảnh từ
-                  <br />
-                  tất cả sách trong môn học này.
-                </p>
-              </div>
-            )}
-
-            {chatMessages.map((msg) => (
-              <div
-                key={msg.id}
-                className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-              >
-                <div
-                  className={`max-w-[90%] text-[13px] leading-relaxed ${
-                    msg.role === "assistant" ? "prose-chat" : ""
-                  }`}
-                  style={
-                    msg.role === "user"
-                      ? {
-                          background: "var(--color-elevated)",
-                          borderRadius: "14px 14px 3px 14px",
-                          padding: "8px 12px",
-                          border: "1px solid var(--color-border-default)",
-                        }
-                      : { padding: "2px 0" }
-                  }
-                >
-                  {msg.role === "assistant" ? (
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                      {msg.content}
-                    </ReactMarkdown>
-                  ) : (
-                    msg.content
-                  )}
-                </div>
-              </div>
-            ))}
-
-            {/* Streaming */}
-            {streamingText && (
-              <div className="flex justify-start">
-                <div
-                  className="max-w-[90%] text-[13px] leading-relaxed prose-chat"
-                  style={{ padding: "2px 0" }}
-                >
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {streamingText}
-                  </ReactMarkdown>
-                  <span
-                    className="inline-block w-1 h-3.5 ml-0.5 -mb-0.5 rounded-sm animate-pulse"
-                    style={{ background: "var(--color-accent)" }}
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Thinking dots */}
-            {isStreaming && !streamingText && (
-              <div className="flex justify-start">
-                <div className="flex gap-1.5 items-center py-2">
-                  {[0, 150, 300].map((delay) => (
-                    <div
-                      key={delay}
-                      className="w-1.5 h-1.5 rounded-full animate-bounce-dot"
-                      style={{
-                        background: "var(--color-accent)",
-                        animationDelay: `${delay}ms`,
-                      }}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Chat input */}
-          <div
-            className="flex-shrink-0 px-3 py-3 border-t"
-            style={{ borderColor: "var(--color-border-subtle)" }}
-          >
-            <div
-              className="flex items-end gap-2 rounded-xl border px-3 py-2"
-              style={{
-                background: "var(--color-surface)",
-                borderColor: "var(--color-border-default)",
-              }}
-            >
-              <textarea
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    sendMessage();
-                  }
-                }}
-                placeholder="Hỏi về trang này..."
-                disabled={isStreaming}
-                rows={1}
-                className="flex-1 bg-transparent text-xs resize-none outline-none"
-                style={{
-                  color: "var(--color-text-primary)",
-                  minHeight: "20px",
-                  maxHeight: "96px",
-                  lineHeight: "1.6",
-                }}
-                onInput={(e) => {
-                  const el = e.target as HTMLTextAreaElement;
-                  el.style.height = "auto";
-                  el.style.height = Math.min(el.scrollHeight, 96) + "px";
-                }}
+              <AiPanel
+                pageNumber={currentPage}
+                topicName={pageContext?.topicName ?? null}
+                chapterName={pageContext?.chapterName ?? null}
+                bookShortTitle={activeBook?.shortTitle ?? null}
+                messages={chatMessages}
+                streamingText={streamingText}
+                isStreaming={isStreaming}
+                input={chatInput}
+                onInputChange={setChatInput}
+                onSend={(override) => sendMessage(override)}
+                onClose={() => setRightOpen(false)}
+                onJumpToPage={goToPage}
               />
-              <button
-                onClick={sendMessage}
-                disabled={!chatInput.trim() || isStreaming}
-                className="p-1.5 rounded-lg transition-all disabled:opacity-30 flex-shrink-0"
-                style={{ color: "var(--color-accent)" }}
-              >
-                <Send size={15} />
-              </button>
-            </div>
-          </div>
-        </div>
+            </aside>
+          </>
+        )}
       </div>
     </div>
   );
