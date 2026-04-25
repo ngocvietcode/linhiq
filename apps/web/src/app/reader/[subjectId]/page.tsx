@@ -19,13 +19,20 @@ import {
 } from "@/components/reader/LeftSidebar";
 import { FloatingPageNav, type ZoomValue } from "@/components/reader/FloatingPageNav";
 import { AiPanel, type ChatMessage } from "@/components/reader/AiPanel";
+import { NoteEditor } from "@/components/reader/NoteEditor";
 import {
   getMaxPageReached,
   setMaxPageReached,
   getLastPage,
   setLastPage,
-  getBookmarks,
-  toggleBookmark as toggleBookmarkStorage,
+  fetchBookmarks,
+  createBookmark,
+  deleteBookmarkByPage,
+  fetchNotes,
+  upsertNote,
+  deleteNote,
+  type Bookmark,
+  type Note,
 } from "@/lib/reader-storage";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4500/api";
@@ -43,6 +50,7 @@ interface RagSourceMeta {
   documentTitle: string;
   content: string;
   similarity: number;
+  page: number | null;
 }
 
 export default function ReaderPage() {
@@ -69,9 +77,12 @@ export default function ReaderPage() {
   const [leftOpen, setLeftOpen] = useState(true);
   const [rightOpen, setRightOpen] = useState(true);
 
-  // Reading progress + bookmarks
+  // Reading progress + bookmarks + notes
   const [maxReached, setMaxReached] = useState(0);
-  const [bookmarks, setBookmarks] = useState<number[]>([]);
+  const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [editingNote, setEditingNote] = useState<Note | null>(null);
+  const [noteEditorOpen, setNoteEditorOpen] = useState(false);
 
   // Zoom
   const [zoom, setZoom] = useState<ZoomValue>("fit");
@@ -120,18 +131,24 @@ export default function ReaderPage() {
       });
   }, [token, subjectId]);
 
-  // ── Load ToC + restore last page + bookmarks/progress when book changes ──
+  // ── Load ToC + restore last page + bookmarks/notes/progress when book changes ──
   useEffect(() => {
     if (!token || !activeBook) return;
     const startPage = getLastPage(activeBook.id) ?? 1;
     setCurrentPage(startPage);
     setZoom("fit");
     setMaxReached(getMaxPageReached(activeBook.id));
-    setBookmarks(getBookmarks(activeBook.id));
 
     api<TocEntry[]>(`/textbooks/${activeBook.id}/toc`, { token })
       .then(setToc)
       .catch(() => setToc([]));
+
+    fetchBookmarks(activeBook.id)
+      .then(setBookmarks)
+      .catch(() => setBookmarks([]));
+    fetchNotes(activeBook.id)
+      .then(setNotes)
+      .catch(() => setNotes([]));
   }, [token, activeBook]);
 
   // ── Ctrl+wheel zoom ──
@@ -270,19 +287,81 @@ export default function ReaderPage() {
   }, [currentPage, goToPage]);
 
   // ── Bookmarks ──
-  const handleToggleBookmark = useCallback(() => {
+  const handleToggleBookmark = useCallback(async () => {
     if (!activeBook) return;
-    const next = toggleBookmarkStorage(activeBook.id, currentPage);
-    setBookmarks(next);
-  }, [activeBook, currentPage]);
+    const existing = bookmarks.find((b) => b.pageNumber === currentPage);
+    if (existing) {
+      setBookmarks((prev) => prev.filter((b) => b.id !== existing.id));
+      try {
+        await deleteBookmarkByPage(activeBook.id, currentPage);
+      } catch {
+        // Reload on error
+        fetchBookmarks(activeBook.id).then(setBookmarks).catch(() => {});
+      }
+    } else {
+      try {
+        const created = await createBookmark(activeBook.id, currentPage);
+        setBookmarks((prev) =>
+          [...prev.filter((b) => b.id !== created.id), created].sort(
+            (a, b) => a.pageNumber - b.pageNumber,
+          ),
+        );
+      } catch {
+        /* ignore */
+      }
+    }
+  }, [activeBook, currentPage, bookmarks]);
 
   const handleRemoveBookmark = useCallback(
-    (page: number) => {
+    async (page: number) => {
       if (!activeBook) return;
-      const next = toggleBookmarkStorage(activeBook.id, page);
-      setBookmarks(next);
+      setBookmarks((prev) => prev.filter((b) => b.pageNumber !== page));
+      try {
+        await deleteBookmarkByPage(activeBook.id, page);
+      } catch {
+        fetchBookmarks(activeBook.id).then(setBookmarks).catch(() => {});
+      }
     },
-    [activeBook]
+    [activeBook],
+  );
+
+  // ── Notes ──
+  const noteForCurrentPage =
+    notes.find((n) => n.pageNumber === currentPage) ?? null;
+
+  const handleOpenNote = useCallback(() => {
+    setEditingNote(noteForCurrentPage);
+    setNoteEditorOpen(true);
+  }, [noteForCurrentPage]);
+
+  const handleEditNote = useCallback((note: Note) => {
+    setEditingNote(note);
+    setNoteEditorOpen(true);
+  }, []);
+
+  const handleSaveNote = useCallback(
+    async (content: string) => {
+      if (!activeBook) return;
+      const targetPage = editingNote?.pageNumber ?? currentPage;
+      const saved = await upsertNote(activeBook.id, targetPage, content);
+      setNotes((prev) => {
+        const filtered = prev.filter((n) => n.id !== saved.id);
+        return [...filtered, saved].sort((a, b) => a.pageNumber - b.pageNumber);
+      });
+    },
+    [activeBook, editingNote, currentPage],
+  );
+
+  const handleDeleteNote = useCallback(
+    async (noteId: string) => {
+      setNotes((prev) => prev.filter((n) => n.id !== noteId));
+      try {
+        await deleteNote(noteId);
+      } catch {
+        if (activeBook) fetchNotes(activeBook.id).then(setNotes).catch(() => {});
+      }
+    },
+    [activeBook],
   );
 
   // ── Send chat ──
@@ -355,6 +434,7 @@ export default function ReaderPage() {
                     sources: sources?.map((s) => ({
                       chunkId: s.chunkId,
                       documentTitle: s.documentTitle,
+                      page: s.page ?? null,
                     })),
                   },
                 ]);
@@ -439,7 +519,8 @@ export default function ReaderPage() {
   const progressPct = totalPages
     ? Math.round((maxReached / totalPages) * 100)
     : 0;
-  const currentBookmarked = bookmarks.includes(currentPage);
+  const currentBookmarked = bookmarks.some((b) => b.pageNumber === currentPage);
+  const currentHasNote = !!noteForCurrentPage;
 
   return (
     <div
@@ -569,6 +650,7 @@ export default function ReaderPage() {
                 toc={toc}
                 currentTopicId={pageContext?.topicId ?? null}
                 bookmarks={bookmarks}
+                notes={notes}
                 currentPage={currentPage}
                 onJumpPage={(p) => {
                   goToPage(p);
@@ -577,6 +659,8 @@ export default function ReaderPage() {
                   }
                 }}
                 onRemoveBookmark={handleRemoveBookmark}
+                onEditNote={handleEditNote}
+                onDeleteNote={handleDeleteNote}
                 onClose={() => setLeftOpen(false)}
               />
             </aside>
@@ -669,9 +753,11 @@ export default function ReaderPage() {
             totalPages={totalPages}
             zoom={zoom}
             bookmarked={currentBookmarked}
+            hasNote={currentHasNote}
             onPageChange={goToPage}
             onZoomChange={setZoom}
             onToggleBookmark={handleToggleBookmark}
+            onOpenNote={handleOpenNote}
           />
         </div>
 
@@ -707,6 +793,23 @@ export default function ReaderPage() {
           </>
         )}
       </div>
+
+      <NoteEditor
+        open={noteEditorOpen}
+        pageNumber={editingNote?.pageNumber ?? currentPage}
+        initialContent={editingNote?.content ?? ""}
+        noteId={editingNote?.id ?? null}
+        onClose={() => {
+          setNoteEditorOpen(false);
+          setEditingNote(null);
+        }}
+        onSave={handleSaveNote}
+        onDelete={
+          editingNote
+            ? async () => handleDeleteNote(editingNote.id)
+            : undefined
+        }
+      />
     </div>
   );
 }

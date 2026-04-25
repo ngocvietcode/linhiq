@@ -8,9 +8,13 @@ import { RagModule } from './modules/rag/rag.module';
 import { AiModule } from './modules/ai/ai.module';
 
 import { AdminModule } from './modules/admin/admin.module';
+import { ParentModule } from './modules/parent/parent.module';
 import { SubjectModule } from './modules/subject/subject.module';
 import { QuizModule } from './modules/quiz/quiz.module';
 import { TextbookModule } from './modules/textbook/textbook.module';
+import { UploadModule } from './modules/upload/upload.module';
+import { SlidesModule } from './modules/slides/slides.module';
+import { ReaderModule } from './modules/reader/reader.module';
 
 @Module({
   imports: [
@@ -25,9 +29,13 @@ import { TextbookModule } from './modules/textbook/textbook.module';
     ChatModule,
     ProgressModule,
     AdminModule,
+    ParentModule,
     SubjectModule,
     QuizModule,
     TextbookModule,
+    UploadModule,
+    SlidesModule,
+    ReaderModule,
   ],
 })
 export class AppModule {}

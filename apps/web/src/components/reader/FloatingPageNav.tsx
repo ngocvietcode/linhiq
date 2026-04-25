@@ -7,6 +7,7 @@ import {
   ZoomIn,
   ZoomOut,
   Bookmark,
+  StickyNote,
 } from "lucide-react";
 
 const ZOOM_STEPS = [25, 50, 75, 100, 125, 150, 175, 200, 250, 300];
@@ -18,9 +19,11 @@ interface Props {
   totalPages: number | null;
   zoom: ZoomValue;
   bookmarked: boolean;
+  hasNote: boolean;
   onPageChange: (page: number) => void;
   onZoomChange: (z: ZoomValue) => void;
   onToggleBookmark: () => void;
+  onOpenNote: () => void;
 }
 
 export function FloatingPageNav({
@@ -28,9 +31,11 @@ export function FloatingPageNav({
   totalPages,
   zoom,
   bookmarked,
+  hasNote,
   onPageChange,
   onZoomChange,
   onToggleBookmark,
+  onOpenNote,
 }: Props) {
   const [pageInput, setPageInput] = useState(String(currentPage));
 
@@ -125,6 +130,18 @@ export function FloatingPageNav({
         title={bookmarked ? "Bỏ đánh dấu" : "Đánh dấu trang"}
       >
         <Bookmark size={15} fill={bookmarked ? "currentColor" : "none"} />
+      </button>
+
+      {/* Note */}
+      <button
+        onClick={onOpenNote}
+        className="p-1.5 rounded-full transition-colors hover:bg-[var(--color-surface-0)]"
+        style={{
+          color: hasNote ? "var(--color-accent)" : "var(--color-text-muted)",
+        }}
+        title={hasNote ? "Sửa ghi chú" : "Thêm ghi chú"}
+      >
+        <StickyNote size={15} fill={hasNote ? "currentColor" : "none"} />
       </button>
 
       {/* Divider */}

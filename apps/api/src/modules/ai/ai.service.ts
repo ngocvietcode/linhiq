@@ -7,6 +7,7 @@ import { RagService } from '../rag/rag.service';
 import { DatabaseService } from '../database/database.service';
 import {
   SOCRATIC_SYSTEM_PROMPT,
+  SOCRATIC_VISION_PROMPT,
   CLASSIFIER_PROMPT,
   SAFE_CHAT_PROMPT,
   GENTLE_REDIRECT_PROMPT,
@@ -39,7 +40,8 @@ interface StreamChatOptions {
   subjectName: string;
   curriculum: string;
   hintLevel?: HintLevel;
-  imageBase64?: string | null;   // base64-encoded image (no data: prefix)
+  imageUrl?: string | null;      // R2 signed URL (preferred if available)
+  imageBase64?: string | null;   // base64-encoded image (no data: prefix, fallback)
   imageMimeType?: string | null; // e.g. "image/jpeg"
   readerContext?: ReaderContext; // context from textbook reader
 }
@@ -57,6 +59,9 @@ interface SystemSettings {
   simpleQueryModel: string;
   complexQueryModel: string;
   embeddingModel: string;
+  openChatPrompt?: string | null;
+  maxTokensOpenChat: number;
+  maxTokensSocratic: number;
 }
 
 @Injectable()
@@ -82,6 +87,9 @@ export class AiService {
       simpleQueryModel: 'gemini-2.5-flash',
       complexQueryModel: 'gemini-2.5-pro',
       embeddingModel: 'gemini-embedding-001',
+      openChatPrompt: null,
+      maxTokensOpenChat: 300,
+      maxTokensSocratic: 1024,
     };
   }
 
@@ -114,12 +122,32 @@ export class AiService {
       subjectName,
       curriculum,
       hintLevel = 1,
-      imageBase64,
+      imageUrl,
+      imageBase64: imageBase64Input,
       imageMimeType = 'image/jpeg',
       readerContext,
     } = options;
 
-    // 1. Classify query complexity (images are always complex)
+    // Resolve image: prefer R2 URL (download + convert), fallback to inline base64
+    let imageBase64: string | null = imageBase64Input ?? null;
+    let resolvedMimeType = imageMimeType ?? 'image/jpeg';
+    if (imageUrl && !imageBase64) {
+      try {
+        const imgRes = await fetch(imageUrl);
+        if (imgRes.ok) {
+          const contentType = imgRes.headers.get('content-type') ?? resolvedMimeType;
+          resolvedMimeType = contentType.split(';')[0];
+          const arrayBuffer = await imgRes.arrayBuffer();
+          imageBase64 = Buffer.from(arrayBuffer).toString('base64');
+          this.logger.log(`Downloaded image from R2: ${imageUrl.substring(0, 80)}...`);
+        }
+      } catch (err) {
+        this.logger.warn('Failed to fetch image from R2 URL, skipping vision:', err);
+      }
+    }
+
+    // 1. Load settings + classify complexity
+    const settings = await this.getSystemSettings();
     const complexity = imageBase64 ? 'complex' : await this.classifyQuery(userMessage);
 
     // 2. Build context-boosted search query when in reader mode
@@ -132,8 +160,9 @@ export class AiService {
     const ragResults = await this.rag.search(searchQuery, subjectId, undefined, readerContext?.topicId);
     const ragContext = this.rag.formatContext(ragResults);
 
-    // 4. Build system prompt with RAG context
-    const systemPrompt = SOCRATIC_SYSTEM_PROMPT
+    // 4. Build system prompt — use vision-specific prompt when image is attached
+    const basePrompt = imageBase64 ? SOCRATIC_VISION_PROMPT : SOCRATIC_SYSTEM_PROMPT;
+    const systemPrompt = basePrompt
       .replaceAll('{{SUBJECT}}', subjectName)
       .replaceAll('{{CURRICULUM}}', curriculum)
       .replaceAll('{{HINT_LEVEL}}', String(hintLevel))
@@ -150,7 +179,7 @@ export class AiService {
       userContent = [
         {
           type: 'image',
-          image: `data:${imageMimeType};base64,${imageBase64}`,
+          image: `data:${resolvedMimeType};base64,${imageBase64}`,
         },
         ...(userMessage.trim() ? [{ type: 'text', text: userMessage }] : [{
           type: 'text',
@@ -170,9 +199,22 @@ export class AiService {
           ...chatHistory.slice(-10),
           { role: 'user' as const, content: userContent as string },
         ],
-        maxOutputTokens: modelConfig.maxOutputTokens,
+        maxOutputTokens: settings.maxTokensSocratic || modelConfig.maxOutputTokens,
         temperature: modelConfig.temperature,
       });
+
+      // Enrich sources with page numbers when in reader mode:
+      // fall back to BookPageTopic if chunk metadata is missing pageNumber.
+      const enrichedSources = await this.resolveSourcePages(
+        ragResults.map((r) => ({
+          chunkId: r.chunkId,
+          documentTitle: r.documentTitle,
+          content: r.content.substring(0, 100) + '...',
+          similarity: r.similarity,
+          page: r.page,
+        })),
+        readerContext?.bookVolumeId,
+      );
 
       return {
         stream: result,
@@ -181,12 +223,7 @@ export class AiService {
           complexity,
           hasImage: !!imageBase64,
           readerContext: readerContext ?? null,
-          ragSources: ragResults.map((r) => ({
-            chunkId: r.chunkId,
-            documentTitle: r.documentTitle,
-            content: r.content.substring(0, 100) + '...',
-            similarity: r.similarity,
-          })),
+          ragSources: enrichedSources,
         },
       };
     } catch (e) {
@@ -195,6 +232,56 @@ export class AiService {
     }
   }
 
+  /**
+   * Resolve missing page numbers on RAG sources via BookPageTopic.
+   * When the user is reading a specific book and a chunk has no `metadata.page`,
+   * fall back to the first page of the chunk's topic in that book.
+   */
+  private async resolveSourcePages<
+    T extends { chunkId: string; page: number | null },
+  >(
+    sources: T[],
+    bookVolumeId: string | undefined,
+  ): Promise<T[]> {
+    if (!bookVolumeId) return sources;
+    const missing = sources.filter((s) => s.page == null).map((s) => s.chunkId);
+    if (missing.length === 0) return sources;
+
+    try {
+      const chunks = await this.db.documentChunk.findMany({
+        where: { id: { in: missing } },
+        select: { id: true, topicId: true },
+      });
+      const topicIds = Array.from(
+        new Set(chunks.map((c) => c.topicId).filter((t): t is string => !!t)),
+      );
+      if (topicIds.length === 0) return sources;
+
+      const pageTopics = await this.db.bookPageTopic.findMany({
+        where: { bookVolumeId, topicId: { in: topicIds } },
+        orderBy: { pageNumber: 'asc' },
+      });
+      const topicToFirstPage = new Map<string, number>();
+      for (const pt of pageTopics) {
+        if (pt.topicId && !topicToFirstPage.has(pt.topicId)) {
+          topicToFirstPage.set(pt.topicId, pt.pageNumber);
+        }
+      }
+      const chunkToPage = new Map<string, number>();
+      for (const c of chunks) {
+        if (c.topicId) {
+          const p = topicToFirstPage.get(c.topicId);
+          if (p) chunkToPage.set(c.id, p);
+        }
+      }
+      return sources.map((s) =>
+        s.page == null ? { ...s, page: chunkToPage.get(s.chunkId) ?? null } : s,
+      );
+    } catch (err) {
+      this.logger.warn('resolveSourcePages failed:', err);
+      return sources;
+    }
+  }
 
   /**
    * Classify query complexity
@@ -278,16 +365,17 @@ export class AiService {
     chatHistory: ChatHistoryMessage[];
   }): Promise<StreamResult> {
     const { userMessage, chatHistory } = options;
+    const settings = await this.getSystemSettings();
     const { model, provider: activeProvider } = await this.resolveModel('simple');
 
     const result = streamText({
       model,
-      system: OPEN_CHAT_SYSTEM_PROMPT,
+      system: settings.openChatPrompt || OPEN_CHAT_SYSTEM_PROMPT,
       messages: [
         ...chatHistory.slice(-10),
         { role: 'user' as const, content: userMessage },
       ],
-      maxOutputTokens: 300,
+      maxOutputTokens: settings.maxTokensOpenChat || 300,
       temperature: 0.6,
     });
 

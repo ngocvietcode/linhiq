@@ -1,7 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { Library, ListTree, Bookmark, X, Trash2 } from "lucide-react";
+import {
+  Library,
+  ListTree,
+  Bookmark,
+  StickyNote,
+  X,
+  Trash2,
+  Pencil,
+} from "lucide-react";
+import type { Bookmark as BookmarkRecord, Note } from "@/lib/reader-storage";
 
 export interface BookVolume {
   id: string;
@@ -30,7 +39,7 @@ const BOOK_ICONS: Record<string, string> = {
   TEACHER_GUIDE: "👩‍🏫",
 };
 
-type Tab = "books" | "toc" | "bookmarks";
+type Tab = "books" | "toc" | "bookmarks" | "notes";
 
 interface Props {
   books: BookVolume[];
@@ -38,10 +47,13 @@ interface Props {
   onSelectBook: (book: BookVolume) => void;
   toc: TocEntry[];
   currentTopicId: string | null;
-  bookmarks: number[];
+  bookmarks: BookmarkRecord[];
+  notes: Note[];
   currentPage: number;
   onJumpPage: (page: number) => void;
   onRemoveBookmark: (page: number) => void;
+  onEditNote: (note: Note) => void;
+  onDeleteNote: (noteId: string) => void;
   onClose?: () => void;
 }
 
@@ -52,9 +64,12 @@ export function LeftSidebar({
   toc,
   currentTopicId,
   bookmarks,
+  notes,
   currentPage,
   onJumpPage,
   onRemoveBookmark,
+  onEditNote,
+  onDeleteNote,
   onClose,
 }: Props) {
   const [tab, setTab] = useState<Tab>("toc");
@@ -74,6 +89,7 @@ export function LeftSidebar({
             { key: "books", icon: Library, label: "Sách" },
             { key: "toc", icon: ListTree, label: "Mục lục" },
             { key: "bookmarks", icon: Bookmark, label: "Đánh dấu" },
+            { key: "notes", icon: StickyNote, label: "Ghi chú" },
           ] as const
         ).map(({ key, icon: Icon, label }) => {
           const active = tab === key;
@@ -107,6 +123,7 @@ export function LeftSidebar({
             {tab === "books" && "Sách trong môn học"}
             {tab === "toc" && "Mục lục"}
             {tab === "bookmarks" && "Đã đánh dấu"}
+            {tab === "notes" && "Ghi chú"}
           </span>
           {onClose && (
             <button
@@ -137,6 +154,15 @@ export function LeftSidebar({
               currentPage={currentPage}
               onJumpPage={onJumpPage}
               onRemove={onRemoveBookmark}
+            />
+          )}
+          {tab === "notes" && (
+            <NotesTab
+              notes={notes}
+              currentPage={currentPage}
+              onJumpPage={onJumpPage}
+              onEdit={onEditNote}
+              onDelete={onDeleteNote}
             />
           )}
         </div>
@@ -292,7 +318,7 @@ function BookmarksTab({
   onJumpPage,
   onRemove,
 }: {
-  bookmarks: number[];
+  bookmarks: BookmarkRecord[];
   currentPage: number;
   onJumpPage: (p: number) => void;
   onRemove: (p: number) => void;
@@ -305,17 +331,19 @@ function BookmarksTab({
       >
         <Bookmark size={20} className="mx-auto opacity-40" />
         <p>Chưa có trang nào được đánh dấu.</p>
-        <p className="text-[11px]">Bấm vào biểu tượng dấu trang ở thanh điều hướng để lưu trang.</p>
+        <p className="text-[11px]">
+          Bấm vào biểu tượng dấu trang ở thanh điều hướng để lưu trang.
+        </p>
       </div>
     );
   }
   return (
     <div className="px-2 space-y-1">
-      {bookmarks.map((page) => {
-        const isCurrent = page === currentPage;
+      {bookmarks.map((b) => {
+        const isCurrent = b.pageNumber === currentPage;
         return (
           <div
-            key={page}
+            key={b.id}
             className="group flex items-center gap-2 px-3 py-2 rounded-lg transition-colors"
             style={{
               background: isCurrent
@@ -333,8 +361,8 @@ function BookmarksTab({
             }}
           >
             <button
-              onClick={() => onJumpPage(page)}
-              className="flex-1 flex items-center gap-2 text-xs text-left"
+              onClick={() => onJumpPage(b.pageNumber)}
+              className="flex-1 flex items-center gap-2 text-xs text-left min-w-0"
             >
               <Bookmark
                 size={13}
@@ -342,6 +370,7 @@ function BookmarksTab({
                 fill="currentColor"
               />
               <span
+                className="truncate"
                 style={{
                   color: isCurrent
                     ? "var(--color-accent)"
@@ -349,17 +378,112 @@ function BookmarksTab({
                   fontWeight: isCurrent ? 600 : 500,
                 }}
               >
-                Trang {page}
+                {b.label || `Trang ${b.pageNumber}`}
               </span>
+              {b.label && (
+                <span
+                  className="text-[10px]"
+                  style={{ color: "var(--color-text-muted)" }}
+                >
+                  · p.{b.pageNumber}
+                </span>
+              )}
             </button>
             <button
-              onClick={() => onRemove(page)}
+              onClick={() => onRemove(b.pageNumber)}
               className="p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"
               style={{ color: "var(--color-text-muted)" }}
               aria-label="Remove bookmark"
             >
               <Trash2 size={12} />
             </button>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function NotesTab({
+  notes,
+  currentPage,
+  onJumpPage,
+  onEdit,
+  onDelete,
+}: {
+  notes: Note[];
+  currentPage: number;
+  onJumpPage: (p: number) => void;
+  onEdit: (n: Note) => void;
+  onDelete: (id: string) => void;
+}) {
+  if (notes.length === 0) {
+    return (
+      <div
+        className="text-xs px-4 py-6 text-center space-y-2"
+        style={{ color: "var(--color-text-muted)" }}
+      >
+        <StickyNote size={20} className="mx-auto opacity-40" />
+        <p>Chưa có ghi chú nào.</p>
+        <p className="text-[11px]">
+          Bấm biểu tượng ghi chú ở thanh điều hướng để thêm ghi chú cho trang.
+        </p>
+      </div>
+    );
+  }
+  return (
+    <div className="px-2 space-y-1.5">
+      {notes.map((n) => {
+        const isCurrent = n.pageNumber === currentPage;
+        return (
+          <div
+            key={n.id}
+            className="group rounded-lg px-3 py-2.5 transition-colors"
+            style={{
+              background: isCurrent
+                ? "var(--color-accent-soft)"
+                : "var(--color-surface-0)",
+              border: isCurrent
+                ? "1px solid var(--color-accent-border)"
+                : "1px solid var(--color-border-subtle)",
+            }}
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <button
+                onClick={() => onJumpPage(n.pageNumber)}
+                className="text-[10px] font-semibold tabular-nums"
+                style={{
+                  color: isCurrent
+                    ? "var(--color-accent)"
+                    : "var(--color-text-muted)",
+                }}
+              >
+                p. {n.pageNumber}
+              </button>
+              <div className="flex-1" />
+              <button
+                onClick={() => onEdit(n)}
+                className="p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                style={{ color: "var(--color-text-muted)" }}
+                aria-label="Sửa ghi chú"
+              >
+                <Pencil size={11} />
+              </button>
+              <button
+                onClick={() => onDelete(n.id)}
+                className="p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                style={{ color: "var(--color-text-muted)" }}
+                aria-label="Xoá ghi chú"
+              >
+                <Trash2 size={11} />
+              </button>
+            </div>
+            <p
+              className="text-[12px] leading-snug whitespace-pre-wrap"
+              style={{ color: "var(--color-text-primary)" }}
+            >
+              {n.content}
+            </p>
           </div>
         );
       })}

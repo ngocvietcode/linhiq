@@ -1,7 +1,10 @@
 "use client";
 
+import { api } from "./api";
+
+// ── Read-progress / last-page (local only, per-device) ─────────────
+
 const PROGRESS_KEY = (bookId: string) => `reader:progress:${bookId}`;
-const BOOKMARKS_KEY = (bookId: string) => `reader:bookmarks:${bookId}`;
 const LAST_PAGE_KEY = (bookId: string) => `reader:lastPage:${bookId}`;
 
 const isBrowser = () => typeof window !== "undefined";
@@ -32,28 +35,71 @@ export function setLastPage(bookId: string, page: number): void {
   window.localStorage.setItem(LAST_PAGE_KEY(bookId), String(page));
 }
 
-export function getBookmarks(bookId: string): number[] {
-  if (!isBrowser()) return [];
-  try {
-    const raw = window.localStorage.getItem(BOOKMARKS_KEY(bookId));
-    if (!raw) return [];
-    const arr = JSON.parse(raw);
-    return Array.isArray(arr) ? arr.filter((n) => typeof n === "number") : [];
-  } catch {
-    return [];
-  }
+// ── Bookmarks (server) ─────────────────────────────────────────────
+
+export interface Bookmark {
+  id: string;
+  bookVolumeId: string;
+  pageNumber: number;
+  label: string | null;
+  createdAt: string;
 }
 
-export function toggleBookmark(bookId: string, page: number): number[] {
-  const list = getBookmarks(bookId);
-  const exists = list.includes(page);
-  const next = exists ? list.filter((p) => p !== page) : [...list, page].sort((a, b) => a - b);
-  if (isBrowser()) {
-    window.localStorage.setItem(BOOKMARKS_KEY(bookId), JSON.stringify(next));
-  }
-  return next;
+export async function fetchBookmarks(bookVolumeId: string): Promise<Bookmark[]> {
+  return api<Bookmark[]>(
+    `/reader/bookmarks?bookVolumeId=${encodeURIComponent(bookVolumeId)}`,
+  );
 }
 
-export function isBookmarked(bookId: string, page: number): boolean {
-  return getBookmarks(bookId).includes(page);
+export async function createBookmark(
+  bookVolumeId: string,
+  pageNumber: number,
+  label?: string,
+): Promise<Bookmark> {
+  return api<Bookmark>("/reader/bookmarks", {
+    method: "POST",
+    body: { bookVolumeId, pageNumber, label },
+  });
+}
+
+export async function deleteBookmarkByPage(
+  bookVolumeId: string,
+  pageNumber: number,
+): Promise<void> {
+  await api(
+    `/reader/bookmarks?bookVolumeId=${encodeURIComponent(bookVolumeId)}&pageNumber=${pageNumber}`,
+    { method: "DELETE" },
+  );
+}
+
+// ── Notes (server) ─────────────────────────────────────────────────
+
+export interface Note {
+  id: string;
+  bookVolumeId: string;
+  pageNumber: number;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export async function fetchNotes(bookVolumeId: string): Promise<Note[]> {
+  return api<Note[]>(
+    `/reader/notes?bookVolumeId=${encodeURIComponent(bookVolumeId)}`,
+  );
+}
+
+export async function upsertNote(
+  bookVolumeId: string,
+  pageNumber: number,
+  content: string,
+): Promise<Note> {
+  return api<Note>("/reader/notes", {
+    method: "POST",
+    body: { bookVolumeId, pageNumber, content },
+  });
+}
+
+export async function deleteNote(noteId: string): Promise<void> {
+  await api(`/reader/notes/${noteId}`, { method: "DELETE" });
 }

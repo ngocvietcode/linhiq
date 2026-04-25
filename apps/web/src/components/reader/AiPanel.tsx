@@ -9,7 +9,11 @@ export interface ChatMessage {
   id: string;
   role: "user" | "assistant";
   content: string;
-  sources?: { documentTitle: string; chunkId: string }[];
+  sources?: {
+    documentTitle: string;
+    chunkId: string;
+    page: number | null;
+  }[];
 }
 
 interface Props {
@@ -177,7 +181,10 @@ export function AiPanel({
                     onJumpToPage={onJumpToPage}
                   />
                   {msg.sources && msg.sources.length > 0 && (
-                    <SourceChips sources={msg.sources} />
+                    <SourceChips
+                      sources={msg.sources}
+                      onJumpToPage={onJumpToPage}
+                    />
                   )}
                 </>
               ) : (
@@ -290,14 +297,17 @@ export function AiPanel({
 
 function SourceChips({
   sources,
+  onJumpToPage,
 }: {
-  sources: { documentTitle: string; chunkId: string }[];
+  sources: { documentTitle: string; chunkId: string; page: number | null }[];
+  onJumpToPage: (page: number) => void;
 }) {
-  // Dedupe by documentTitle
+  // Dedupe by (documentTitle, page)
   const seen = new Set<string>();
   const unique = sources.filter((s) => {
-    if (seen.has(s.documentTitle)) return false;
-    seen.add(s.documentTitle);
+    const k = `${s.documentTitle}::${s.page ?? ""}`;
+    if (seen.has(k)) return false;
+    seen.add(k);
     return true;
   });
   if (unique.length === 0) return null;
@@ -313,21 +323,40 @@ function SourceChips({
       >
         Nguồn:
       </span>
-      {unique.slice(0, 4).map((s, i) => (
-        <span
-          key={i}
-          className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px]"
-          style={{
-            background: "var(--color-surface-0)",
-            border: "1px solid var(--color-border-subtle)",
-            color: "var(--color-text-muted)",
-          }}
-          title={s.documentTitle}
-        >
-          <FileText size={9} />
-          <span className="max-w-[120px] truncate">{s.documentTitle}</span>
-        </span>
-      ))}
+      {unique.slice(0, 4).map((s, i) => {
+        const clickable = s.page != null;
+        const Tag = clickable ? "button" : "span";
+        return (
+          <Tag
+            key={i}
+            onClick={clickable ? () => onJumpToPage(s.page!) : undefined}
+            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] transition-colors"
+            style={{
+              background: clickable
+                ? "var(--color-accent-soft)"
+                : "var(--color-surface-0)",
+              border: clickable
+                ? "1px solid var(--color-accent-border)"
+                : "1px solid var(--color-border-subtle)",
+              color: clickable
+                ? "var(--color-accent)"
+                : "var(--color-text-muted)",
+              cursor: clickable ? "pointer" : "default",
+            }}
+            title={
+              clickable
+                ? `${s.documentTitle} — trang ${s.page}`
+                : s.documentTitle
+            }
+          >
+            <FileText size={9} />
+            <span className="max-w-[120px] truncate">{s.documentTitle}</span>
+            {s.page != null && (
+              <span className="font-semibold tabular-nums">p.{s.page}</span>
+            )}
+          </Tag>
+        );
+      })}
     </div>
   );
 }
