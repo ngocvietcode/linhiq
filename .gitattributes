@@ -1,0 +1,7 @@
+# Always use LF for shell scripts so they run inside Linux containers
+*.sh text eol=lf
+
+# Dockerfiles + compose run inside Linux too
+Dockerfile text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf

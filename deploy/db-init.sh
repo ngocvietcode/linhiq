@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 # ============================================================
 # LinhIQ — Database Initialization Script (Production)
 # ============================================================
@@ -13,7 +13,7 @@
 #   docker exec linhiq-api sh deploy/db-init.sh --seed
 # ============================================================
 
-set -euo pipefail
+set -eu
 
 SEED=false
 for arg in "$@"; do
