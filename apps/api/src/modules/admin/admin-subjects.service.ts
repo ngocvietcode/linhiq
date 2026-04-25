@@ -19,15 +19,31 @@ export class AdminSubjectsService {
     const subject = await this.db.subject.findUnique({
       where: { id },
       include: {
-        documents: true,
-        milestones: {
+        documents: {
+          include: {
+            bookVolume: {
+              select: { id: true, title: true, shortTitle: true, bookType: true, isDefault: true, totalPages: true },
+            },
+            _count: { select: { chunks: true } },
+          },
+          orderBy: { createdAt: 'asc' },
+        },
+        bookVolumes: {
+          select: { id: true, title: true, shortTitle: true, bookType: true, isDefault: true, totalPages: true, documentId: true },
+          orderBy: { orderIndex: 'asc' },
+        },
+        Unit: {
           orderBy: { orderIndex: 'asc' },
           include: {
-            topics: {
+            Topic: {
               orderBy: { orderIndex: 'asc' },
               include: {
                 chunks: {
-                  select: { id: true, content: true },
+                  select: {
+                    id: true,
+                    content: true,
+                    document: { select: { id: true, title: true, bookVolume: { select: { shortTitle: true } } } },
+                  },
                   orderBy: { chunkIndex: 'asc' }
                 }
               }
@@ -37,7 +53,15 @@ export class AdminSubjectsService {
       }
     });
     if (!subject) throw new NotFoundException('Subject not found');
-    return subject;
+
+    // Flatten Prisma's capitalized relation names (Unit / Topic) into the
+    // shape the admin UI expects: `milestones[].topics[].chunks[]`.
+    const { Unit, ...rest } = subject;
+    const milestones = Unit.map((u) => {
+      const { Topic, ...unitRest } = u;
+      return { ...unitRest, topics: Topic };
+    });
+    return { ...rest, milestones };
   }
 
   async createSubject(data: { name: string; curriculum: Curriculum; description?: string; iconEmoji?: string }) {

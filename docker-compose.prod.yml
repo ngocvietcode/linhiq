@@ -118,7 +118,9 @@ services:
     environment:
       DATABASE_URL: "postgresql://${POSTGRES_USER:-linhiq}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-linhiq}?schema=public"
       REDIS_URL: "redis://:${REDIS_PASSWORD:-CHANGE_ME_STRONG_REDIS_PASSWORD}@redis:6379"
-    # Override CMD — use node directly (fix old image that used tsx)
+    # Auto-run baseline migration on every start (idempotent — safe to re-run)
+    # On fresh DB: applies the single baseline migration then starts the API.
+    # On existing DB: migration is already applied, skips it, starts API directly.
     command: ["sh", "-c", "./node_modules/.bin/prisma migrate deploy --schema=./packages/database/prisma/schema.prisma && node apps/api/dist/main.js"]
     ports:
       - "127.0.0.1:4500:4500"

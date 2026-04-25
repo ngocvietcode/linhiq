@@ -1,15 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { api } from "@/lib/api";
-import { Home, MessageSquare, TrendingUp, Settings, ChevronRight, AlertTriangle } from "lucide-react";
+import { ChevronRight, AlertTriangle, BookOpen, MessageCircle } from "lucide-react";
+import { AppShell } from "@/components/layout/AppShell";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { EmptyState } from "@/components/EmptyState";
 
 interface TopicMastery {
   topicName: string;
-  mastery: number; // 0.0–1.0
+  mastery: number;
   questionsAsked: number;
 }
 
@@ -28,36 +30,40 @@ interface ProgressOverview {
   subjects: SubjectProgress[];
 }
 
-const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-// Mock weekly distribution since API doesn't have daily breakdown yet
-function mockWeekly(total: number) {
-  const base = [0.15, 0.05, 0.2, 0.12, 0.2, 0.03, 0.12].map((r) => Math.round(r * total));
-  return base;
+interface StudyHourPoint { date: string; minutes: number }
+
+interface ChatStats {
+  totals: {
+    academic: number; general: number; hobbies: number; life: number;
+    redirected: number; totalMsg: number;
+  };
+  ratios: {
+    academic: number; general: number; hobbies: number; life: number; redirected: number;
+  };
 }
 
-const NAV_ITEMS = [
-  { href: "/dashboard", icon: Home, label: "Home" },
-  { href: "/chat", icon: MessageSquare, label: "Chat với Linh" },
-  { href: "/progress", icon: TrendingUp, label: "Progress" },
-  { href: "/settings", icon: Settings, label: "Settings" },
-];
+const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-function MasteryBadge({ pct }: { pct: number }) {
-  if (pct >= 80) return <span style={{ color: "var(--color-success)" }}>✅</span>;
-  if (pct >= 50) return <span>⚠️</span>;
-  return <span style={{ color: "var(--color-text-muted)" }}>──</span>;
+const CATEGORY_META = [
+  { key: "academic",   label: "Học tập",   color: "var(--color-accent)"  },
+  { key: "general",    label: "Tổng quát", color: "var(--color-teal)"    },
+  { key: "hobbies",    label: "Sở thích",  color: "var(--color-gold)"    },
+  { key: "life",       label: "Đời sống",  color: "#8B5CF6"              },
+  { key: "redirected", label: "Chuyển hướng", color: "var(--color-warning)" },
+] as const;
+
+function MasteryIndicator({ pct }: { pct: number }) {
+  if (pct >= 80) return <span className="text-xs font-bold" style={{ color: "var(--color-success)" }}>●</span>;
+  if (pct >= 50) return <span className="text-xs font-bold" style={{ color: "var(--color-warning)" }}>◐</span>;
+  return <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>○</span>;
 }
 
 function ProgressContent() {
-  const router = useRouter();
-  const pathname = usePathname();
-  const { user, token, isLoading } = useAuth();
+  const { token } = useAuth();
   const [overview, setOverview] = useState<ProgressOverview | null>(null);
+  const [studyHours, setStudyHours] = useState<StudyHourPoint[]>([]);
+  const [chatStats, setChatStats] = useState<ChatStats | null>(null);
   const [activeSubject, setActiveSubject] = useState<string>("");
-
-  useEffect(() => {
-    if (!isLoading && !user) router.push("/login");
-  }, [user, isLoading, router]);
 
   useEffect(() => {
     if (!token) return;
@@ -67,243 +73,269 @@ function ProgressContent() {
         if (data.subjects?.length) setActiveSubject(data.subjects[0].id);
       })
       .catch(console.error);
+    api<StudyHourPoint[]>("/progress/study-hours?days=7", { token })
+      .then(setStudyHours)
+      .catch(console.error);
+    api<ChatStats>("/progress/chat-stats?weeks=4", { token })
+      .then(setChatStats)
+      .catch(console.error);
   }, [token]);
-
-  if (isLoading || !user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--color-base)" }}>
-        <div className="w-10 h-10 rounded-full border-2 animate-spin" style={{ borderColor: "var(--color-accent)", borderTopColor: "transparent" }} />
-      </div>
-    );
-  }
 
   const studyH = overview?.studyTimeMin ? Math.floor(overview.studyTimeMin / 60) : 0;
   const studyM = overview?.studyTimeMin ? overview.studyTimeMin % 60 : 0;
-  const weeklyMins = mockWeekly(overview?.studyTimeMin || 0);
+  // Render 7 days from API (YYYY-MM-DD, UTC) — label with local weekday
+  const weekData = studyHours.map((p) => {
+    const d = new Date(p.date + "T00:00:00");
+    return { label: DAY_LABELS[d.getDay()], minutes: p.minutes };
+  });
+  const weeklyMins = weekData.map((d) => d.minutes);
   const maxMins = Math.max(...weeklyMins, 60);
   const currentSubject = overview?.subjects?.find((s) => s.id === activeSubject);
-
-  // Weak areas: topics below 60%
   const weakTopics = currentSubject?.topics?.filter((t) => t.mastery < 0.6) || [];
-
-  // Key terms earned (mock — would come from API)
-  const KEY_TERMS = ["osmosis", "semi-permeable", "concentration gradient", "chlorophyll", "photosynthesis", "active transport"];
+  const masteredTopics = (overview?.subjects ?? [])
+    .flatMap((s) => s.topics ?? [])
+    .filter((t) => t.mastery >= 0.6)
+    .map((t) => t.topicName)
+    .slice(0, 20);
 
   return (
-    <div className="min-h-screen flex" style={{ background: "var(--color-base)" }}>
-      {/* ── Sidebar ── */}
-      <aside
-        className="hidden md:flex flex-col w-56 border-r fixed inset-y-0 left-0 z-20"
-        style={{ background: "var(--color-void)", borderColor: "var(--color-border-subtle)" }}
-      >
-        <div className="px-5 py-6 border-b" style={{ borderColor: "var(--color-border-subtle)" }}>
-          <span className="text-xl font-bold">
-            <span style={{ color: "var(--color-accent)" }}>Linh</span>IQ
-          </span>
-        </div>
-        <nav className="flex-1 p-3 space-y-1">
-          {NAV_ITEMS.map(({ href, icon: Icon, label }) => {
-            const active = pathname === href;
-            return (
-              <Link key={href} href={href} className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all"
-                style={{ background: active ? "var(--color-accent-soft)" : "transparent", color: active ? "var(--color-accent)" : "var(--color-text-secondary)" }}>
-                <Icon size={18} />{label}
-              </Link>
-            );
-          })}
-        </nav>
-      </aside>
+    <AppShell maxWidth="max-w-3xl">
+      <PageHeader title="Progress" subtitle="Track your learning journey" />
 
-      {/* ── Content ── */}
-      <div className="flex-1 md:ml-56">
-        {/* Mobile header */}
-        <header className="md:hidden sticky top-0 z-10 px-5 py-4 flex items-center justify-between border-b"
-          style={{ background: "rgba(23,23,23,0.85)", backdropFilter: "blur(16px)", borderColor: "var(--color-border-subtle)" }}>
-          <h1 className="text-lg font-bold">Progress</h1>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium px-3 py-1.5 rounded-full"
-              style={{ background: "var(--color-accent-soft)", color: "var(--color-text-hint)" }}>
-              This week ▾
-            </span>
-          </div>
-        </header>
-
-        <main className="px-5 md:px-8 py-8 pb-24 md:pb-8 max-w-3xl mx-auto">
-          <div className="hidden md:flex items-center justify-between mb-8">
-            <h1 className="text-2xl font-bold">Progress</h1>
-            <span className="text-sm font-medium px-3 py-1.5 rounded-full border"
-              style={{ background: "var(--color-surface)", borderColor: "var(--color-border-default)", color: "var(--color-text-secondary)" }}>
-              This week ▾
-            </span>
-          </div>
-
-          {/* ── Study time chart ── */}
-          <section className="rounded-2xl border p-5 mb-6"
-            style={{ background: "var(--color-surface)", borderColor: "var(--color-border-subtle)" }}>
-            <h2 className="text-sm font-medium mb-4" style={{ color: "var(--color-text-muted)" }}>
-              STUDY TIME THIS WEEK
-            </h2>
-            <div className="flex items-end gap-2 h-28">
-              {DAYS.map((day, i) => {
-                const mins = weeklyMins[i];
-                const pctH = (mins / maxMins) * 100;
+      {/* Study time chart */}
+      <section className="card mb-6">
+        <p
+          className="text-xs font-semibold uppercase tracking-wider mb-4"
+          style={{ color: "var(--color-text-muted)", letterSpacing: "0.06em" }}
+        >
+          Study Time This Week
+        </p>
+        <div className="flex items-end gap-2 h-28">
+          {weekData.length === 0
+            ? DAY_LABELS.slice(1).concat("Sun").map((day) => (
+                <div key={day} className="flex-1 flex flex-col items-center gap-1">
+                  <div className="w-full rounded" style={{ height: "4%", background: "var(--color-border-subtle)", opacity: 0.5 }} />
+                  <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>{day}</span>
+                </div>
+              ))
+            : weekData.map(({ label, minutes }, i) => {
+                const pctH = (minutes / maxMins) * 100;
                 return (
-                  <div key={day} className="flex-1 flex flex-col items-center gap-1">
+                  <div key={i} className="flex-1 flex flex-col items-center gap-1">
                     <div
-                      className="w-full rounded-md transition-all duration-700"
+                      className="w-full rounded transition-all duration-700"
                       style={{
                         height: `${Math.max(pctH, 4)}%`,
-                        background: mins > 0 ? "var(--color-accent)" : "var(--color-elevated)",
-                        opacity: mins > 0 ? 1 : 0.5,
+                        background: minutes > 0 ? "var(--color-accent)" : "var(--color-border-subtle)",
+                        opacity: minutes > 0 ? 1 : 0.5,
+                        borderRadius: "var(--radius-sm)",
                       }}
+                      title={`${minutes} min`}
                     />
-                    <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>{day}</span>
+                    <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>{label}</span>
                   </div>
                 );
               })}
-            </div>
-            <p className="text-sm mt-3" style={{ color: "var(--color-text-secondary)" }}>
-              Total:{" "}
-              <span className="font-semibold" style={{ color: "var(--color-text-primary)" }}>
-                {studyH}h {studyM}min
-              </span>
+        </div>
+        <p className="text-sm mt-3" style={{ color: "var(--color-text-secondary)" }}>
+          Total:{" "}
+          <span className="font-semibold" style={{ color: "var(--color-text-primary)" }}>
+            {studyH}h {studyM}min
+          </span>
+        </p>
+      </section>
+
+      {/* Chat category breakdown */}
+      {chatStats && chatStats.totals.totalMsg > 0 && (
+        <section className="card mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <p
+              className="text-xs font-semibold uppercase tracking-wider"
+              style={{ color: "var(--color-text-muted)", letterSpacing: "0.06em" }}
+            >
+              Chat Breakdown
             </p>
-          </section>
+            <span className="text-xs flex items-center gap-1" style={{ color: "var(--color-text-muted)" }}>
+              <MessageCircle size={12} /> {chatStats.totals.totalMsg} messages
+            </span>
+          </div>
 
-          {/* ── Subject tabs ── */}
-          {overview?.subjects && overview.subjects.length > 0 && (
-            <>
-              <div className="flex gap-2 mb-5 overflow-x-auto pb-1 -mx-5 px-5 md:mx-0 md:px-0 md:flex-wrap scrollbar-hide">
-                {overview.subjects.map((s) => (
-                  <button
-                    key={s.id}
-                    onClick={() => setActiveSubject(s.id)}
-                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium border transition-all flex-shrink-0"
-                    style={{
-                      background: activeSubject === s.id ? "var(--color-accent-soft)" : "var(--color-surface)",
-                      borderColor: activeSubject === s.id ? "var(--color-accent)" : "var(--color-border-subtle)",
-                      color: activeSubject === s.id ? "var(--color-accent)" : "var(--color-text-secondary)",
-                    }}
-                  >
-                    {s.iconEmoji} {s.name}
-                  </button>
-                ))}
-              </div>
+          {/* Stacked bar */}
+          <div className="flex h-3 rounded-full overflow-hidden mb-4" style={{ background: "var(--color-border-subtle)" }}>
+            {CATEGORY_META.map((c) => {
+              const pct = chatStats.ratios[c.key] * 100;
+              if (pct <= 0) return null;
+              return (
+                <div
+                  key={c.key}
+                  style={{ width: `${pct}%`, background: c.color }}
+                  title={`${c.label} · ${pct.toFixed(0)}%`}
+                />
+              );
+            })}
+          </div>
 
-              {/* Topic mastery list */}
-              {currentSubject && (
-                <section className="rounded-2xl border p-5 mb-6"
-                  style={{ background: "var(--color-surface)", borderColor: "var(--color-border-subtle)" }}>
-                  <h2 className="text-sm font-medium mb-4" style={{ color: "var(--color-text-muted)" }}>
-                    TOPIC MASTERY — {currentSubject.name.toUpperCase()}
-                  </h2>
-                  {currentSubject.topics && currentSubject.topics.length > 0 ? (
-                    <div className="space-y-4">
-                      {currentSubject.topics.map((topic) => {
-                        const pct = Math.round(topic.mastery * 100);
-                        return (
-                          <div key={topic.topicName}>
-                            <div className="flex items-center justify-between mb-1.5">
-                              <div className="flex items-center gap-2">
-                                <MasteryBadge pct={pct} />
-                                <span className="text-sm">{topic.topicName}</span>
-                              </div>
-                              <span className="text-sm font-bold mono" style={{ color: pct >= 80 ? "var(--color-success)" : pct >= 50 ? "var(--color-warning)" : "var(--color-text-muted)" }}>
-                                {pct}%
-                              </span>
-                            </div>
-                            <div className="progress-bar">
-                              <div
-                                className="progress-fill"
-                                style={{
-                                  width: `${pct}%`,
-                                  background: pct >= 80
-                                    ? "linear-gradient(90deg, var(--color-success), #34d399)"
-                                    : pct >= 50
-                                      ? "linear-gradient(90deg, var(--color-warning), #fbbf24)"
-                                      : "linear-gradient(90deg, var(--color-text-muted), var(--color-border-default))",
-                                }}
-                              />
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <p className="text-sm py-4 text-center" style={{ color: "var(--color-text-muted)" }}>
-                      Start studying {currentSubject.name} to track your progress!
+          {/* Legend */}
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+            {CATEGORY_META.map((c) => {
+              const count = chatStats.totals[c.key];
+              const pct = Math.round(chatStats.ratios[c.key] * 100);
+              return (
+                <div key={c.key} className="flex items-start gap-2">
+                  <span
+                    className="inline-block w-3 h-3 rounded-sm flex-shrink-0 mt-1"
+                    style={{ background: c.color }}
+                  />
+                  <div>
+                    <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>{c.label}</p>
+                    <p className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>
+                      {pct}% <span className="text-xs font-normal" style={{ color: "var(--color-text-muted)" }}>({count})</span>
                     </p>
-                  )}
-                </section>
-              )}
-            </>
-          )}
-
-          {/* ── Weak areas ── */}
-          {weakTopics.length > 0 && (
-            <section className="mb-6">
-              <h2 className="text-sm font-medium mb-3" style={{ color: "var(--color-text-muted)" }}>
-                WEAK AREAS TO FOCUS ON
-              </h2>
-              <div className="space-y-3">
-                {weakTopics.slice(0, 3).map((t) => (
-                  <div
-                    key={t.topicName}
-                    className="rounded-xl p-4 border flex items-start justify-between gap-4"
-                    style={{ background: "rgba(245,158,11,0.05)", borderColor: "rgba(245,158,11,0.2)" }}
-                  >
-                    <div className="flex items-start gap-3">
-                      <AlertTriangle size={16} style={{ color: "var(--color-warning)", flexShrink: 0, marginTop: 2 }} />
-                      <div>
-                        <p className="font-medium text-sm">{t.topicName}</p>
-                        <p className="text-xs mt-0.5" style={{ color: "var(--color-text-secondary)" }}>
-                          {t.questionsAsked} questions asked · {Math.round(t.mastery * 100)}% correct
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      className="text-xs font-medium flex-shrink-0 flex items-center gap-1"
-                      style={{ color: "var(--color-accent)" }}
-                    >
-                      Study <ChevronRight size={12} />
-                    </button>
                   </div>
-                ))}
-              </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* Empty state */}
+      {overview && overview.subjects?.length === 0 && (
+        <EmptyState
+          title="No progress yet"
+          description="Enrol in subjects during onboarding and start studying to track your progress here."
+          action={<Link href="/onboarding" className="btn-primary text-sm">Start onboarding</Link>}
+        />
+      )}
+
+      {/* Subject tabs */}
+      {overview?.subjects && overview.subjects.length > 0 && (
+        <>
+          <div className="flex gap-2 mb-5 overflow-x-auto pb-1 -mx-5 px-5 md:mx-0 md:px-0 md:flex-wrap scrollbar-hide">
+            {overview.subjects.map((s) => (
+              <button
+                key={s.id}
+                onClick={() => setActiveSubject(s.id)}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium border transition-all flex-shrink-0 cursor-pointer"
+                style={{
+                  background: activeSubject === s.id ? "var(--color-accent-soft)" : "var(--color-surface-2)",
+                  borderColor: activeSubject === s.id ? "var(--color-accent)" : "var(--color-border-default)",
+                  color: activeSubject === s.id ? "var(--color-accent-text)" : "var(--color-text-secondary)",
+                }}
+              >
+                <BookOpen size={14} /> {s.name}
+              </button>
+            ))}
+          </div>
+
+          {/* Topic mastery list */}
+          {currentSubject && (
+            <section className="card mb-6">
+              <p
+                className="text-xs font-semibold uppercase tracking-wider mb-4"
+                style={{ color: "var(--color-text-muted)", letterSpacing: "0.06em" }}
+              >
+                Topic Mastery — {currentSubject.name}
+              </p>
+              {currentSubject.topics && currentSubject.topics.length > 0 ? (
+                <div className="space-y-4">
+                  {currentSubject.topics.map((topic) => {
+                    const pct = Math.round(topic.mastery * 100);
+                    return (
+                      <div key={topic.topicName}>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <div className="flex items-center gap-2">
+                            <MasteryIndicator pct={pct} />
+                            <span className="text-sm">{topic.topicName}</span>
+                          </div>
+                          <span
+                            className="text-sm font-bold mono"
+                            style={{
+                              color: pct >= 80 ? "var(--color-success)" : pct >= 50 ? "var(--color-warning)" : "var(--color-text-muted)",
+                            }}
+                          >
+                            {pct}%
+                          </span>
+                        </div>
+                        <div className="progress-bar">
+                          <div
+                            className="progress-fill"
+                            style={{
+                              width: `${pct}%`,
+                              background: pct >= 80 ? "var(--color-success)" : pct >= 50 ? "var(--color-warning)" : "var(--color-border-strong)",
+                            }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-sm py-4 text-center" style={{ color: "var(--color-text-muted)" }}>
+                  Start studying {currentSubject.name} to track your progress!
+                </p>
+              )}
             </section>
           )}
+        </>
+      )}
 
-          {/* ── Key terms earned ── */}
-          <section>
-            <h2 className="text-sm font-medium mb-3" style={{ color: "var(--color-text-muted)" }}>
-              KEY TERMS EARNED THIS WEEK
-            </h2>
-            <div className="flex flex-wrap gap-2">
-              {KEY_TERMS.map((term) => (
-                <span key={term} className="key-term text-sm">
-                  {term}
-                </span>
-              ))}
-              <span className="tag text-sm">+14 more</span>
-            </div>
-          </section>
-        </main>
-      </div>
+      {/* Weak areas */}
+      {weakTopics.length > 0 && (
+        <section className="mb-6">
+          <p
+            className="text-xs font-semibold uppercase tracking-wider mb-3 px-1"
+            style={{ color: "var(--color-text-muted)", letterSpacing: "0.06em" }}
+          >
+            Areas to Focus On
+          </p>
+          <div className="space-y-3">
+            {weakTopics.slice(0, 3).map((t) => (
+              <div
+                key={t.topicName}
+                className="card flex items-start justify-between gap-4"
+                style={{ borderColor: "rgba(184,134,11,0.2)" }}
+              >
+                <div className="flex items-start gap-3">
+                  <AlertTriangle size={16} style={{ color: "var(--color-warning)", flexShrink: 0, marginTop: 2 }} />
+                  <div>
+                    <p className="font-medium text-sm">{t.topicName}</p>
+                    <p className="text-xs mt-0.5" style={{ color: "var(--color-text-secondary)" }}>
+                      {t.questionsAsked} questions asked · {Math.round(t.mastery * 100)}% correct
+                    </p>
+                  </div>
+                </div>
+                <button
+                  className="text-xs font-medium flex-shrink-0 flex items-center gap-1 cursor-pointer"
+                  style={{ color: "var(--color-accent)" }}
+                >
+                  Study <ChevronRight size={12} />
+                </button>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
-      {/* ── Bottom Nav ── */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-20 flex items-center justify-around h-16 border-t"
-        style={{ background: "rgba(23,23,23,0.9)", backdropFilter: "blur(16px)", borderColor: "var(--color-border-subtle)" }}>
-        {NAV_ITEMS.map(({ href, icon: Icon, label }) => {
-          const active = pathname === href;
-          return (
-            <Link key={href} href={href} className="flex flex-col items-center gap-1 px-4 py-2"
-              style={{ color: active ? "var(--color-accent)" : "var(--color-text-muted)" }}>
-              <Icon size={20} /><span className="text-[10px] font-medium">{label}</span>
-            </Link>
-          );
-        })}
-      </nav>
-    </div>
+      {/* Mastered topics */}
+      {masteredTopics.length > 0 && (
+        <section>
+          <p
+            className="text-xs font-semibold uppercase tracking-wider mb-3 px-1"
+            style={{ color: "var(--color-text-muted)", letterSpacing: "0.06em" }}
+          >
+            Mastered Topics
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {masteredTopics.map((term) => (
+              <span key={term} className="pill text-sm">
+                {term}
+              </span>
+            ))}
+          </div>
+        </section>
+      )}
+    </AppShell>
   );
 }
 

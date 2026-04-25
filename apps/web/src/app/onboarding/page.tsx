@@ -101,7 +101,7 @@ function OnboardingContent() {
             style={{
               width: i + 1 === step ? 20 : 8,
               height: 8,
-              background: i + 1 <= step ? "var(--color-accent)" : "var(--color-surface)",
+              background: i + 1 <= step ? "var(--color-accent)" : "var(--color-surface-2)",
               border: "1px solid var(--color-border-default)",
             }}
           />
@@ -113,14 +113,14 @@ function OnboardingContent() {
   return (
     <div
       className="min-h-screen flex flex-col"
-      style={{ background: "var(--color-void)" }}
+      style={{ background: "var(--color-surface-1)" }}
     >
       {/* Background glow */}
       <div
         className="fixed inset-0 pointer-events-none"
         style={{
           background:
-            "radial-gradient(ellipse 80% 50% at 50% -20%, rgba(218,119,86,0.1), transparent)",
+            "radial-gradient(ellipse 80% 50% at 50% -20%, var(--color-accent-soft), transparent)",
         }}
       />
 
@@ -177,7 +177,7 @@ function OnboardingContent() {
                       background:
                         curriculum === c.id
                           ? "var(--color-accent-soft)"
-                          : "var(--color-surface)",
+                          : "var(--color-surface-2)",
                       borderColor:
                         curriculum === c.id
                           ? "var(--color-accent)"
@@ -224,16 +224,21 @@ function OnboardingContent() {
               <div className="grid grid-cols-3 gap-3 mb-4">
                 {SUBJECTS.map((s) => {
                   const selected = selectedSubjects.includes(s.id);
+                  const atLimit = selectedSubjects.length >= 3;
+                  const dimmed = atLimit && !selected;
                   return (
                     <button
                       key={s.id}
                       onClick={() => toggleSubject(s.id)}
+                      disabled={dimmed}
                       className="rounded-xl p-4 text-center transition-all duration-200 border relative"
                       style={{
-                        background: selected ? "var(--color-accent-soft)" : "var(--color-surface)",
+                        background: selected ? "var(--color-accent-soft)" : "var(--color-surface-2)",
                         borderColor: selected
                           ? "var(--color-accent)"
                           : "var(--color-border-subtle)",
+                        opacity: dimmed ? 0.4 : 1,
+                        cursor: dimmed ? "not-allowed" : "pointer",
                       }}
                     >
                       {selected && (
@@ -253,9 +258,9 @@ function OnboardingContent() {
 
               <p
                 className="text-sm mb-6"
-                style={{ color: "var(--color-text-secondary)" }}
+                style={{ color: selectedSubjects.length >= 3 ? "var(--color-warning)" : "var(--color-text-secondary)" }}
               >
-                {selectedSubjects.length} selected
+                {selectedSubjects.length}/3 selected{selectedSubjects.length >= 3 && " — max reached"}
                 {selectedSubjects.length > 0 &&
                   ` — ${selectedSubjects
                     .map((id) => SUBJECTS.find((s) => s.id === id)?.name)
@@ -298,7 +303,7 @@ function OnboardingContent() {
                 >
                   <div
                     className="progress-fill"
-                    style={{ width: `${((currentQ) / DIAGNOSTIC_QUESTIONS.length) * 100}%` }}
+                    style={{ width: `${((currentQ + 1) / DIAGNOSTIC_QUESTIONS.length) * 100}%` }}
                   />
                 </div>
               </div>
@@ -306,7 +311,7 @@ function OnboardingContent() {
               <div
                 className="rounded-xl p-6 mb-5 border"
                 style={{
-                  background: "var(--color-surface)",
+                  background: "var(--color-surface-2)",
                   borderColor: "var(--color-border-subtle)",
                 }}
               >
@@ -320,7 +325,7 @@ function OnboardingContent() {
                       onClick={() => answerDiagnostic(idx)}
                       className="w-full text-left px-4 py-3 rounded-lg border transition-all duration-150"
                       style={{
-                        background: "var(--color-base)",
+                        background: "var(--color-surface-2)",
                         borderColor: "var(--color-border-default)",
                         color: "var(--color-text-primary)",
                       }}
@@ -333,7 +338,7 @@ function OnboardingContent() {
                       onMouseLeave={(e) => {
                         (e.currentTarget as HTMLElement).style.borderColor =
                           "var(--color-border-default)";
-                        (e.currentTarget as HTMLElement).style.background = "var(--color-base)";
+                        (e.currentTarget as HTMLElement).style.background = "var(--color-surface-2)";
                       }}
                     >
                       <span

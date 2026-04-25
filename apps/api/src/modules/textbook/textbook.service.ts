@@ -124,7 +124,11 @@ export class TextbookService {
     }
 
     const paddedPage = String(pageNumber).padStart(3, '0');
-    const imagePath = path.resolve(book.pagesDir, `page_${paddedPage}.webp`);
+    
+    // Resolve monorepo root correctly since process.cwd() is apps/api
+    const repoRoot = path.resolve(process.cwd(), '../../');
+    const absolutePagesDir = path.resolve(repoRoot, book.pagesDir);
+    const imagePath = path.resolve(absolutePagesDir, `page_${paddedPage}.webp`);
 
     if (!fs.existsSync(imagePath)) {
       throw new NotFoundException(`Page image not found: page_${paddedPage}.webp`);

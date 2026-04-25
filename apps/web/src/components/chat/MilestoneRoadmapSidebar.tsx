@@ -55,23 +55,23 @@ const TIER: Record<
     short: "",
   },
   average: {
-    color: "#f59e0b",
-    bg: "rgba(245,158,11,0.12)",
-    border: "rgba(245,158,11,0.30)",
+    color: "var(--color-gold)",
+    bg: "rgba(245,166,35,0.12)",
+    border: "rgba(245,166,35,0.30)",
     label: "Average",
     short: "Avg",
   },
   good: {
-    color: "#3b82f6",
-    bg: "rgba(59,130,246,0.12)",
-    border: "rgba(59,130,246,0.30)",
+    color: "var(--color-teal)",
+    bg: "rgba(0,191,165,0.12)",
+    border: "rgba(0,191,165,0.30)",
     label: "Good",
     short: "Good",
   },
   excellent: {
-    color: "#10b981",
-    bg: "rgba(16,185,129,0.12)",
-    border: "rgba(16,185,129,0.30)",
+    color: "var(--color-success)",
+    bg: "rgba(34,211,163,0.12)",
+    border: "rgba(34,211,163,0.30)",
     label: "Excellent",
     short: "Excel",
   },
@@ -109,9 +109,9 @@ function TopicItem({
       className="w-full text-left group relative flex items-start gap-2.5 px-3 py-2 transition-all duration-150"
       style={{
         background: isActive
-          ? "rgba(218,119,86,0.10)"
+          ? "var(--color-accent-soft)"
           : isUpdated
-            ? "rgba(218,119,86,0.05)"
+            ? "var(--color-accent-soft)"
             : "transparent",
         borderLeft: isActive
           ? "2px solid var(--color-accent)"
@@ -123,7 +123,7 @@ function TopicItem({
       onMouseLeave={(e) => {
         if (!isActive)
           (e.currentTarget as HTMLElement).style.background = isUpdated
-            ? "rgba(218,119,86,0.05)"
+            ? "var(--color-accent-soft)"
             : "transparent";
       }}
     >
@@ -248,7 +248,7 @@ function MilestoneBlock({
       <div
         className="flex items-center justify-between px-3 py-2 sticky top-0 z-10"
         style={{
-          background: "var(--color-void)",
+          background: "var(--color-surface-1)",
           borderBottom: "1px solid var(--color-border-subtle)",
         }}
       >
@@ -289,14 +289,14 @@ function MilestoneBlock({
             {milestone.completedTopics}/{milestone.totalTopics}
           </span>
           {allDone && (
-            <CheckCircle2 size={11} style={{ color: "#10b981" }} />
+            <CheckCircle2 size={11} style={{ color: "var(--color-success)" }} />
           )}
         </div>
       </div>
 
       {/* Milestone bar */}
       {pct > 0 && (
-        <div className="px-3 py-1" style={{ background: "var(--color-void)" }}>
+        <div className="px-3 py-1" style={{ background: "var(--color-surface-1)" }}>
           <div
             className="h-[2px] rounded-full overflow-hidden"
             style={{ background: "var(--color-border-subtle)" }}
@@ -399,7 +399,7 @@ export function MilestoneRoadmapContent({
         </div>
         <div
           className="h-2 rounded-full overflow-hidden"
-          style={{ background: "var(--color-surface)" }}
+          style={{ background: "var(--color-surface-2)" }}
         >
           <div
             className="h-full rounded-full transition-all duration-700"
@@ -480,7 +480,7 @@ export function MilestoneRoadmapSidebar({
           onClick={onToggle}
           className="hidden md:flex flex-col items-center justify-center w-9 border-l flex-shrink-0 gap-2 transition-colors"
           style={{
-            background: "var(--color-void)",
+            background: "var(--color-surface-1)",
             borderColor: "var(--color-border-subtle)",
             color: "var(--color-text-muted)",
           }}
@@ -507,7 +507,7 @@ export function MilestoneRoadmapSidebar({
         <aside
           className="hidden md:flex flex-col w-64 border-l flex-shrink-0 overflow-hidden"
           style={{
-            background: "var(--color-void)",
+            background: "var(--color-surface-1)",
             borderColor: "var(--color-border-subtle)",
           }}
         >

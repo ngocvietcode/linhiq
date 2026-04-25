@@ -149,12 +149,12 @@ export default function AdminKnowledgePage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {[
           { icon: Database,  label: "Total Chunks",     value: loading ? "—" : stats?.totalChunks.toLocaleString() || "0", color: "var(--color-accent)" },
-          { icon: Hash,      label: "Vector Dimension", value: loading ? "—" : stats?.vectorDimension, color: "#22D3A3" },
-          { icon: Brain,     label: "Embedding Model",  value: loading ? "—" : stats?.embeddingModel, color: "#F59E0B" },
+          { icon: Hash,      label: "Vector Dimension", value: loading ? "—" : stats?.vectorDimension, color: "var(--color-teal)" },
+          { icon: Brain,     label: "Embedding Model",  value: loading ? "—" : stats?.embeddingModel, color: "var(--color-gold)" },
           { icon: BarChart2, label: "Subjects Indexed", value: loading ? "—" : `${subjects.filter((s) => s.health === "good").length}/${subjects.length}`, color: "#F43F5E" },
         ].map(({ icon: Icon, label, value, color }) => (
           <div key={label} className="rounded-2xl border p-5"
-            style={{ background: "var(--color-surface)", borderColor: "var(--color-border-subtle)" }}>
+            style={{ background: "var(--color-surface-2)", borderColor: "var(--color-border-subtle)" }}>
             <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-3"
               style={{ background: `${color}18` }}>
               <Icon size={18} style={{ color }} />
@@ -168,7 +168,7 @@ export default function AdminKnowledgePage() {
       {/* Ingestion notice */}
       <div
         className="rounded-2xl border p-5 mb-6 flex items-start gap-4"
-        style={{ background: "rgba(218,119,86,0.05)", borderColor: "rgba(218,119,86,0.2)" }}
+        style={{ background: "var(--color-accent-soft)", borderColor: "var(--color-accent-border)" }}
       >
         <Zap size={18} style={{ color: "var(--color-accent)", flexShrink: 0, marginTop: 2 }} />
         <div className="flex-1">
@@ -200,7 +200,7 @@ export default function AdminKnowledgePage() {
         {loading
           ? Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="rounded-xl border p-5"
-                style={{ background: "var(--color-surface)", borderColor: "var(--color-border-subtle)" }}>
+                style={{ background: "var(--color-surface-2)", borderColor: "var(--color-border-subtle)" }}>
                 <div className="flex items-center gap-4">
                   <div className="skeleton w-10 h-10 rounded-xl" />
                   <div className="flex-1 space-y-2">
@@ -218,18 +218,18 @@ export default function AdminKnowledgePage() {
 
               return (
                 <div key={s.id} className="rounded-xl border p-5"
-                  style={{ background: "var(--color-surface)", borderColor: "var(--color-border-subtle)" }}>
+                  style={{ background: "var(--color-surface-2)", borderColor: "var(--color-border-subtle)" }}>
                   <div className="flex items-start gap-4">
                     {/* Emoji */}
                     <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0"
-                      style={{ background: "var(--color-elevated)" }}>
+                      style={{ background: "var(--color-surface-0)" }}>
                       {s.emoji}
                     </div>
                     {/* Info */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap mb-2">
                         <p className="font-semibold">{s.name}</p>
-                        <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: "var(--color-elevated)", color: "var(--color-text-muted)" }}>
+                        <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: "var(--color-surface-0)", color: "var(--color-text-muted)" }}>
                           {s.curriculum}
                         </span>
                         <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium"

@@ -29,10 +29,15 @@ export class ProgressService {
 
     const subjects = await this.db.subject.findMany({
       include: {
-        topics: {
+        Unit: {
           include: {
-            progress: {
-              where: { userId },
+            Topic: {
+              include: {
+                progress: {
+                  where: { userId },
+                },
+              },
+              orderBy: { orderIndex: 'asc' },
             },
           },
           orderBy: { orderIndex: 'asc' },
@@ -40,20 +45,23 @@ export class ProgressService {
       },
     });
 
-    const subjectProgress = subjects.map((subject) => ({
-      ...subject,
-      totalTopics: subject.topics.length,
-      masteredTopics: subject.topics.filter(
-        (t) => t.progress.some((p) => p.masteryLevel >= 0.8),
-      ).length,
-      overallMastery:
-        subject.topics.length > 0
-          ? subject.topics.reduce(
-              (sum: number, t: any) => sum + (t.progress[0]?.masteryLevel || 0),
-              0,
-            ) / subject.topics.length
-          : 0,
-    }));
+    const subjectProgress = subjects.map((subject) => {
+      const allTopics = subject.Unit.flatMap(u => u.Topic);
+      return {
+        ...subject,
+        totalTopics: allTopics.length,
+        masteredTopics: allTopics.filter(
+          (t) => t.progress.some((p) => p.masteryLevel >= 0.8),
+        ).length,
+        overallMastery:
+          allTopics.length > 0
+            ? allTopics.reduce(
+                (sum: number, t: any) => sum + (t.progress[0]?.masteryLevel || 0),
+                0,
+              ) / allTopics.length
+            : 0,
+      };
+    });
 
     return {
       streakDays: profile?.streakDays || 0,
@@ -116,6 +124,169 @@ export class ProgressService {
         lastStudiedAt: new Date(),
       },
     });
+  }
+
+  /**
+   * Aggregate chat-category message counts for a student.
+   * Combines the current week's live SessionTopicStat rows with the last N
+   * flushed WeeklyTopicStat rows so the student always sees up-to-date
+   * category ratios (academic / general / hobbies / life / redirected).
+   */
+  async getChatCategoryStats(userId: string, weeks = 4) {
+    const [weekly, liveStats] = await Promise.all([
+      this.db.weeklyTopicStat.findMany({
+        where: { userId },
+        orderBy: { weekStart: 'desc' },
+        take: weeks,
+      }),
+      this.db.sessionTopicStat.findMany({
+        where: { session: { userId } },
+        select: {
+          academic: true,
+          general: true,
+          hobbies: true,
+          life: true,
+          redirected: true,
+          totalMsg: true,
+        },
+      }),
+    ]);
+
+    const totals = { academic: 0, general: 0, hobbies: 0, life: 0, redirected: 0, totalMsg: 0 };
+    for (const w of weekly) {
+      totals.academic += w.academic;
+      totals.general += w.general;
+      totals.hobbies += w.hobbies;
+      totals.life += w.life;
+      totals.redirected += w.redirected;
+      totals.totalMsg += w.totalMsg;
+    }
+    for (const s of liveStats) {
+      totals.academic += s.academic;
+      totals.general += s.general;
+      totals.hobbies += s.hobbies;
+      totals.life += s.life;
+      totals.redirected += s.redirected;
+      totals.totalMsg += s.totalMsg;
+    }
+
+    const safeDiv = (n: number) => (totals.totalMsg ? n / totals.totalMsg : 0);
+
+    return {
+      totals,
+      ratios: {
+        academic: safeDiv(totals.academic),
+        general: safeDiv(totals.general),
+        hobbies: safeDiv(totals.hobbies),
+        life: safeDiv(totals.life),
+        redirected: safeDiv(totals.redirected),
+      },
+      weekly: weekly.map((w) => ({
+        weekStart: w.weekStart,
+        academic: w.academic,
+        general: w.general,
+        hobbies: w.hobbies,
+        life: w.life,
+        redirected: w.redirected,
+        totalMsg: w.totalMsg,
+      })),
+    };
+  }
+
+  /**
+   * Study minutes per day for the last `days` days (today inclusive).
+   * Fills zero-value days so the caller can render a continuous chart.
+   */
+  async getStudyHoursByDay(userId: string, days = 7) {
+    const end = new Date();
+    end.setHours(23, 59, 59, 999);
+    const start = new Date(end);
+    start.setDate(start.getDate() - (days - 1));
+    start.setHours(0, 0, 0, 0);
+
+    const sessions = await this.db.studySession.findMany({
+      where: { userId, date: { gte: start, lte: end } },
+      select: { date: true, durationMin: true, subjectId: true },
+    });
+
+    const buckets: Record<string, number> = {};
+    for (let i = 0; i < days; i++) {
+      const d = new Date(start);
+      d.setDate(start.getDate() + i);
+      buckets[d.toISOString().slice(0, 10)] = 0;
+    }
+    for (const s of sessions) {
+      const key = new Date(s.date).toISOString().slice(0, 10);
+      if (key in buckets) buckets[key] += s.durationMin;
+    }
+
+    return Object.entries(buckets).map(([date, minutes]) => ({ date, minutes }));
+  }
+
+  /**
+   * Aggregate study minutes per subject over the lifetime of the account.
+   */
+  async getStudyTimeBySubject(userId: string) {
+    const grouped = await this.db.studySession.groupBy({
+      by: ['subjectId'],
+      where: { userId, subjectId: { not: null } },
+      _sum: { durationMin: true },
+    });
+
+    const subjectIds = grouped.map((g) => g.subjectId!).filter(Boolean);
+    if (subjectIds.length === 0) return [];
+
+    const subjects = await this.db.subject.findMany({
+      where: { id: { in: subjectIds } },
+      select: { id: true, name: true, iconEmoji: true },
+    });
+    const byId = new Map(subjects.map((s) => [s.id, s]));
+
+    return grouped
+      .map((g) => {
+        const s = byId.get(g.subjectId!);
+        return {
+          subjectId: g.subjectId!,
+          name: s?.name ?? 'Unknown',
+          iconEmoji: s?.iconEmoji ?? '📚',
+          minutes: g._sum.durationMin ?? 0,
+        };
+      })
+      .sort((a, b) => b.minutes - a.minutes);
+  }
+
+  /**
+   * Count user messages this week, and mastery-based accuracy.
+   * Used by parent overview ("questions asked", "accuracy").
+   */
+  async getQuestionsAndAccuracy(userId: string) {
+    // Start of ISO week (Monday)
+    const now = new Date();
+    const day = now.getDay();
+    const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+    const weekStart = new Date(now);
+    weekStart.setDate(diff);
+    weekStart.setHours(0, 0, 0, 0);
+
+    const [questionsThisWeek, mastery] = await Promise.all([
+      this.db.chatMessage.count({
+        where: {
+          role: 'user',
+          createdAt: { gte: weekStart },
+          session: { userId },
+        },
+      }),
+      this.db.topicProgress.aggregate({
+        where: { userId },
+        _sum: { questionsAsked: true, correctAnswers: true },
+      }),
+    ]);
+
+    const asked = mastery._sum.questionsAsked ?? 0;
+    const correct = mastery._sum.correctAnswers ?? 0;
+    const accuracy = asked > 0 ? correct / asked : 0;
+
+    return { questionsThisWeek, totalAsked: asked, totalCorrect: correct, accuracy };
   }
 
   /**

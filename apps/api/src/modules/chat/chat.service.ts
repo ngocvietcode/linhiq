@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
 import { ChatMode, HintLevel, TopicCategory } from '@linhiq/database';
 
@@ -8,6 +8,9 @@ export class ChatService {
 
   async createSession(userId: string, subjectId?: string) {
     if (subjectId) {
+      const subject = await this.db.subject.findUnique({ where: { id: subjectId } });
+      if (!subject) throw new NotFoundException('Subject not found');
+
       return this.db.chatSession.create({
         data: { userId, subjectId, mode: ChatMode.SUBJECT },
         include: { subject: true },

@@ -29,6 +29,23 @@ export class AdminService {
       create: { id: 'global', liteLlmUrl, liteLlmApiKey },
     });
   }
+  async updatePromptSettings(data: {
+    openChatPrompt?: string;
+    maxTokensOpenChat?: number;
+    maxTokensSocratic?: number;
+  }) {
+    const update: Record<string, unknown> = {};
+    if (data.openChatPrompt !== undefined) update.openChatPrompt = data.openChatPrompt || null;
+    if (data.maxTokensOpenChat !== undefined) update.maxTokensOpenChat = data.maxTokensOpenChat;
+    if (data.maxTokensSocratic !== undefined) update.maxTokensSocratic = data.maxTokensSocratic;
+
+    return this.db.systemSetting.upsert({
+      where: { id: 'global' },
+      update,
+      create: { id: 'global', ...update },
+    });
+  }
+
   async updateModels(simpleQueryModel: string, complexQueryModel: string, embeddingModel: string) {
     return await this.db.systemSetting.upsert({
       where: { id: 'global' },

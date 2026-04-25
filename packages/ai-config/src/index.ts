@@ -1,7 +1,9 @@
 export { SOCRATIC_SYSTEM_PROMPT, GENTLE_REDIRECT_PROMPT } from './prompts/socratic';
+export { SOCRATIC_VISION_PROMPT } from './prompts/socratic-vision';
 export { CLASSIFIER_PROMPT, SAFE_CHAT_PROMPT, ANSWER_EVAL_PROMPT } from './prompts/classifier';
 export { OPEN_CHAT_SYSTEM_PROMPT } from './prompts/open-chat';
 export { QUIZ_GENERATOR_PROMPT } from './prompts/quiz-generator';
+export { SLIDE_SUMMARY_PROMPT } from './prompts/slide-summary';
 export { MODEL_ROUTES, EMBEDDING_CONFIG, RAG_CONFIG } from './models';
 export type { ModelConfig, QueryComplexity } from './models';
 export type { AnswerQuality } from './prompts/classifier';

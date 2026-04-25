@@ -24,10 +24,10 @@ export class SubjectService {
     const subject = await this.db.subject.findUnique({
       where: { id: subjectId },
       include: {
-        milestones: {
+        Unit: {
           orderBy: { orderIndex: 'asc' },
           include: {
-            topics: {
+            Topic: {
               orderBy: { orderIndex: 'asc' },
             },
           },
@@ -36,7 +36,7 @@ export class SubjectService {
     });
 
     if (!subject) throw new NotFoundException('Subject not found');
-    return subject.milestones;
+    return subject.Unit;
   }
 
   /**
@@ -47,10 +47,10 @@ export class SubjectService {
     const subject = await this.db.subject.findUnique({
       where: { id: subjectId },
       include: {
-        milestones: {
+        Unit: {
           orderBy: { orderIndex: 'asc' },
           include: {
-            topics: {
+            Topic: {
               orderBy: { orderIndex: 'asc' },
               include: {
                 progress: { where: { userId } },
@@ -63,8 +63,8 @@ export class SubjectService {
 
     if (!subject) throw new NotFoundException('Subject not found');
 
-    return subject.milestones.map((milestone) => {
-      const topics = milestone.topics.map((topic) => {
+    return subject.Unit.map((unit) => {
+      const topics = unit.Topic.map((topic) => {
         const prog = topic.progress[0];
         const masteryLevel = prog?.masteryLevel ?? 0;
         return {
@@ -84,14 +84,14 @@ export class SubjectService {
       const completedTopics = topics.filter((t) => t.masteryLevel >= 0.5).length;
       const milestoneMastery =
         totalTopics > 0
-          ? topics.reduce((sum: number, t: any) => sum + t.masteryLevel, 0) / totalTopics
+          ? topics.reduce((sum: number, t) => sum + t.masteryLevel, 0) / totalTopics
           : 0;
 
       return {
-        id: milestone.id,
-        name: milestone.name,
-        description: milestone.description,
-        orderIndex: milestone.orderIndex,
+        id: unit.id,
+        name: unit.name,
+        description: unit.description,
+        orderIndex: unit.orderIndex,
         milestoneMastery,
         completedTopics,
         totalTopics,

@@ -5,50 +5,46 @@ import { useAuth } from "@/lib/auth-context";
 import { api } from "@/lib/api";
 import {
   BarChart2, TrendingUp, Users, MessageSquare,
-  Clock, Activity, RefreshCw, Calendar
+  Clock, Activity, RefreshCw
 } from "lucide-react";
 
-interface WeekDay { day: string; sessions: number; messages: number; }
-interface SubjectStat { name: string; emoji: string; sessions: number; pct: number; }
+interface WeekDay { day: string; date: string; sessions: number; messages: number; }
+interface SubjectStat { subjectId: string; name: string; emoji: string; sessions: number; pct: number; }
 
-interface AnalyticsData {
+interface Overview {
+  period: "7d" | "30d" | "all";
   totalUsers: number;
   totalSessions: number;
   totalSubjects: number;
+  activeUsersToday: number;
+  totalMessages: number;
+  avgSessionMin: number;
   weeklyData: WeekDay[];
   subjectStats: SubjectStat[];
-  avgSessionMin: number;
-  activeUsersToday: number;
-}
-
-// Simulated data for dashboard while API endpoints are being wired
-function buildMockData(userCount: number, sessionCount: number, subjectCount: number): AnalyticsData {
-  const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-  const weeklyData: WeekDay[] = days.map((day) => ({
-    day,
-    sessions: Math.floor(Math.random() * (sessionCount / 5 + 3)),
-    messages: Math.floor(Math.random() * 40 + 5),
-  }));
-  const subjectStats: SubjectStat[] = [
-    { name: "Biology",     emoji: "🧬", sessions: Math.floor(sessionCount * 0.38), pct: 38 },
-    { name: "Chemistry",   emoji: "⚗️", sessions: Math.floor(sessionCount * 0.29), pct: 29 },
-    { name: "Mathematics", emoji: "∫",  sessions: Math.floor(sessionCount * 0.21), pct: 21 },
-    { name: "Physics",     emoji: "🔭", sessions: Math.floor(sessionCount * 0.12), pct: 12 },
-  ].filter((_, i) => i < subjectCount);
-  return {
-    totalUsers: userCount,
-    totalSessions: sessionCount,
-    totalSubjects: subjectCount,
-    weeklyData,
-    subjectStats,
-    avgSessionMin: 28,
-    activeUsersToday: Math.floor(userCount * 0.1),
+  engagement: {
+    messagesPerSession: number;
+    avgHintLevel: number;
+    returnRate7d: number;
   };
 }
 
+interface ChatCategories {
+  totals: { academic: number; general: number; hobbies: number; life: number; redirected: number; totalMsg: number };
+  ratios: { academic: number; general: number; hobbies: number; life: number; redirected: number };
+}
+
+const CATEGORY_META = [
+  { k: "academic" as const,   label: "Academic",   color: "var(--color-accent)" },
+  { k: "general"  as const,   label: "General",    color: "var(--color-teal)" },
+  { k: "hobbies"  as const,   label: "Hobbies",    color: "var(--color-gold)" },
+  { k: "life"     as const,   label: "Life",       color: "#8B5CF6" },
+  { k: "redirected" as const, label: "Redirected", color: "var(--color-warning)" },
+];
+
 export default function AdminAnalyticsPage() {
   const { token } = useAuth();
-  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
+  const [overview, setOverview] = useState<Overview | null>(null);
+  const [categories, setCategories] = useState<ChatCategories | null>(null);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<"7d" | "30d" | "all">("7d");
 
@@ -56,25 +52,23 @@ export default function AdminAnalyticsPage() {
     if (!token) return;
     setLoading(true);
     try {
-      const [usersRes, subjectsRes] = await Promise.allSettled([
-        api<{ data: any[] }>("/admin/users", { token }),
-        api<{ data: any[] }>("/admin/subjects", { token }),
+      const [ov, cat] = await Promise.all([
+        api<Overview>(`/admin/analytics/overview?period=${period}`, { token }),
+        api<ChatCategories>("/admin/analytics/chat-categories", { token }),
       ]);
-      const users = usersRes.status === "fulfilled" ? (usersRes.value?.data?.length || 0) : 0;
-      const subjects = subjectsRes.status === "fulfilled" ? (subjectsRes.value?.data?.length || 0) : 0;
-      setAnalytics(buildMockData(users, Math.floor(users * 3.5), subjects));
+      setOverview(ov);
+      setCategories(cat);
     } catch (e) {
       console.error(e);
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [token, period]);
 
   useEffect(() => { load(); }, [load]);
 
-  const stats = analytics;
-  const maxSessions = stats ? Math.max(...stats.weeklyData.map((d) => d.sessions), 1) : 1;
-  const maxMsgs = stats ? Math.max(...stats.weeklyData.map((d) => d.messages), 1) : 1;
+  const maxSessions = overview ? Math.max(...overview.weeklyData.map((d) => d.sessions), 1) : 1;
+  const maxMsgs = overview ? Math.max(...overview.weeklyData.map((d) => d.messages), 1) : 1;
 
   function StatCard({ icon: Icon, label, value, sub, color }: {
     icon: React.FC<{ size: number; style?: React.CSSProperties }>;
@@ -135,10 +129,10 @@ export default function AdminAnalyticsPage() {
 
       {/* Stats row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <StatCard icon={Users as any}        label="Total Users"        value={stats?.totalUsers || 0}       color="var(--color-accent)" sub={`${stats?.activeUsersToday || 0} active today`} />
-        <StatCard icon={MessageSquare as any}label="Chat Sessions"      value={stats?.totalSessions || 0}    color="#22D3A3" />
-        <StatCard icon={Clock as any}        label="Avg Session Length" value={`${stats?.avgSessionMin || 0} min`} color="#F59E0B" />
-        <StatCard icon={Activity as any}     label="Subjects Active"    value={stats?.totalSubjects || 0}    color="#F43F5E" />
+        <StatCard icon={Users as any}         label="Total Students"     value={overview?.totalUsers ?? 0}       color="var(--color-accent)" sub={`${overview?.activeUsersToday ?? 0} active today`} />
+        <StatCard icon={MessageSquare as any} label="Chat Sessions"      value={overview?.totalSessions ?? 0}    color="var(--color-teal)" />
+        <StatCard icon={Clock as any}         label="Avg Session Length" value={`${overview?.avgSessionMin ?? 0} min`} color="var(--color-gold)" />
+        <StatCard icon={Activity as any}      label="Subjects Active"    value={overview?.totalSubjects ?? 0}    color="#F43F5E" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -157,7 +151,7 @@ export default function AdminAnalyticsPage() {
                 <span className="w-3 h-2 rounded-sm inline-block" style={{ background: "var(--color-accent)" }} /> Sessions
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="w-3 h-2 rounded-sm inline-block" style={{ background: "#22D3A3" }} /> Messages
+                <span className="w-3 h-2 rounded-sm inline-block" style={{ background: "var(--color-teal)" }} /> Messages
               </span>
             </div>
           </div>
@@ -166,32 +160,30 @@ export default function AdminAnalyticsPage() {
               <div className="h-48 flex items-end gap-3">
                 {Array.from({ length: 7 }).map((_, i) => (
                   <div key={i} className="flex-1">
-                    <div className="skeleton rounded-t-md" style={{ height: `${Math.random() * 70 + 30}%` }} />
+                    <div className="skeleton rounded-t-md" style={{ height: `${50 + (i * 5)}%` }} />
                   </div>
                 ))}
               </div>
             ) : (
               <div className="h-48 flex items-end gap-2">
-                {stats?.weeklyData.map(({ day, sessions, messages }) => (
-                  <div key={day} className="flex-1 flex flex-col items-center gap-1">
-                    {/* Messages bar (behind) */}
+                {overview?.weeklyData.map(({ day, date, sessions, messages }) => (
+                  <div key={date} className="flex-1 flex flex-col items-center gap-1">
                     <div className="w-full relative flex flex-col items-center gap-0.5">
                       <div
                         className="w-3/4 rounded-sm opacity-40"
                         style={{
                           height: `${(messages / maxMsgs) * 150}px`,
-                          background: "#22D3A3",
+                          background: "var(--color-teal)",
                           minHeight: 2,
                         }}
                       />
                     </div>
-                    {/* Sessions bar */}
                     <div className="relative w-full -mt-14 flex flex-col items-center">
                       <div
                         className="w-full rounded-t-md transition-all duration-500"
                         style={{
                           height: `${(sessions / maxSessions) * 150}px`,
-                          background: "linear-gradient(to top, rgba(218,119,86,1), rgba(218,119,86,0.7))",
+                          background: "linear-gradient(to top, var(--color-accent-border), var(--color-accent-border))",
                           minHeight: 4,
                         }}
                         title={`${sessions} sessions, ${messages} messages`}
@@ -227,31 +219,97 @@ export default function AdminAnalyticsPage() {
                     <div className="skeleton h-2 w-full rounded-full" />
                   </div>
                 ))
-              : (stats?.subjectStats || []).map(({ name, emoji, sessions, pct }) => (
-                  <div key={name}>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium flex items-center gap-1.5">
-                        {emoji} {name}
-                      </span>
-                      <span className="text-xs font-mono" style={{ color: "var(--color-text-muted)" }}>
-                        {sessions} sessions
-                      </span>
+              : overview && overview.subjectStats.length === 0
+                ? <p className="text-sm text-center py-4" style={{ color: "var(--color-text-muted)" }}>No sessions yet for this period.</p>
+                : (overview?.subjectStats ?? []).map(({ subjectId, name, emoji, sessions, pct }) => (
+                    <div key={subjectId}>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium flex items-center gap-1.5">
+                          {emoji} {name}
+                        </span>
+                        <span className="text-xs font-mono" style={{ color: "var(--color-text-muted)" }}>
+                          {sessions} sessions
+                        </span>
+                      </div>
+                      <div className="progress-bar">
+                        <div className="progress-fill" style={{ width: `${pct}%` }} />
+                      </div>
                     </div>
-                    <div className="progress-bar">
-                      <div className="progress-fill" style={{ width: `${pct}%` }} />
-                    </div>
-                  </div>
-                ))}
+                  ))}
           </div>
+        </div>
+      </div>
+
+      {/* Chat category distribution */}
+      <div
+        className="mt-6 rounded-2xl border"
+        style={{ background: "var(--color-surface)", borderColor: "var(--color-border-subtle)" }}
+      >
+        <div className="px-6 py-4 border-b flex items-center justify-between" style={{ borderColor: "var(--color-border-subtle)" }}>
+          <h2 className="font-semibold">Chat Category Distribution</h2>
+          {categories && (
+            <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+              {categories.totals.totalMsg} user messages classified
+            </span>
+          )}
+        </div>
+        <div className="p-6">
+          {loading ? (
+            <div className="skeleton h-3 w-full rounded-full" />
+          ) : !categories || categories.totals.totalMsg === 0 ? (
+            <p className="text-sm text-center py-4" style={{ color: "var(--color-text-muted)" }}>
+              No classified chat messages yet.
+            </p>
+          ) : (
+            <>
+              <div className="flex h-3 rounded-full overflow-hidden mb-5" style={{ background: "var(--color-border-subtle)" }}>
+                {CATEGORY_META.map((c) => {
+                  const pct = categories.ratios[c.k] * 100;
+                  if (pct <= 0) return null;
+                  return <div key={c.k} style={{ width: `${pct}%`, background: c.color }} title={`${c.label} · ${pct.toFixed(0)}%`} />;
+                })}
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                {CATEGORY_META.map((c) => {
+                  const pct = Math.round(categories.ratios[c.k] * 100);
+                  const n = categories.totals[c.k];
+                  return (
+                    <div key={c.k} className="flex items-start gap-2">
+                      <span className="inline-block w-3 h-3 rounded-sm mt-1 flex-shrink-0" style={{ background: c.color }} />
+                      <div>
+                        <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>{c.label}</p>
+                        <p className="text-sm font-semibold">{pct}% <span className="text-xs font-normal" style={{ color: "var(--color-text-muted)" }}>({n})</span></p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
         </div>
       </div>
 
       {/* Engagement metrics */}
       <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
-          { label: "Messages per Session", value: loading ? "—" : "12.4", icon: MessageSquare, color: "var(--color-accent)" },
-          { label: "Avg. Hint Level Used", value: loading ? "—" : "L2.3", icon: BarChart2,    color: "#F59E0B" },
-          { label: "Return Rate (7d)",      value: loading ? "—" : "64%",  icon: TrendingUp,   color: "#22D3A3" },
+          {
+            label: "Messages per Session",
+            value: loading ? "—" : overview?.engagement.messagesPerSession.toFixed(1) ?? "0.0",
+            icon: MessageSquare,
+            color: "var(--color-accent)",
+          },
+          {
+            label: "Avg. Hint Level Used",
+            value: loading ? "—" : `L${overview?.engagement.avgHintLevel.toFixed(1) ?? "1.0"}`,
+            icon: BarChart2,
+            color: "var(--color-gold)",
+          },
+          {
+            label: "Return Rate (7d)",
+            value: loading ? "—" : `${Math.round((overview?.engagement.returnRate7d ?? 0) * 100)}%`,
+            icon: TrendingUp,
+            color: "var(--color-teal)",
+          },
         ].map(({ label, value, icon: Icon, color }) => (
           <div
             key={label}

@@ -1,23 +1,24 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
-import { useRouter, useParams, usePathname } from "next/navigation";
+import imageCompression from "browser-image-compression";
+import { useRouter, useParams } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { api } from "@/lib/api";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import rehypeHighlight from "rehype-highlight";
+import "highlight.js/styles/github-dark.css";
 import {
   ArrowLeft,
   Send,
   Camera,
-  Home,
-  MessageSquare,
-  TrendingUp,
-  Settings,
+  BookOpen,
   Map,
   X,
 } from "lucide-react";
-import Link from "next/link";
+import { Sidebar } from "@/components/layout/Sidebar";
+import { BottomNav } from "@/components/layout/BottomNav";
 import {
   MilestoneRoadmapSidebar,
   MilestoneRoadmapContent,
@@ -78,19 +79,13 @@ const SUBJECT_SUGGESTIONS: Record<string, string[]> = {
   ],
 };
 
-const NAV_ITEMS = [
-  { href: "/dashboard", icon: Home, label: "Home" },
-  { href: "/chat", icon: MessageSquare, label: "Chat với Linh" },
-  { href: "/progress", icon: TrendingUp, label: "Progress" },
-  { href: "/settings", icon: Settings, label: "Settings" },
-];
+// NAV_ITEMS now imported from shared Sidebar/BottomNav components
 
 // ─── Chat Content ─────────────────────────────────────────────────────────────
 
 function ChatContent() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const pathname = usePathname();
   const { user, token, isLoading: authLoading } = useAuth();
 
   // Session & messages
@@ -104,8 +99,10 @@ function ChatContent() {
 
   // Vision AI state
   const [imagePreview, setImagePreview] = useState<string | null>(null); // data URL for preview
-  const [imageBase64, setImageBase64] = useState<string | null>(null);   // raw base64 (no prefix)
+  const [imageBase64, setImageBase64] = useState<string | null>(null);   // raw base64 after compress (no prefix) — sent as fallback
   const [imageMimeType, setImageMimeType] = useState<string>("image/jpeg");
+  const [imageUploadUrl, setImageUploadUrl] = useState<string | null>(null); // R2 signed URL after upload
+  const [isCompressing, setIsCompressing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Roadmap sidebar state
@@ -163,24 +160,71 @@ function ChatContent() {
   }, [messages, streamingText]);
 
   // ── Image helpers ──────────────────────────────────────────────────────────
-  const loadImageFile = (file: File) => {
+  const loadImageFile = async (file: File) => {
+    const MAX_MB = 5;
+    if (file.size > MAX_MB * 1024 * 1024) {
+      alert(`Ảnh quá lớn (${(file.size / 1024 / 1024).toFixed(1)}MB). Vui lòng chọn ảnh dưới 5MB.`);
+      return;
+    }
+
     const mime = file.type || "image/jpeg";
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const dataUrl = e.target?.result as string;
+    setIsCompressing(true);
+    setImagePreview(null);
+    setImageBase64(null);
+    setImageUploadUrl(null);
+
+    try {
+      // 1. Compress client-side to ≤ 1MB
+      const compressed = await imageCompression(file, {
+        maxSizeMB: 1,
+        maxWidthOrHeight: 1920,
+        useWebWorker: true,
+      });
+
+      // 2. Set preview from compressed file
+      const dataUrl = await imageCompression.getDataUrlFromFile(compressed);
       setImagePreview(dataUrl);
-      // Strip the "data:<mime>;base64," prefix
+
+      // 3. Set base64 fallback (no data: prefix)
       const base64 = dataUrl.split(",")[1];
       setImageBase64(base64);
-      setImageMimeType(mime);
-    };
-    reader.readAsDataURL(file);
+      setImageMimeType(compressed.type || mime);
+
+      // 4. Upload to R2 in background
+      if (token) {
+        try {
+          const formData = new FormData();
+          formData.append("file", compressed, compressed.name || "image.jpg");
+          const uploadRes = await fetch(
+            `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4500/api"}/upload/chat-image`,
+            {
+              method: "POST",
+              headers: { Authorization: `Bearer ${token}` },
+              body: formData,
+            }
+          );
+          if (uploadRes.ok) {
+            const { url } = await uploadRes.json() as { url: string };
+            setImageUploadUrl(url);
+          }
+        } catch {
+          // R2 upload failed — fallback to base64 inline (still works)
+          console.warn("R2 upload failed, will use base64 fallback");
+        }
+      }
+    } catch (err) {
+      console.error("Image processing error:", err);
+      alert("Không thể xử lý ảnh này. Vui lòng thử ảnh khác.");
+    } finally {
+      setIsCompressing(false);
+    }
   };
 
   const clearImage = () => {
     setImagePreview(null);
     setImageBase64(null);
     setImageMimeType("image/jpeg");
+    setImageUploadUrl(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -201,6 +245,7 @@ function ChatContent() {
     const imgBase64 = imageBase64;
     const imgMime = imageMimeType;
     const imgPreview = imagePreview;
+    const imgUrl = imageUploadUrl; // prefer R2 URL if available
     setInput("");
     clearImage();
     setIsStreaming(true);
@@ -225,7 +270,14 @@ function ChatContent() {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ content: userMsg, hintLevel, imageBase64: imgBase64, imageMimeType: imgMime }),
+          body: JSON.stringify({
+            content: userMsg,
+            hintLevel,
+            // Prefer R2 URL (stored in DB as imageUrl), fallback to base64 inline
+            imageUrl: imgUrl ?? undefined,
+            imageBase64: imgUrl ? undefined : imgBase64,
+            imageMimeType: imgMime,
+          }),
         }
       );
 
@@ -334,14 +386,14 @@ function ChatContent() {
         {
           id: `err-${Date.now()}`,
           role: "assistant",
-          content: "⚠️ Error — please try again.",
+          content: "Xin lỗi, Linh gặp sự cố rồi 😔 Bạn thử gửi lại nhé!",
           createdAt: new Date().toISOString(),
         },
       ]);
     } finally {
       setIsStreaming(false);
     }
-  }, [input, imageBase64, imageMimeType, imagePreview, isStreaming, token, id, hintLevel]);
+  }, [input, imageBase64, imageMimeType, imagePreview, imageUploadUrl, isStreaming, token, id, hintLevel]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -361,10 +413,10 @@ function ChatContent() {
     return (
       <div
         className="min-h-screen flex items-center justify-center"
-        style={{ background: "var(--color-base)" }}
+        style={{ background: "var(--color-surface-1)" }}
       >
         <div
-          className="w-10 h-10 rounded-full border-2 animate-spin"
+          className="w-8 h-8 rounded-full border-2 animate-spin"
           style={{
             borderColor: "var(--color-accent)",
             borderTopColor: "transparent",
@@ -397,63 +449,24 @@ function ChatContent() {
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div className="h-[calc(100svh-64px)] md:h-screen flex" style={{ background: "var(--color-base)" }}>
+    <div className="h-[calc(100svh-64px)] md:h-screen flex" style={{ background: "var(--color-surface-1)" }}>
       {/* ── Left Nav Sidebar (desktop) ── */}
-      <aside
-        className="hidden md:flex flex-col w-56 border-r flex-shrink-0"
-        style={{
-          background: "var(--color-void)",
-          borderColor: "var(--color-border-subtle)",
-        }}
-      >
-        <div
-          className="px-5 py-6 border-b"
-          style={{ borderColor: "var(--color-border-subtle)" }}
-        >
-          <span className="text-xl font-bold">
-            <span style={{ color: "var(--color-accent)" }}>Linh</span>IQ
-          </span>
-        </div>
-        <nav className="flex-1 p-3 space-y-1">
-          {NAV_ITEMS.map(({ href, icon: Icon, label }) => {
-            const active = pathname.startsWith("/chat");
-            const isChat = href === "/chat";
-            return (
-              <Link
-                key={href}
-                href={href}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all"
-                style={{
-                  background:
-                    active && isChat ? "var(--color-accent-soft)" : "transparent",
-                  color:
-                    active && isChat
-                      ? "var(--color-accent)"
-                      : "var(--color-text-secondary)",
-                }}
-              >
-                <Icon size={18} />
-                {label}
-              </Link>
-            );
-          })}
-        </nav>
-      </aside>
+      <Sidebar />
 
       {/* ── Main Chat Column ── */}
-      <div className="flex flex-col flex-1 min-w-0 h-full">
+      <div className="flex flex-col flex-1 min-w-0 h-full md:ml-[240px]">
         {/* ── Header ── */}
         <header
           className="flex-shrink-0 flex items-center justify-between px-4 py-3 border-b"
           style={{
-            background: "rgba(23,23,23,0.92)",
-            backdropFilter: "blur(16px)",
+            background: "var(--color-surface-2)",
             borderColor: "var(--color-border-subtle)",
           }}
         >
           <div className="flex items-center gap-3 min-w-0">
             <button
               onClick={() => router.push("/dashboard")}
+              aria-label="Back to dashboard"
               className="flex-shrink-0 p-1.5 rounded-lg transition-colors"
               style={{ color: "var(--color-text-muted)" }}
               onMouseEnter={(e) =>
@@ -468,10 +481,10 @@ function ChatContent() {
               <ArrowLeft size={18} />
             </button>
             <div
-              className="w-8 h-8 rounded-xl flex items-center justify-center text-lg flex-shrink-0"
+              className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
               style={{ background: "var(--color-accent-soft)" }}
             >
-              {chatEmoji}
+              <BookOpen size={16} style={{ color: "var(--color-accent)" }} />
             </div>
             <div className="min-w-0">
               <h1 className="text-sm font-semibold truncate">{chatTitle}</h1>
@@ -508,7 +521,7 @@ function ChatContent() {
                       background:
                         hintLevel === level
                           ? "var(--color-accent)"
-                          : "var(--color-surface)",
+                          : "var(--color-surface-2)",
                       color:
                         hintLevel === level ? "#fff" : "var(--color-text-muted)",
                       border:
@@ -525,7 +538,7 @@ function ChatContent() {
                   <div
                     className="absolute right-0 top-full mt-2 px-3 py-2 rounded-lg text-xs whitespace-nowrap z-50 animate-fade-up"
                     style={{
-                      background: "var(--color-elevated)",
+                      background: "var(--color-surface-0)",
                       border: "1px solid var(--color-border-default)",
                       color: "var(--color-text-secondary)",
                       boxShadow: "var(--shadow-md)",
@@ -627,10 +640,10 @@ function ChatContent() {
               >
                 {msg.role === "assistant" && (
                   <div
-                    className="w-8 h-8 rounded-xl flex items-center justify-center text-base flex-shrink-0 mt-0.5"
+                    className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
                     style={{ background: "var(--color-accent-soft)" }}
                   >
-                    {isOpen ? "😊" : chatEmoji}
+                    <BookOpen size={14} style={{ color: "var(--color-accent)" }} />
                   </div>
                 )}
                 <div
@@ -642,16 +655,18 @@ function ChatContent() {
                   style={
                     msg.role === "user"
                       ? {
-                          background: "var(--color-elevated)",
+                          background: "var(--color-surface-3)",
                           color: "var(--color-text-primary)",
-                          borderRadius: "18px 18px 4px 18px",
+                          borderRadius: "12px 12px 4px 12px",
                           padding: "11px 16px",
                           whiteSpace: "pre-wrap",
                           border: "1px solid var(--color-border-default)",
                         }
                       : {
                           color: "var(--color-text-primary)",
-                          padding: "2px 0",
+                          padding: "4px 0",
+                          borderLeft: "3px solid var(--color-accent)",
+                          paddingLeft: "12px",
                         }
                   }
                 >
@@ -669,7 +684,7 @@ function ChatContent() {
                       msg.content
                     )
                   ) : (
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
                       {msg.content}
                     </ReactMarkdown>
                   )}
@@ -681,10 +696,10 @@ function ChatContent() {
             {streamingText && (
               <div className="flex gap-3 justify-start animate-fade-in">
                 <div
-                  className="w-8 h-8 rounded-xl flex items-center justify-center text-base flex-shrink-0 mt-0.5"
+                  className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
                   style={{ background: "var(--color-accent-soft)" }}
                 >
-                  {isOpen ? "😊" : chatEmoji}
+                  <BookOpen size={14} style={{ color: "var(--color-accent)" }} />
                 </div>
                 <div
                   className="max-w-[80%] sm:max-w-[72%] text-[15px] leading-relaxed prose-chat max-w-none"
@@ -693,7 +708,7 @@ function ChatContent() {
                     padding: "2px 0",
                   }}
                 >
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
                     {streamingText}
                   </ReactMarkdown>
                   <span
@@ -708,10 +723,10 @@ function ChatContent() {
             {isStreaming && !streamingText && (
               <div className="flex gap-3 justify-start animate-fade-in">
                 <div
-                  className="w-8 h-8 rounded-xl flex items-center justify-center text-base flex-shrink-0 mt-0.5"
+                  className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
                   style={{ background: "var(--color-accent-soft)" }}
                 >
-                  {isOpen ? "😊" : chatEmoji}
+                  <BookOpen size={14} style={{ color: "var(--color-accent)" }} />
                 </div>
                 <div className="flex items-center gap-4 py-2">
                   <div className="flex gap-1.5">
@@ -753,16 +768,15 @@ function ChatContent() {
         <div
           className="flex-shrink-0 px-4 py-3 border-t"
           style={{
-            background: "rgba(23,23,23,0.92)",
-            backdropFilter: "blur(16px)",
+            background: "var(--color-surface-2)",
             borderColor: "var(--color-border-subtle)",
           }}
         >
           <div className="max-w-2xl mx-auto flex gap-2 items-end">
             <div
-              className="flex-1 flex items-end gap-2 rounded-xl border px-4 py-2.5"
+              className="flex-1 flex items-end gap-2 rounded-lg border px-4 py-2.5"
               style={{
-                background: "var(--color-surface)",
+                background: "var(--color-surface-2)",
                 borderColor: "var(--color-border-default)",
                 transition: "border-color 0.15s",
               }}
@@ -806,29 +820,33 @@ function ChatContent() {
               />
               <button
                 onClick={() => fileInputRef.current?.click()}
-                disabled={isStreaming}
+                disabled={isStreaming || isCompressing}
                 className="flex-shrink-0 p-1 rounded-md transition-colors"
                 style={{
-                  color: imagePreview
+                  color: isCompressing
+                    ? "var(--color-accent)"
+                    : imagePreview
                     ? "var(--color-accent)"
                     : "var(--color-text-muted)",
+                  opacity: isCompressing ? 0.7 : 1,
                 }}
-                title="Upload photo (or paste with Ctrl+V)"
+                title={isCompressing ? "Đang xử lý ảnh..." : "Upload photo (or paste with Ctrl+V)"}
               >
                 <Camera size={18} />
               </button>
             </div>
             <button
               onClick={sendMessage}
-              disabled={(!input.trim() && !imageBase64) || isStreaming}
-              className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200"
+              aria-label="Send message"
+              disabled={(!input.trim() && !imageBase64) || isStreaming || isCompressing}
+              className="flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-200 cursor-pointer"
               style={{
                 background:
-                  (input.trim() || imageBase64) && !isStreaming
+                  (input.trim() || imageBase64) && !isStreaming && !isCompressing
                     ? "var(--color-accent)"
-                    : "var(--color-surface)",
+                    : "var(--color-surface-2)",
                 color:
-                  (input.trim() || imageBase64) && !isStreaming
+                  (input.trim() || imageBase64) && !isStreaming && !isCompressing
                     ? "#fff"
                     : "var(--color-text-muted)",
                 border: "1px solid var(--color-border-default)",
@@ -838,13 +856,35 @@ function ChatContent() {
             </button>
           </div>
 
+          {/* Image processing shimmer */}
+          {isCompressing && (
+            <div className="max-w-2xl mx-auto mt-2 flex items-center gap-2">
+              <div
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-lg animate-pulse"
+                style={{
+                  background: "var(--color-surface-0)",
+                  border: "1px solid var(--color-border-default)",
+                }}
+              >
+                <div className="h-10 w-10 rounded-md" style={{ background: "var(--color-surface)" }} />
+                <div className="flex flex-col gap-1">
+                  <div className="h-2.5 w-20 rounded" style={{ background: "var(--color-surface)" }} />
+                  <div className="h-2 w-14 rounded" style={{ background: "var(--color-surface)" }} />
+                </div>
+              </div>
+              <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+                Đang xử lý ảnh...
+              </span>
+            </div>
+          )}
+
           {/* Image preview chip */}
-          {imagePreview && (
+          {imagePreview && !isCompressing && (
             <div className="max-w-2xl mx-auto mt-2 flex items-center gap-2">
               <div
                 className="inline-flex items-center gap-2 px-2 py-1.5 rounded-lg"
                 style={{
-                  background: "var(--color-elevated)",
+                  background: "var(--color-surface-0)",
                   border: "1px solid var(--color-border-default)",
                 }}
               >
@@ -853,9 +893,14 @@ function ChatContent() {
                   alt="preview"
                   className="h-10 w-10 object-cover rounded-md"
                 />
-                <span className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
-                  Image attached
-                </span>
+                <div className="flex flex-col">
+                  <span className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
+                    Image attached
+                  </span>
+                  <span className="text-[10px]" style={{ color: imageUploadUrl ? "var(--color-accent)" : "var(--color-text-muted)" }}>
+                    {imageUploadUrl ? "✓ Uploaded" : "Using inline"}
+                  </span>
+                </div>
                 <button
                   onClick={clearImage}
                   className="p-0.5 rounded-full transition-colors"
@@ -903,33 +948,7 @@ function ChatContent() {
       )}
 
       {/* ── Mobile Bottom Nav ── */}
-      <nav
-        className="md:hidden fixed bottom-0 left-0 right-0 z-20 flex items-center justify-around h-16 border-t"
-        style={{
-          background: "rgba(23,23,23,0.95)",
-          backdropFilter: "blur(16px)",
-          borderColor: "var(--color-border-subtle)",
-        }}
-      >
-        {NAV_ITEMS.map(({ href, icon: Icon, label }) => {
-          const isChatActive = href === "/chat";
-          return (
-            <Link
-              key={href}
-              href={href}
-              className="flex flex-col items-center gap-1 px-4 py-2"
-              style={{
-                color: isChatActive
-                  ? "var(--color-accent)"
-                  : "var(--color-text-muted)",
-              }}
-            >
-              <Icon size={20} />
-              <span className="text-[10px] font-medium">{label}</span>
-            </Link>
-          );
-        })}
-      </nav>
+      <BottomNav />
 
       {/* ── Mobile Roadmap Bottom Sheet ── */}
       {isSubject && mobileRoadmapOpen && (
@@ -943,7 +962,7 @@ function ChatContent() {
           <div
             className="rounded-t-2xl overflow-hidden flex flex-col"
             style={{
-              background: "var(--color-void)",
+              background: "var(--color-surface-2)",
               maxHeight: "75vh",
               border: "1px solid var(--color-border-default)",
             }}

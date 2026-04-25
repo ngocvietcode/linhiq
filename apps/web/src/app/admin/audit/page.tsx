@@ -40,12 +40,12 @@ function getMockedLogs(userEmail: string): AuditLog[] {
 
 const ACTION_META: Record<string, { color: string; icon: React.FC<{ size: number }>; label: string }> = {
   USER_ROLE_CHANGED: { color: "var(--color-accent)", icon: User,     label: "Role Changed" },
-  USER_BANNED:       { color: "#F59E0B", icon: Lock,     label: "User Banned" },
+  USER_BANNED:       { color: "var(--color-gold)", icon: Lock,     label: "User Banned" },
   USER_DELETED:      { color: "#F43F5E", icon: Trash2,   label: "User Deleted" },
-  SUBJECT_CREATED:   { color: "#22D3A3", icon: BookOpen, label: "Subject Created" },
+  SUBJECT_CREATED:   { color: "var(--color-teal)", icon: BookOpen, label: "Subject Created" },
   SUBJECT_UPDATED:   { color: "var(--color-accent)", icon: BookOpen, label: "Subject Updated" },
   DOCUMENT_DELETED:  { color: "#F43F5E", icon: Trash2,   label: "Document Deleted" },
-  PROVIDER_CHANGED:  { color: "#F59E0B", icon: Globe,    label: "Provider Changed" },
+  PROVIDER_CHANGED:  { color: "var(--color-gold)", icon: Globe,    label: "Provider Changed" },
   SETTINGS_RESET:    { color: "#F43F5E", icon: Settings, label: "Settings Reset" },
 };
 
@@ -117,7 +117,7 @@ export default function AdminAuditPage() {
             onClick={() => setFilter(c)}
             className="px-3 py-1.5 rounded-lg text-sm font-medium border transition-all"
             style={{
-              background: filter === c ? "var(--color-accent-soft)" : "var(--color-surface)",
+              background: filter === c ? "var(--color-accent-soft)" : "var(--color-surface-2)",
               borderColor: filter === c ? "var(--color-accent)" : "var(--color-border-subtle)",
               color: filter === c ? "var(--color-accent)" : "var(--color-text-secondary)",
             }}
@@ -142,7 +142,7 @@ export default function AdminAuditPage() {
       {/* Log list */}
       <div
         className="rounded-2xl border overflow-hidden"
-        style={{ background: "var(--color-surface)", borderColor: "var(--color-border-subtle)" }}
+        style={{ background: "var(--color-surface-2)", borderColor: "var(--color-border-subtle)" }}
       >
         {loading ? (
           Array.from({ length: 8 }).map((_, i) => (
@@ -178,7 +178,7 @@ export default function AdminAuditPage() {
                   onClick={() => setExpanded(isExpanded ? null : log.id)}
                   className="w-full flex items-center gap-4 px-5 py-4 text-left transition-colors"
                   onMouseEnter={(e) =>
-                    ((e.currentTarget as HTMLElement).style.background = "rgba(218,119,86,0.025)")
+                    ((e.currentTarget as HTMLElement).style.background = "var(--color-accent-soft)")
                   }
                   onMouseLeave={(e) =>
                     ((e.currentTarget as HTMLElement).style.background = "transparent")
@@ -230,7 +230,7 @@ export default function AdminAuditPage() {
                   >
                     <div
                       className="mt-3 rounded-xl p-3 text-xs font-mono"
-                      style={{ background: "var(--color-elevated)", color: "var(--color-text-secondary)" }}
+                      style={{ background: "var(--color-surface-0)", color: "var(--color-text-secondary)" }}
                     >
                       <pre className="whitespace-pre-wrap break-all">
                         {JSON.stringify(log.details, null, 2)}

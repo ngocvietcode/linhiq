@@ -69,12 +69,12 @@ export class RagService {
           1 - (dc.embedding <=> ${embeddingVector}::vector) as similarity,
           d.title as "documentTitle",
           (dc.metadata->>'page')::int as page,
-          m.name as chapter,
+          u.name as chapter,
           t.name as "topicName"
         FROM "DocumentChunk" dc
         JOIN "Document" d ON dc."documentId" = d.id
         LEFT JOIN "Topic" t ON dc."topicId" = t.id
-        LEFT JOIN "Milestone" m ON t."milestoneId" = m.id
+        LEFT JOIN "Unit" u ON t."unitId" = u.id
         WHERE d."subjectId" = ${subjectId}
           AND dc.embedding IS NOT NULL
         ORDER BY
@@ -90,12 +90,12 @@ export class RagService {
           1 - (dc.embedding <=> ${embeddingVector}::vector) as similarity,
           d.title as "documentTitle",
           (dc.metadata->>'page')::int as page,
-          m.name as chapter,
+          u.name as chapter,
           t.name as "topicName"
         FROM "DocumentChunk" dc
         JOIN "Document" d ON dc."documentId" = d.id
         LEFT JOIN "Topic" t ON dc."topicId" = t.id
-        LEFT JOIN "Milestone" m ON t."milestoneId" = m.id
+        LEFT JOIN "Unit" u ON t."unitId" = u.id
         WHERE d."subjectId" = ${subjectId}
           AND dc.embedding IS NOT NULL
         ORDER BY dc.embedding <=> ${embeddingVector}::vector

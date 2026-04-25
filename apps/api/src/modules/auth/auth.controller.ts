@@ -1,8 +1,10 @@
 import { Controller, Post, Get, Body, Req, Res, UseGuards } from '@nestjs/common';
+import { AuthGuard as PassportAuthGuard } from '@nestjs/passport';
 import { AuthService } from './auth.service';
 import { registerSchema, loginSchema } from '@linhiq/validators';
 import { AuthGuard } from '../../common/guards/auth.guard';
 import type { Request, Response } from 'express';
+import type { GoogleProfile } from './google.strategy';
 
 const COOKIE_NAME = 'linhiq_refresh_token';
 
@@ -56,5 +58,42 @@ export class AuthController {
   @UseGuards(AuthGuard)
   async getProfile(@Req() req: any) {
     return this.auth.getProfile(req.user.sub);
+  }
+
+  /**
+   * Kick off Google OAuth flow. Passport redirects the browser to Google.
+   */
+  @Get('google')
+  @UseGuards(PassportAuthGuard('google'))
+  googleAuth() {
+    // Passport handles the redirect; this method body is never executed.
+  }
+
+  /**
+   * Google OAuth callback. Creates/links user, sets refresh cookie,
+   * and redirects to the web app with the access token in the URL.
+   */
+  @Get('google/callback')
+  @UseGuards(PassportAuthGuard('google'))
+  async googleCallback(@Req() req: Request, @Res() res: Response) {
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const profile = req.user as GoogleProfile | undefined;
+
+    if (!profile) {
+      return res.redirect(`${frontendUrl}/login?error=google_oauth_failed`);
+    }
+
+    try {
+      const { accessToken, refreshToken } = await this.auth.googleOAuthLogin(profile);
+      this.setRefreshCookie(res, refreshToken);
+      return res.redirect(
+        `${frontendUrl}/auth/google/callback?token=${encodeURIComponent(accessToken)}`,
+      );
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'oauth_failed';
+      return res.redirect(
+        `${frontendUrl}/login?error=${encodeURIComponent(message)}`,
+      );
+    }
   }
 }

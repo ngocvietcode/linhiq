@@ -66,6 +66,71 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    if (!user.isActive) {
+      throw new UnauthorizedException('Account is disabled');
+    }
+
+    const accessToken = this.generateAccessToken(user.id, user.email, user.role);
+    const refreshToken = this.generateRefreshToken(user.id);
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+      },
+      accessToken,
+      refreshToken,
+    };
+  }
+
+  /**
+   * Log in or register via Google OAuth profile.
+   * - If user exists with googleId: log in.
+   * - If user exists with matching email (no googleId): link googleId to account.
+   * - Otherwise: create new user with no passwordHash.
+   */
+  async googleOAuthLogin(profile: {
+    googleId: string;
+    email: string;
+    name: string;
+    avatarUrl: string | null;
+  }) {
+    let user = await this.db.user.findUnique({
+      where: { googleId: profile.googleId },
+    });
+
+    if (!user) {
+      const existingByEmail = await this.db.user.findUnique({
+        where: { email: profile.email },
+      });
+
+      if (existingByEmail) {
+        user = await this.db.user.update({
+          where: { id: existingByEmail.id },
+          data: {
+            googleId: profile.googleId,
+            avatarUrl: existingByEmail.avatarUrl ?? profile.avatarUrl,
+          },
+        });
+      } else {
+        user = await this.db.user.create({
+          data: {
+            email: profile.email,
+            name: profile.name,
+            googleId: profile.googleId,
+            avatarUrl: profile.avatarUrl,
+            role: 'STUDENT',
+          },
+        });
+      }
+    }
+
+    if (!user.isActive) {
+      throw new UnauthorizedException('Account is disabled');
+    }
+
     const accessToken = this.generateAccessToken(user.id, user.email, user.role);
     const refreshToken = this.generateRefreshToken(user.id);
 

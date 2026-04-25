@@ -19,9 +19,9 @@ interface Doc {
 }
 
 const SOURCE_TYPE_STYLE: Record<string, { bg: string; color: string }> = {
-  TEXTBOOK: { bg: "rgba(218,119,86,0.1)",  color: "var(--color-accent)" },
-  NOTES:    { bg: "rgba(34,211,163,0.1)",  color: "#22D3A3" },
-  EXAM:     { bg: "rgba(245,158,11,0.1)",  color: "#F59E0B" },
+  TEXTBOOK: { bg: "var(--color-accent-soft)",  color: "var(--color-accent)" },
+  NOTES:    { bg: "rgba(34,211,163,0.1)",  color: "var(--color-teal)" },
+  EXAM:     { bg: "rgba(245,158,11,0.1)",  color: "var(--color-gold)" },
   OTHER:    { bg: "rgba(148,163,184,0.1)", color: "#94A3B8" },
 };
 
@@ -105,7 +105,7 @@ export default function AdminDocumentsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
           style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(8px)" }}>
           <div className="w-full max-w-lg rounded-2xl border animate-fade-up"
-            style={{ background: "var(--color-surface)", borderColor: "var(--color-border-default)" }}>
+            style={{ background: "var(--color-surface-2)", borderColor: "var(--color-border-default)" }}>
             <div className="flex items-center justify-between px-6 py-5 border-b"
               style={{ borderColor: "var(--color-border-subtle)" }}>
               <h2 className="font-bold text-lg">Upload Document</h2>
@@ -119,7 +119,7 @@ export default function AdminDocumentsPage() {
                 className="border-2 border-dashed rounded-2xl p-10 transition-all text-center"
                 style={{
                   borderColor: dragOver ? "var(--color-accent)" : "var(--color-border-default)",
-                  background: dragOver ? "var(--color-accent-soft)" : "var(--color-elevated)",
+                  background: dragOver ? "var(--color-accent-soft)" : "var(--color-surface-0)",
                 }}
                 onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
                 onDragLeave={() => setDragOver(false)}
@@ -190,11 +190,11 @@ export default function AdminDocumentsPage() {
       <div className="grid grid-cols-3 gap-4 mb-6">
         {[
           { label: "Total Documents", value: docs.length, icon: FileText, color: "var(--color-accent)" },
-          { label: "Total Chunks", value: docs.reduce((s, d) => s + d.chunkCount, 0).toLocaleString(), icon: Database, color: "#22D3A3" },
-          { label: "Subjects Covered", value: new Set(docs.map((d) => d.subject?.id)).size, icon: BookOpen, color: "#F59E0B" },
+          { label: "Total Chunks", value: docs.reduce((s, d) => s + d.chunkCount, 0).toLocaleString(), icon: Database, color: "var(--color-teal)" },
+          { label: "Subjects Covered", value: new Set(docs.map((d) => d.subject?.id)).size, icon: BookOpen, color: "var(--color-gold)" },
         ].map(({ label, value, icon: Icon, color }) => (
           <div key={label} className="rounded-xl border p-4 flex items-center gap-3"
-            style={{ background: "var(--color-surface)", borderColor: "var(--color-border-subtle)" }}>
+            style={{ background: "var(--color-surface-2)", borderColor: "var(--color-border-subtle)" }}>
             <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
               style={{ background: `${color}18` }}>
               <Icon size={18} style={{ color }} />
@@ -216,7 +216,7 @@ export default function AdminDocumentsPage() {
               onClick={() => setTypeFilter(t)}
               className="px-3 py-1.5 rounded-lg text-xs font-medium border transition-all"
               style={{
-                background: typeFilter === t ? "var(--color-accent-soft)" : "var(--color-surface)",
+                background: typeFilter === t ? "var(--color-accent-soft)" : "var(--color-surface-2)",
                 borderColor: typeFilter === t ? "var(--color-accent)" : "var(--color-border-subtle)",
                 color: typeFilter === t ? "var(--color-accent)" : "var(--color-text-secondary)",
               }}
@@ -240,13 +240,13 @@ export default function AdminDocumentsPage() {
       {/* Table */}
       <div
         className="rounded-2xl border overflow-hidden"
-        style={{ background: "var(--color-surface)", borderColor: "var(--color-border-subtle)" }}
+        style={{ background: "var(--color-surface-2)", borderColor: "var(--color-border-subtle)" }}
       >
         <div
           className="grid px-5 py-3 text-xs font-semibold uppercase tracking-wider"
           style={{
             gridTemplateColumns: "2.5fr 1.5fr 100px 80px 80px 80px",
-            background: "var(--color-elevated)",
+            background: "var(--color-surface-0)",
             color: "var(--color-text-muted)",
             borderBottom: "1px solid var(--color-border-subtle)",
           }}
@@ -283,7 +283,7 @@ export default function AdminDocumentsPage() {
                   gridTemplateColumns: "2.5fr 1.5fr 100px 80px 80px 80px",
                   borderColor: "var(--color-border-subtle)",
                 }}
-                onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(218,119,86,0.025)")}
+                onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "var(--color-accent-soft)")}
                 onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "transparent")}
               >
                 <div className="flex items-center gap-3 min-w-0">

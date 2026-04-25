@@ -127,9 +127,16 @@ export class ChatController {
         subjectName: session.subject?.name ?? 'General',
         curriculum: session.subject?.curriculum ?? 'GENERAL',
         hintLevel: input.hintLevel,
+        imageUrl: input.imageUrl ?? undefined,
         imageBase64: input.imageBase64,
         imageMimeType: input.imageMimeType,
-        readerContext: input.readerContext,
+        readerContext: input.readerContext ? {
+          bookVolumeId: input.readerContext.bookVolumeId ?? undefined,
+          topicId: input.readerContext.topicId ?? undefined,
+          pageNumber: input.readerContext.pageNumber ?? undefined,
+          chapterName: input.readerContext.chapterName ?? undefined,
+          topicName: input.readerContext.topicName ?? undefined,
+        } : undefined,
       });
     }
 

@@ -57,10 +57,10 @@ interface QuizModalProps {
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function getTierColor(pct: number) {
-  if (pct >= 80) return "#10b981";
-  if (pct >= 60) return "#3b82f6";
-  if (pct >= 40) return "#f59e0b";
-  return "#ef4444";
+  if (pct >= 80) return "var(--color-success)";
+  if (pct >= 60) return "var(--color-accent)";
+  if (pct >= 40) return "var(--color-warning)";
+  return "var(--color-danger)";
 }
 
 function getTierLabel(grade: string) {
@@ -116,6 +116,27 @@ export function QuizModal({ type, targetId, subjectId, targetName, onClose }: Qu
     startQuiz();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Keyboard shortcuts: A/B/C/D to select option, Enter to advance
+  useEffect(() => {
+    const q = quiz?.questions[currentIndex];
+    if (state !== "in_progress" || !quiz || !q) return;
+
+    const handler = (e: KeyboardEvent) => {
+      const key = e.key.toUpperCase();
+      const optionCount = q.options.length;
+      const idx = "ABCD".indexOf(key);
+      if (idx !== -1 && idx < optionCount) {
+        handleSelectOption(String.fromCharCode(65 + idx));
+      } else if (key === "ENTER" && selectedOption !== null) {
+        handleNext();
+      }
+    };
+
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state, quiz, currentIndex, selectedOption]);
 
 
   // Confirm answer + advance
@@ -181,7 +202,7 @@ export function QuizModal({ type, targetId, subjectId, targetName, onClose }: Qu
         className="relative w-full max-w-lg mx-4 rounded-2xl overflow-hidden flex flex-col"
         style={{
           maxHeight: "90vh",
-          background: "var(--color-surface)",
+          background: "var(--color-surface-2)",
           border: "1px solid var(--color-border-default)",
           boxShadow: "0 24px 64px rgba(0,0,0,0.5)",
         }}
@@ -190,7 +211,7 @@ export function QuizModal({ type, targetId, subjectId, targetName, onClose }: Qu
         <div
           className="flex-shrink-0 flex items-center justify-between px-5 py-4 border-b"
           style={{
-            background: "var(--color-void)",
+            background: "var(--color-surface-1)",
             borderColor: "var(--color-border-subtle)",
           }}
         >
@@ -304,8 +325,8 @@ export function QuizModal({ type, targetId, subjectId, targetName, onClose }: Qu
                       className="w-full text-left px-4 py-3 rounded-xl transition-all duration-150 flex items-start gap-3"
                       style={{
                         background: isSelected
-                          ? "rgba(218,119,86,0.15)"
-                          : "var(--color-void)",
+                          ? "var(--color-accent-soft)"
+                          : "var(--color-surface-1)",
                         border: `1.5px solid ${isSelected ? "var(--color-accent)" : "var(--color-border-subtle)"}`,
                         color: "var(--color-text-primary)",
                       }}
@@ -327,7 +348,9 @@ export function QuizModal({ type, targetId, subjectId, targetName, onClose }: Qu
                       >
                         {letter}
                       </span>
-                      <span className="text-[13.5px] leading-snug pt-0.5">{opt.substring(3)}</span>
+                      <span className="text-[13.5px] leading-snug pt-0.5">
+                        {/^[A-D]\.\s/.test(opt) ? opt.substring(3) : opt}
+                      </span>
                     </button>
                   );
                 })}
@@ -368,22 +391,22 @@ export function QuizModal({ type, targetId, subjectId, targetName, onClose }: Qu
                     key={r.questionId}
                     className="rounded-xl overflow-hidden"
                     style={{
-                      border: `1px solid ${r.isCorrect ? "rgba(16,185,129,0.25)" : "rgba(239,68,68,0.25)"}`,
-                      background: r.isCorrect ? "rgba(16,185,129,0.06)" : "rgba(239,68,68,0.06)",
+                      border: `1px solid ${r.isCorrect ? "rgba(34,211,163,0.25)" : "rgba(244,63,94,0.25)"}`,
+                      background: r.isCorrect ? "rgba(34,211,163,0.06)" : "rgba(244,63,94,0.06)",
                     }}
                   >
                     <div className="flex items-start gap-3 px-4 py-3">
                       {r.isCorrect ? (
-                        <CheckCircle2 size={15} className="flex-shrink-0 mt-0.5" style={{ color: "#10b981" }} />
+                        <CheckCircle2 size={15} className="flex-shrink-0 mt-0.5" style={{ color: "var(--color-success)" }} />
                       ) : (
-                        <XCircle size={15} className="flex-shrink-0 mt-0.5" style={{ color: "#ef4444" }} />
+                        <XCircle size={15} className="flex-shrink-0 mt-0.5" style={{ color: "var(--color-danger)" }} />
                       )}
                       <div className="flex-1 min-w-0">
                         <p className="text-[12.5px] font-medium" style={{ color: "var(--color-text-primary)" }}>
                           Q{i + 1}. {r.question}
                         </p>
                         {!r.isCorrect && (
-                          <p className="text-[11px] mt-1" style={{ color: "#ef4444" }}>
+                          <p className="text-[11px] mt-1" style={{ color: "var(--color-danger)" }}>
                             Your answer: {r.studentAnswer ?? "—"} · Correct: {r.correctAnswer}
                           </p>
                         )}
@@ -407,7 +430,7 @@ export function QuizModal({ type, targetId, subjectId, targetName, onClose }: Qu
           className="flex-shrink-0 px-5 py-4 border-t flex items-center justify-between"
           style={{
             borderColor: "var(--color-border-subtle)",
-            background: "var(--color-void)",
+            background: "var(--color-surface-1)",
           }}
         >
           {state === "in_progress" && quiz && (
@@ -436,9 +459,9 @@ export function QuizModal({ type, targetId, subjectId, targetName, onClose }: Qu
               <div className="flex items-center gap-1.5">
                 <div
                   className="w-2 h-2 rounded-full animate-pulse"
-                  style={{ background: "#10b981" }}
+                  style={{ background: "var(--color-success)" }}
                 />
-                <span className="text-[11px]" style={{ color: "#10b981" }}>
+                <span className="text-[11px]" style={{ color: "var(--color-success)" }}>
                   Progress updated
                 </span>
               </div>

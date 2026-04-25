@@ -7,8 +7,8 @@ import { ProgressService } from '../progress/progress.service';
 const QUIZ_WEIGHT = 2;
 
 export interface GenerateQuizDto {
-  type: 'topic' | 'milestone';
-  id: string;           // topicId or milestoneId
+  type: 'topic' | 'unit';
+  id: string;           // topicId or unitId
   subjectId: string;
 }
 
@@ -39,7 +39,7 @@ export class QuizService {
 
     // Resolve topic list
     let topics: { id: string; name: string }[];
-    let milestoneId: string | undefined;
+    let unitId: string | undefined;
     let topicId: string | undefined;
     let questionCount: number;
 
@@ -50,14 +50,14 @@ export class QuizService {
       topicId = topic.id;
       questionCount = 5;
     } else {
-      const milestone = await this.db.milestone.findUnique({
+      const unit = await this.db.unit.findUnique({
         where: { id },
-        include: { topics: { orderBy: { orderIndex: 'asc' } } },
+        include: { Topic: { orderBy: { orderIndex: 'asc' } } },
       });
-      if (!milestone) throw new NotFoundException('Milestone not found');
-      if (milestone.topics.length === 0) throw new BadRequestException('Milestone has no topics');
-      topics = milestone.topics.map(t => ({ id: t.id, name: t.name }));
-      milestoneId = milestone.id;
+      if (!unit) throw new NotFoundException('Unit not found');
+      if (!unit.Topic || unit.Topic.length === 0) throw new BadRequestException('Unit has no topics');
+      topics = unit.Topic.map(t => ({ id: t.id, name: t.name }));
+      unitId = unit.id;
       questionCount = 15;
     }
 
@@ -78,9 +78,9 @@ export class QuizService {
       data: {
         userId,
         subjectId,
-        quizType: type === 'topic' ? 'TOPIC' : 'MILESTONE',
+        quizType: type === 'topic' ? 'TOPIC' : 'UNIT',
         ...(topicId && { topicId }),
-        ...(milestoneId && { milestoneId }),
+        ...(unitId && { unitId }),
         total: generated.length,
         questions: {
           create: generated.map((q, i) => ({

@@ -61,21 +61,46 @@ function SubjectDetailContent() {
             <div className="p-6 border-b border-border bg-black/20 flex justify-between items-center">
               <div>
                 <h2 className="text-xl font-semibold">Assigned Textbooks</h2>
-                <p className="text-sm text-text-muted">Used for RAG Context in Chat</p>
+                <p className="text-sm text-text-muted">
+                  {subject.documents?.length || 0} book{(subject.documents?.length || 0) !== 1 ? "s" : ""} · Used for RAG context in chat
+                </p>
               </div>
             </div>
             <div className="p-6 flex-1">
               {subject.documents && subject.documents.length > 0 ? (
                 <ul className="space-y-4">
-                  {subject.documents.map((doc: any) => (
-                    <li key={doc.id} className="p-4 rounded-xl border border-border bg-bg-primary flex flex-col gap-2">
-                       <span className="font-semibold text-accent break-words">{doc.title}</span>
-                       <div className="flex justify-between items-center text-xs text-text-muted">
-                         <span>Source: {doc.sourceType}</span>
-                         <span>Chunks: {doc.pageCount}</span>
-                       </div>
-                    </li>
-                  ))}
+                  {subject.documents.map((doc: any) => {
+                    const vol = doc.bookVolume;
+                    const chunkCount = doc._count?.chunks ?? 0;
+                    return (
+                      <li key={doc.id} className="p-4 rounded-xl border border-border bg-bg-primary flex flex-col gap-2">
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="font-semibold text-accent break-words">{doc.title}</span>
+                          {vol?.isDefault && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-accent/15 text-accent whitespace-nowrap font-medium">
+                              DEFAULT
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-text-muted">
+                          {vol?.bookType && (
+                            <span className="px-1.5 py-0.5 rounded bg-black/30">
+                              {vol.bookType.replace(/_/g, " ")}
+                            </span>
+                          )}
+                          {vol?.shortTitle && <span>“{vol.shortTitle}”</span>}
+                          <span>Source: {doc.sourceType}</span>
+                          {vol?.totalPages != null && <span>{vol.totalPages} pages</span>}
+                          <span className={chunkCount > 0 ? "text-success" : "text-warning"}>
+                            {chunkCount} chunks
+                          </span>
+                          {!doc.isProcessed && chunkCount === 0 && (
+                            <span className="text-warning">· not ingested</span>
+                          )}
+                        </div>
+                      </li>
+                    );
+                  })}
                 </ul>
               ) : (
                 <p className="text-text-muted italic text-center py-10">No textbooks assigned. Run ingest script to map textbooks.</p>
@@ -118,12 +143,22 @@ function SubjectDetailContent() {
                              
                              {/* Chunks List */}
                              <div className="mt-2 pl-4 space-y-2">
-                               {topic.chunks?.map((chunk: any, idx: number) => (
-                                 <div key={chunk.id} className="text-xs text-text-muted bg-bg-card p-2 rounded border border-border/50 break-words whitespace-pre-wrap">
-                                   <span className="font-semibold text-accent mb-1 block">Chunk {idx + 1}</span>
-                                   {chunk.content}
-                                 </div>
-                               ))}
+                               {topic.chunks?.map((chunk: any, idx: number) => {
+                                 const bookLabel = chunk.document?.bookVolume?.shortTitle ?? chunk.document?.title;
+                                 return (
+                                   <div key={chunk.id} className="text-xs text-text-muted bg-bg-card p-2 rounded border border-border/50 break-words whitespace-pre-wrap">
+                                     <div className="flex items-center justify-between mb-1">
+                                       <span className="font-semibold text-accent">Chunk {idx + 1}</span>
+                                       {bookLabel && (
+                                         <span className="text-[10px] px-1.5 py-0.5 rounded bg-black/30 text-text-muted whitespace-nowrap">
+                                           {bookLabel}
+                                         </span>
+                                       )}
+                                     </div>
+                                     {chunk.content}
+                                   </div>
+                                 );
+                               })}
                                {!topic.chunks?.length && (
                                  <p className="text-xs text-text-muted italic">No textbook content for this topic.</p>
                                )}

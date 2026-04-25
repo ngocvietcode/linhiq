@@ -74,27 +74,27 @@ export default function HomePage() {
   return (
     <div
       className="min-h-screen flex flex-col transition-colors duration-300"
-      style={{ background: "var(--color-void)", color: "var(--color-text-primary)" }}
+      style={{ background: "var(--color-surface-1)", color: "var(--color-text-primary)" }}
     >
       {/* ── Nav ── */}
       <header
         className="sticky top-0 z-50 px-6 py-4 flex items-center justify-between border-b transition-all"
         style={{
-          background: "rgba(23,23,23,0.8)",
-          backdropFilter: "blur(20px)",
+          background: "var(--color-surface-2)",
           borderColor: "var(--color-border-subtle)",
         }}
       >
         <div className="flex items-center gap-2">
-          <span className="text-2xl font-bold">
-            <span style={{ color: "var(--color-accent)" }}>Linh</span>IQ
+          <span className="text-2xl font-semibold">
+            <span style={{ fontFamily: "var(--font-heading)", color: "var(--color-accent)" }}>Linh</span>
+            <span style={{ color: "var(--color-text-heading)" }}>IQ</span>
           </span>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={toggleTheme}
-            className="p-2 rounded-full border transition-colors hover:bg-[var(--color-surface)]"
-            style={{ borderColor: "var(--color-border-subtle)", color: "var(--color-text-secondary)" }}
+            className="p-2 rounded-full border transition-colors cursor-pointer"
+            style={{ borderColor: "var(--color-border-default)", color: "var(--color-text-secondary)" }}
             aria-label="Toggle Theme"
           >
             {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
@@ -113,19 +113,19 @@ export default function HomePage() {
             className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm mb-8"
             style={{
               background: "var(--color-accent-soft)",
-              border: "1px solid rgba(218,119,86,0.3)",
-              color: "var(--color-text-hint)",
+              border: "1px solid var(--color-accent-border)",
+              color: "var(--color-accent-text)",
             }}
           >
             <span className="w-2 h-2 rounded-full bg-current animate-pulse" />
-            Tâm huyết từ những người làm cha mẹ ❤️
+            Tâm huyết từ những người làm cha mẹ
           </div>
 
           <h1
-            className="text-3xl sm:text-5xl lg:text-7xl font-bold leading-tight mb-6 animate-fade-up"
-            style={{ letterSpacing: "-0.025em" }}
+            className="text-3xl sm:text-5xl lg:text-7xl font-semibold leading-tight mb-6 animate-fade-up"
+            style={{ fontFamily: "var(--font-heading)", letterSpacing: "-0.025em" }}
           >
-            Dẫn dắt tư duy qua <span className="text-gradient">từng câu hỏi</span>
+            Dẫn dắt tư duy qua <span style={{ color: "var(--color-accent)" }}>từng câu hỏi</span>
           </h1>
 
           <p
@@ -139,7 +139,7 @@ export default function HomePage() {
             className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16 animate-fade-up"
             style={{ animationDelay: "160ms" }}
           >
-            <Link href="/login" className="btn-primary text-base px-8 py-3.5 gap-2 w-full sm:w-auto shadow-lg shadow-[var(--color-accent-glow)]">
+            <Link href="/login" className="btn-primary text-base px-8 py-3.5 gap-2 w-full sm:w-auto">
               Trải nghiệm ngay <ArrowRight size={16} />
             </Link>
           </div>
@@ -160,24 +160,24 @@ export default function HomePage() {
 
           {/* ── Chat Demo ── */}
           <div
-            className="rounded-2xl border overflow-hidden max-w-3xl mx-auto animate-fade-up transform transition-all hover:scale-[1.02]"
+            className="rounded-xl border overflow-hidden max-w-3xl mx-auto animate-fade-up transition-all"
             style={{
-              background: "var(--color-surface)",
-              borderColor: "var(--color-border-subtle)",
+              background: "var(--color-surface-2)",
+              borderColor: "var(--color-border-default)",
               animationDelay: "240ms",
-              boxShadow: "0 32px 64px rgba(0,0,0,0.6), 0 0 0 1px rgba(218,119,86,0.1)",
+              boxShadow: "var(--shadow-lg)",
             }}
           >
             {/* window chrome */}
             <div
               className="flex items-center gap-2 px-4 py-3 border-b"
-              style={{ borderColor: "var(--color-border-subtle)", background: "var(--color-elevated)" }}
+              style={{ borderColor: "var(--color-border-subtle)", background: "var(--color-surface-0)" }}
             >
               <span className="w-3 h-3 rounded-full bg-danger/70" />
               <span className="w-3 h-3 rounded-full bg-warning/70" />
               <span className="w-3 h-3 rounded-full bg-success/70" />
               <span className="flex-1 text-center text-xs font-medium" style={{ color: "var(--color-text-muted)" }}>
-                🇬🇧 Tiếng Anh · IELTS Writing
+                Tiếng Anh · IELTS Writing
               </span>
             </div>
             {/* messages */}
@@ -192,19 +192,17 @@ export default function HomePage() {
                     className="max-w-[85%] rounded-2xl px-5 py-3.5 text-sm leading-relaxed"
                     style={
                       msg.role === "user"
-                        ? {
-                            background: "var(--color-accent)",
-                            color: "#fff",
-                            borderRadius: "18px 18px 4px 18px",
-                            boxShadow: "0 4px 12px rgba(218,119,86,0.2)",
-                          }
+                      ? {
+                          background: "var(--color-accent)",
+                          color: "#fff",
+                          borderRadius: "12px 12px 4px 12px",
+                        }
                         : {
-                            background: "var(--color-elevated)",
-                            color: "var(--color-text-primary)",
-                            border: "1px solid var(--color-border-subtle)",
-                            borderRadius: "4px 18px 18px 18px",
-                            boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-                          }
+                          background: "var(--color-surface-0)",
+                          color: "var(--color-text-primary)",
+                          border: "1px solid var(--color-border-default)",
+                          borderRadius: "4px 12px 12px 12px",
+                        }
                     }
                   >
                     {msg.content.split("**").map((part, pi) =>
@@ -222,7 +220,7 @@ export default function HomePage() {
               {/* input */}
               <div
                 className="flex items-center gap-3 px-4 py-3 rounded-xl border mt-4 transition-colors focus-within:border-[var(--color-accent)]/50"
-                style={{ borderColor: "var(--color-border-default)", background: "var(--color-elevated)" }}
+                style={{ borderColor: "var(--color-border-default)", background: "var(--color-surface-0)" }}
               >
                 <span className="flex-1 text-sm outline-none cursor-text" style={{ color: "var(--color-text-muted)" }}>
                   Hỏi bài tập của bạn...
@@ -232,7 +230,7 @@ export default function HomePage() {
             </div>
             <div
               className="px-6 py-2.5 text-center text-xs border-t font-medium"
-              style={{ borderColor: "var(--color-border-subtle)", color: "var(--color-text-muted)", background: "var(--color-elevated)" }}
+              style={{ borderColor: "var(--color-border-subtle)", color: "var(--color-text-muted)", background: "var(--color-surface-0)" }}
             >
               Trải nghiệm trực tiếp không giới hạn
             </div>
@@ -242,14 +240,14 @@ export default function HomePage() {
         {/* ── Socratic Method Section ── */}
         <section
           className="py-24 px-6 relative"
-          style={{ background: "var(--color-void)", borderTop: "1px solid var(--color-border-subtle)" }}
+          style={{ background: "var(--color-surface-1)", borderTop: "1px solid var(--color-border-subtle)" }}
         >
           <div className="max-w-5xl mx-auto text-center">
             <h2
-              className="text-3xl sm:text-4xl font-bold mb-6"
-              style={{ letterSpacing: "-0.02em" }}
+              className="text-3xl sm:text-4xl font-semibold mb-6"
+              style={{ fontFamily: "var(--font-heading)", letterSpacing: "-0.02em" }}
             >
-              Học thật, <span className="text-gradient">Hiểu sâu</span>
+              Học thật, <span style={{ color: "var(--color-accent)" }}>Hiểu sâu</span>
             </h2>
             <p className="text-lg mb-16 max-w-3xl mx-auto leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
               Nhận đáp án có sẵn từ các công cụ AI thông thường khiến con hình thành thói quen lười tư duy, học vẹt. Tại LinhIQ, chúng tôi áp dụng <strong>phương pháp gợi mở Socratic</strong> — tuyệt đối KHÔNG bao giờ "mớm" đáp án trực tiếp làm thui chột tư duy của học sinh.
@@ -257,33 +255,33 @@ export default function HomePage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-left">
               {/* Bad approach */}
-              <div className="p-5 md:p-8 rounded-3xl border" style={{ borderColor: 'rgba(244,63,94,0.2)', background: 'linear-gradient(135deg, rgba(244,63,94,0.05), transparent)' }}>
+              <div className="p-5 md:p-8 rounded-xl border" style={{ borderColor: 'rgba(166,61,64,0.2)', background: 'var(--color-danger-soft)' }}>
                 <div className="flex items-center gap-4 mb-6">
-                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-rose-500/10 text-rose-500 font-bold text-xl">✕</div>
-                  <h3 className="text-2xl font-semibold opacity-90">AI Thông Thường</h3>
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center font-bold text-xl" style={{ background: 'rgba(166,61,64,0.1)', color: 'var(--color-danger)' }}>✕</div>
+                  <h3 className="text-2xl font-semibold" style={{ fontFamily: "var(--font-heading)" }}>AI Thông Thường</h3>
                 </div>
                 <ul className="space-y-4" style={{ color: "var(--color-text-secondary)" }}>
-                  <li className="flex gap-3"><span className="text-rose-500 mt-1">▪</span> Cung cấp đáp án và bài giải chi tiết ngay lập tức.</li>
-                  <li className="flex gap-3"><span className="text-rose-500 mt-1">▪</span> Học sinh chỉ việc sao chép lại để nộp bài cho xong.</li>
-                  <li className="flex gap-3"><span className="text-rose-500 mt-1">▪</span> Điểm số ảo trên lớp cao, nhưng mất gốc kiến thức căn bản.</li>
-                  <li className="flex gap-3"><span className="text-rose-500 mt-1">▪</span> Quen với sự dễ dãi, sợ suy nghĩ khi gặp bài khó trong phòng thi.</li>
+                  <li className="flex gap-3"><span style={{ color: 'var(--color-danger)' }} className="mt-1">▪</span> Cung cấp đáp án và bài giải chi tiết ngay lập tức.</li>
+                  <li className="flex gap-3"><span style={{ color: 'var(--color-danger)' }} className="mt-1">▪</span> Học sinh chỉ việc sao chép lại để nộp bài cho xong.</li>
+                  <li className="flex gap-3"><span style={{ color: 'var(--color-danger)' }} className="mt-1">▪</span> Điểm số ảo trên lớp cao, nhưng mất gốc kiến thức căn bản.</li>
+                  <li className="flex gap-3"><span style={{ color: 'var(--color-danger)' }} className="mt-1">▪</span> Quen với sự dễ dãi, sợ suy nghĩ khi gặp bài khó trong phòng thi.</li>
                 </ul>
               </div>
 
               {/* Socratic approach */}
-              <div className="p-5 md:p-8 rounded-3xl border relative overflow-hidden" style={{ borderColor: 'rgba(34,211,163,0.4)', background: 'linear-gradient(135deg, rgba(34,211,163,0.1), transparent)' }}>
+              <div className="p-5 md:p-8 rounded-xl border relative overflow-hidden" style={{ borderColor: 'rgba(46,125,79,0.3)', background: 'rgba(46,125,79,0.04)' }}>
                 <div className="absolute -bottom-4 -right-4 p-4 opacity-5">
                   <Brain size={180} />
                 </div>
                 <div className="flex items-center gap-4 mb-6 relative z-10">
-                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-emerald-500/10 text-emerald-400 font-bold text-xl">✓</div>
-                  <h3 className="text-2xl font-semibold text-emerald-400">Gia sư LinhIQ</h3>
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center font-bold text-xl" style={{ background: 'rgba(46,125,79,0.1)', color: 'var(--color-success)' }}>✓</div>
+                  <h3 className="text-2xl font-semibold" style={{ fontFamily: "var(--font-heading)", color: 'var(--color-success)' }}>Gia sư LinhIQ</h3>
                 </div>
                 <ul className="space-y-4 relative z-10">
-                  <li className="flex gap-3"><span className="text-emerald-400 mt-1">▪</span> Đặt các câu hỏi gợi mở ngược lại để kích thích não bộ hoạt động.</li>
-                  <li className="flex gap-3"><span className="text-emerald-400 mt-1">▪</span> Chia nhỏ vấn đề thành các bước để con tự tìm ra mấu chốt.</li>
-                  <li className="flex gap-3"><span className="text-emerald-400 mt-1">▪</span> Cung cấp 5 cấp độ gợi ý (Hints) tùy thuộc vào sức học của con.</li>
-                  <li className="flex gap-3 font-medium text-white"><span className="text-emerald-400 mt-1">▪</span> Giúp con thực sự làm chủ kiến thức và tự tin giải quyết vấn đề.</li>
+                  <li className="flex gap-3"><span style={{ color: 'var(--color-success)' }} className="mt-1">▪</span> Đặt các câu hỏi gợi mở ngược lại để kích thích não bộ hoạt động.</li>
+                  <li className="flex gap-3"><span style={{ color: 'var(--color-success)' }} className="mt-1">▪</span> Chia nhỏ vấn đề thành các bước để con tự tìm ra mấu chốt.</li>
+                  <li className="flex gap-3"><span style={{ color: 'var(--color-success)' }} className="mt-1">▪</span> Cung cấp 5 cấp độ gợi ý (Hints) tùy thuộc vào sức học của con.</li>
+                  <li className="flex gap-3 font-medium"><span style={{ color: 'var(--color-success)' }} className="mt-1">▪</span> Giúp con thực sự làm chủ kiến thức và tự tin giải quyết vấn đề.</li>
                 </ul>
               </div>
             </div>
@@ -293,18 +291,13 @@ export default function HomePage() {
         {/* ── Audience Section (Students / Parents) ── */}
         <section
           className="py-24 px-6 relative"
-          style={{ background: "var(--color-base)", borderTop: "1px solid var(--color-border-subtle)" }}
+          style={{ background: "var(--color-surface-0)", borderTop: "1px solid var(--color-border-subtle)" }}
         >
-          {/* Subtle gradient orb */}
-          <div className="absolute inset-0 overflow-hidden pointer-events-none flex justify-center">
-            <div className="w-[800px] h-[400px] bg-[var(--color-accent)]/5 blur-[120px] rounded-full translate-y-[-50%]" />
-          </div>
-
           <div className="max-w-5xl mx-auto relative z-10">
             <div className="text-center mb-16">
               <h2
-                className="text-3xl sm:text-4xl font-bold mb-4"
-                style={{ letterSpacing: "-0.02em" }}
+                className="text-3xl sm:text-4xl font-semibold mb-4"
+                style={{ fontFamily: "var(--font-heading)", letterSpacing: "-0.02em" }}
               >
                 Góc nhìn trọn vẹn
               </h2>
@@ -316,7 +309,7 @@ export default function HomePage() {
 
             {/* Toggle */}
             <div className="flex justify-center mb-12">
-              <div className="inline-flex bg-[var(--color-surface)] p-1 rounded-xl border border-[var(--color-border-default)] shadow-sm">
+              <div className="inline-flex p-1 rounded-lg border" style={{ background: 'var(--color-surface-2)', borderColor: 'var(--color-border-default)' }}>
                 <button
                   onClick={() => setActiveTab("students")}
                   className={`px-6 py-2.5 rounded-lg text-sm font-semibold transition-all ${
@@ -367,9 +360,10 @@ export default function HomePage() {
         style={{ borderColor: "var(--color-border-subtle)", color: "var(--color-text-muted)" }}
       >
         <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2 text-base font-bold">
-            <span style={{ color: "var(--color-text-primary)" }}>
-              <span style={{ color: "var(--color-accent)" }}>Linh</span>IQ
+          <div className="flex items-center gap-2 text-base font-semibold">
+            <span>
+              <span style={{ fontFamily: "var(--font-heading)", color: "var(--color-accent)" }}>Linh</span>
+              <span style={{ color: "var(--color-text-primary)" }}>IQ</span>
             </span>
           </div>
           <div>© {new Date().getFullYear()} LinhIQ. Phát triển từ tình yêu thương của cha mẹ dành cho con.</div>

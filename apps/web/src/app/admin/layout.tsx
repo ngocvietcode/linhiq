@@ -65,11 +65,12 @@ function AdminSidebarContent({ onClose }: { onClose?: () => void }) {
         style={{ borderColor: "var(--color-border-subtle)" }}
       >
         <div>
-          <div className="text-lg font-bold">
-            <span style={{ color: "var(--color-accent)" }}>Linh</span>IQ
+          <div className="text-lg font-semibold">
+            <span style={{ fontFamily: "var(--font-heading)", color: "var(--color-accent)" }}>Linh</span>
+            <span style={{ color: "var(--color-text-heading)" }}>IQ</span>
             <span
               className="ml-2 text-xs font-semibold px-1.5 py-0.5 rounded"
-              style={{ background: "rgba(218,119,86,0.15)", color: "var(--color-accent)" }}
+              style={{ background: "var(--color-accent-soft)", color: "var(--color-accent)" }}
             >
               ADMIN
             </span>
@@ -109,7 +110,7 @@ function AdminSidebarContent({ onClose }: { onClose?: () => void }) {
                       color: active ? "var(--color-accent)" : "var(--color-text-secondary)",
                     }}
                     onMouseEnter={(e) => {
-                      if (!active) (e.currentTarget as HTMLElement).style.background = "rgba(218,119,86,0.06)";
+                      if (!active) (e.currentTarget as HTMLElement).style.background = "var(--color-accent-soft)";
                     }}
                     onMouseLeave={(e) => {
                       if (!active) (e.currentTarget as HTMLElement).style.background = "transparent";
@@ -175,7 +176,7 @@ function AdminGuard({ children }: { children: React.ReactNode }) {
     return (
       <div
         className="min-h-screen flex items-center justify-center"
-        style={{ background: "var(--color-void)" }}
+        style={{ background: "var(--color-surface-1)" }}
       >
         <div
           className="w-10 h-10 rounded-full border-2 animate-spin"
@@ -195,11 +196,11 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
 
   return (
     <AdminGuard>
-      <div className="min-h-screen flex" style={{ background: "var(--color-void)" }}>
+      <div className="min-h-screen flex" style={{ background: "var(--color-surface-1)" }}>
         {/* Desktop sidebar */}
         <aside
           className="hidden lg:flex flex-col w-60 border-r fixed inset-y-0 left-0 z-30 flex-shrink-0"
-          style={{ background: "var(--color-base)", borderColor: "var(--color-border-subtle)" }}
+          style={{ background: "var(--color-surface-2)", borderColor: "var(--color-border-subtle)" }}
         >
           <AdminSidebarContent />
         </aside>
@@ -214,7 +215,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
             />
             <aside
               className="absolute left-0 inset-y-0 w-64 flex flex-col z-50"
-              style={{ background: "var(--color-base)", borderRight: "1px solid var(--color-border-subtle)" }}
+              style={{ background: "var(--color-surface-2)", borderRight: "1px solid var(--color-border-subtle)" }}
             >
               <AdminSidebarContent onClose={() => setMobileOpen(false)} />
             </aside>
@@ -227,8 +228,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
           <header
             className="lg:hidden sticky top-0 z-20 px-4 py-3 flex items-center gap-3 border-b"
             style={{
-              background: "rgba(23,23,23,0.9)",
-              backdropFilter: "blur(16px)",
+              background: "var(--color-surface-2)",
               borderColor: "var(--color-border-subtle)",
             }}
           >
@@ -238,8 +238,9 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
             >
               <Menu size={20} />
             </button>
-            <span className="text-base font-bold">
-              <span style={{ color: "var(--color-accent)" }}>Linh</span>IQ Admin
+            <span className="text-base font-semibold">
+              <span style={{ fontFamily: "var(--font-heading)", color: "var(--color-accent)" }}>Linh</span>
+              <span style={{ color: "var(--color-text-heading)" }}>IQ</span> Admin
             </span>
           </header>
 

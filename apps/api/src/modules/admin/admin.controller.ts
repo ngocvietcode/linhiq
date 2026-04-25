@@ -36,6 +36,24 @@ export class AdminController {
       throw new HttpException(e.message, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
+  @Post('settings/prompts')
+  async updatePromptSettings(
+    @Body('openChatPrompt') openChatPrompt: string | undefined,
+    @Body('maxTokensOpenChat') maxTokensOpenChat: number | undefined,
+    @Body('maxTokensSocratic') maxTokensSocratic: number | undefined,
+  ) {
+    try {
+      const settings = await this.adminService.updatePromptSettings({
+        openChatPrompt,
+        maxTokensOpenChat: maxTokensOpenChat ? Number(maxTokensOpenChat) : undefined,
+        maxTokensSocratic: maxTokensSocratic ? Number(maxTokensSocratic) : undefined,
+      });
+      return { success: true, data: settings };
+    } catch (e: any) {
+      throw new HttpException(e.message, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
   @Post('settings/models')
   async updateModels(
     @Body('simpleQueryModel') simpleQueryModel: string,

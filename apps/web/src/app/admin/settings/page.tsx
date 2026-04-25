@@ -16,14 +16,17 @@ interface SystemSetting {
   simpleQueryModel?: string;
   complexQueryModel?: string;
   embeddingModel?: string;
+  openChatPrompt?: string | null;
+  maxTokensOpenChat?: number;
+  maxTokensSocratic?: number;
   updatedAt?: string;
 }
 
 
 const HINT_LEVELS = [
-  { level: "L1", label: "Nudge",       desc: "Minimal guidance — just a gentle push toward the right direction.", color: "#22D3A3" },
+  { level: "L1", label: "Nudge",       desc: "Minimal guidance — just a gentle push toward the right direction.", color: "var(--color-teal)" },
   { level: "L2", label: "Approach",    desc: "Suggest the problem-solving approach without giving steps.",       color: "var(--color-accent)" },
-  { level: "L3", label: "Partial",     desc: "Guide through key steps, require student to fill in details.",     color: "#F59E0B" },
+  { level: "L3", label: "Partial",     desc: "Guide through key steps, require student to fill in details.",     color: "var(--color-gold)" },
   { level: "L4", label: "Detailed",    desc: "Walk through the solution step-by-step with partial answers.",     color: "#F97316" },
   { level: "L5", label: "Near Answer", desc: "Provide full methodology — student only needs to write it out.",   color: "#F43F5E" },
 ];
@@ -34,7 +37,7 @@ function SettingSection({ title, icon: Icon, children }: {
   return (
     <div
       className="rounded-2xl border"
-      style={{ background: "var(--color-surface)", borderColor: "var(--color-border-subtle)" }}
+      style={{ background: "var(--color-surface-2)", borderColor: "var(--color-border-subtle)" }}
     >
       <div
         className="flex items-center gap-3 px-6 py-4 border-b"
@@ -65,6 +68,10 @@ export default function AdminSettingsPage() {
   const [complexModel, setComplexModel] = useState("gemini-2.5-pro");
   const [embeddingModel, setEmbeddingModel] = useState("gemini-embedding-001");
   const [savingModels, setSavingModels] = useState(false);
+  const [openChatPrompt, setOpenChatPrompt] = useState("");
+  const [maxTokensOpenChat, setMaxTokensOpenChat] = useState(300);
+  const [maxTokensSocratic, setMaxTokensSocratic] = useState(1024);
+  const [savingPrompts, setSavingPrompts] = useState(false);
 
   const [toast, setToast] = useState<{ msg: string; type: "ok" | "err" } | null>(null);
   const [maintenanceMode, setMaintenanceMode] = useState(false);
@@ -88,6 +95,9 @@ export default function AdminSettingsPage() {
       if (res?.data?.simpleQueryModel) setSimpleModel(res.data.simpleQueryModel);
       if (res?.data?.complexQueryModel) setComplexModel(res.data.complexQueryModel);
       if (res?.data?.embeddingModel) setEmbeddingModel(res.data.embeddingModel);
+      if (res?.data?.openChatPrompt != null) setOpenChatPrompt(res.data.openChatPrompt ?? "");
+      if (res?.data?.maxTokensOpenChat) setMaxTokensOpenChat(res.data.maxTokensOpenChat);
+      if (res?.data?.maxTokensSocratic) setMaxTokensSocratic(res.data.maxTokensSocratic);
     } catch {
       showToast("Failed to load settings", "err");
     } finally {
@@ -117,6 +127,28 @@ export default function AdminSettingsPage() {
       showToast(e.message, "err");
     } finally {
       setSavingModels(false);
+    }
+  }
+
+  async function savePrompts() {
+    if (!token) return;
+    setSavingPrompts(true);
+    try {
+      await api("/admin/settings/prompts", {
+        method: "POST",
+        token,
+        body: {
+          openChatPrompt: openChatPrompt || null,
+          maxTokensOpenChat,
+          maxTokensSocratic,
+        },
+      });
+      showToast("Prompt & token settings saved");
+      loadSettings();
+    } catch (e: any) {
+      showToast(e.message, "err");
+    } finally {
+      setSavingPrompts(false);
     }
   }
 
@@ -150,7 +182,7 @@ export default function AdminSettingsPage() {
         <button
           onClick={() => onChange(!value)}
           className="relative w-12 h-6 rounded-full transition-all duration-300 flex-shrink-0"
-          style={{ background: value ? "var(--color-accent)" : "var(--color-elevated)" }}
+          style={{ background: value ? "var(--color-accent)" : "var(--color-surface-0)" }}
         >
           <span
             className="absolute top-1 w-4 h-4 rounded-full transition-all duration-300"
@@ -292,6 +324,69 @@ export default function AdminSettingsPage() {
           </div>
         </SettingSection>
 
+        {/* Prompts & Token Limits */}
+        <SettingSection title="Prompts & Token Limits" icon={Settings2 as any}>
+          <p className="text-sm mb-4" style={{ color: "var(--color-text-secondary)" }}>
+            Customize AI prompts and set max output tokens per chat mode. Leave prompt blank to use the built-in default.
+          </p>
+          <div className="space-y-5">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-medium" style={{ color: "var(--color-text-secondary)" }}>
+                  Max Tokens — Socratic (study chat)
+                </label>
+                <input
+                  type="number"
+                  value={maxTokensSocratic}
+                  onChange={(e) => setMaxTokensSocratic(Number(e.target.value))}
+                  min={64}
+                  max={8192}
+                  className="input mt-1.5 w-full text-sm"
+                />
+                <p className="text-xs mt-1" style={{ color: "var(--color-text-muted)" }}>Default: 1024</p>
+              </div>
+              <div>
+                <label className="text-xs font-medium" style={{ color: "var(--color-text-secondary)" }}>
+                  Max Tokens — Open Chat (companion)
+                </label>
+                <input
+                  type="number"
+                  value={maxTokensOpenChat}
+                  onChange={(e) => setMaxTokensOpenChat(Number(e.target.value))}
+                  min={64}
+                  max={4096}
+                  className="input mt-1.5 w-full text-sm"
+                />
+                <p className="text-xs mt-1" style={{ color: "var(--color-text-muted)" }}>Default: 300</p>
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-medium" style={{ color: "var(--color-text-secondary)" }}>
+                Open Chat System Prompt Override
+              </label>
+              <textarea
+                value={openChatPrompt}
+                onChange={(e) => setOpenChatPrompt(e.target.value)}
+                rows={8}
+                placeholder="Leave blank to use the built-in Linh companion prompt..."
+                className="input mt-1.5 w-full text-sm font-mono resize-y"
+                style={{ minHeight: 160 }}
+              />
+              <p className="text-xs mt-1" style={{ color: "var(--color-text-muted)" }}>
+                Overrides the default Open Chat persona. Socratic prompt is managed in code.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={savePrompts}
+            disabled={savingPrompts}
+            className="btn-primary gap-2 text-sm mt-5"
+          >
+            <Save size={14} />
+            {savingPrompts ? "Saving..." : "Save Prompt Settings"}
+          </button>
+        </SettingSection>
+
         {/* Hint System */}
         <SettingSection title="Hint Level Configuration" icon={Sliders as any}>
           <p className="text-sm mb-4" style={{ color: "var(--color-text-secondary)" }}>
@@ -304,7 +399,7 @@ export default function AdminSettingsPage() {
                 onClick={() => setDefaultHintLevel(level)}
                 className="w-full flex items-center gap-4 px-4 py-3 rounded-xl border transition-all text-left"
                 style={{
-                  background: defaultHintLevel === level ? `${color}10` : "var(--color-elevated)",
+                  background: defaultHintLevel === level ? `${color}10` : "var(--color-surface-0)",
                   borderColor: defaultHintLevel === level ? `${color}50` : "var(--color-border-subtle)",
                 }}
               >
@@ -328,7 +423,10 @@ export default function AdminSettingsPage() {
               </button>
             ))}
           </div>
-          <button className="btn-primary gap-2 text-sm">
+          <button
+            className="btn-primary gap-2 text-sm"
+            onClick={() => showToast("Default hint level — coming soon", "err")}
+          >
             <Save size={14} /> Save Default
           </button>
         </SettingSection>
@@ -379,7 +477,10 @@ export default function AdminSettingsPage() {
               </p>
             </div>
           </div>
-          <button className="btn-primary gap-2 text-sm mt-5">
+          <button
+            className="btn-primary gap-2 text-sm mt-5"
+            onClick={() => showToast("Usage limits — coming soon", "err")}
+          >
             <Save size={14} /> Save Limits
           </button>
         </SettingSection>
@@ -408,7 +509,7 @@ export default function AdminSettingsPage() {
                   ) : (
                     <span
                       className="text-sm px-2.5 py-1 rounded-lg"
-                      style={{ background: "var(--color-elevated)", color: "var(--color-text-secondary)" }}
+                      style={{ background: "var(--color-surface-0)", color: "var(--color-text-secondary)" }}
                     >
                       {value}
                     </span>
@@ -417,7 +518,10 @@ export default function AdminSettingsPage() {
               </div>
             ))}
           </div>
-          <button className="btn-primary gap-2 text-sm mt-5">
+          <button
+            className="btn-primary gap-2 text-sm mt-5"
+            onClick={() => showToast("Security rules — coming soon", "err")}
+          >
             <Save size={14} /> Save Security Rules
           </button>
         </SettingSection>

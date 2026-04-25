@@ -18,9 +18,9 @@ const CURRICULUM_OPTIONS = [
 ];
 
 const CURRICULUM_COLOR: Record<string, { bg: string; color: string }> = {
-  IGCSE:       { bg: "rgba(218,119,86,0.12)",  color: "var(--color-accent)" },
-  A_LEVEL:     { bg: "rgba(34,211,163,0.12)",  color: "#22D3A3" },
-  VN_GRADE_12: { bg: "rgba(245,158,11,0.12)",  color: "#F59E0B" },
+  IGCSE:       { bg: "var(--color-accent-soft)",  color: "var(--color-accent)" },
+  A_LEVEL:     { bg: "rgba(34,211,163,0.12)",  color: "var(--color-teal)" },
+  VN_GRADE_12: { bg: "rgba(245,158,11,0.12)",  color: "var(--color-gold)" },
   GENERAL:     { bg: "rgba(148,163,184,0.12)", color: "#94A3B8" },
 };
 
@@ -145,7 +145,7 @@ export default function AdminSubjectsPage() {
         >
           <div
             className="w-full max-w-lg rounded-2xl border animate-fade-up"
-            style={{ background: "var(--color-surface)", borderColor: "var(--color-border-default)", boxShadow: "var(--shadow-md)" }}
+            style={{ background: "var(--color-surface-2)", borderColor: "var(--color-border-default)", boxShadow: "var(--shadow-md)" }}
           >
             <div className="flex items-center justify-between px-6 py-5 border-b" style={{ borderColor: "var(--color-border-subtle)" }}>
               <h2 className="font-bold text-lg">{modal === "create" ? "Create Subject" : "Edit Subject"}</h2>
@@ -164,7 +164,7 @@ export default function AdminSubjectsPage() {
                       onClick={() => setForm({ ...form, iconEmoji: e })}
                       className="w-10 h-10 text-xl rounded-xl border transition-all"
                       style={{
-                        background: form.iconEmoji === e ? "var(--color-accent-soft)" : "var(--color-elevated)",
+                        background: form.iconEmoji === e ? "var(--color-accent-soft)" : "var(--color-surface-0)",
                         borderColor: form.iconEmoji === e ? "var(--color-accent)" : "transparent",
                       }}
                     >
@@ -193,7 +193,7 @@ export default function AdminSubjectsPage() {
                         onClick={() => setForm({ ...form, curriculum: value as CreateSubjectBody["curriculum"] })}
                         className="px-3 py-2.5 rounded-xl border text-sm font-medium transition-all text-left"
                         style={{
-                          background: form.curriculum === value ? bg : "var(--color-elevated)",
+                          background: form.curriculum === value ? bg : "var(--color-surface-0)",
                           borderColor: form.curriculum === value ? color : "var(--color-border-subtle)",
                           color: form.curriculum === value ? color : "var(--color-text-secondary)",
                         }}
@@ -232,7 +232,7 @@ export default function AdminSubjectsPage() {
           style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(8px)" }}
         >
           <div className="rounded-2xl border p-6 w-full max-w-sm animate-fade-up"
-            style={{ background: "var(--color-surface)", borderColor: "var(--color-border-default)" }}>
+            style={{ background: "var(--color-surface-2)", borderColor: "var(--color-border-default)" }}>
             <div className="w-12 h-12 rounded-full flex items-center justify-center mb-4"
               style={{ background: "rgba(244,63,94,0.1)" }}>
               <AlertCircle size={22} style={{ color: "var(--color-danger)" }} />
@@ -285,7 +285,7 @@ export default function AdminSubjectsPage() {
               onClick={() => setFilterCurr(c)}
               className="px-3 py-1.5 rounded-lg text-sm font-medium border transition-all"
               style={{
-                background: filterCurr === c ? (c === "ALL" ? "var(--color-accent-soft)" : `${color}18`) : "var(--color-surface)",
+                background: filterCurr === c ? (c === "ALL" ? "var(--color-accent-soft)" : `${color}18`) : "var(--color-surface-2)",
                 borderColor: filterCurr === c ? (c === "ALL" ? "var(--color-accent)" : color) : "var(--color-border-subtle)",
                 color: filterCurr === c ? (c === "ALL" ? "var(--color-accent)" : color) : "var(--color-text-secondary)",
               }}
@@ -313,7 +313,7 @@ export default function AdminSubjectsPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {Array.from({ length: 6 }).map((_, i) => (
             <div key={i} className="rounded-2xl border p-5"
-              style={{ background: "var(--color-surface)", borderColor: "var(--color-border-subtle)" }}>
+              style={{ background: "var(--color-surface-2)", borderColor: "var(--color-border-subtle)" }}>
               <div className="flex items-start justify-between mb-4">
                 <div className="skeleton w-10 h-10 rounded-xl" />
                 <div className="skeleton w-20 h-5 rounded-full" />
@@ -341,7 +341,7 @@ export default function AdminSubjectsPage() {
               <div
                 key={s.id}
                 className="rounded-2xl border p-5 relative group transition-all duration-200"
-                style={{ background: "var(--color-surface)", borderColor: "var(--color-border-subtle)" }}
+                style={{ background: "var(--color-surface-2)", borderColor: "var(--color-border-subtle)" }}
                 onMouseEnter={(e) => {
                   const el = e.currentTarget as HTMLElement;
                   el.style.borderColor = `${color}40`;
@@ -360,7 +360,7 @@ export default function AdminSubjectsPage() {
                   <button
                     onClick={() => setActionId(actionId === s.id ? null : s.id)}
                     className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
-                    style={{ color: "var(--color-text-muted)", background: "var(--color-elevated)" }}
+                    style={{ color: "var(--color-text-muted)", background: "var(--color-surface-0)" }}
                   >
                     <MoreHorizontal size={15} />
                   </button>
@@ -368,7 +368,7 @@ export default function AdminSubjectsPage() {
                     <div
                       className="absolute right-0 top-8 w-40 rounded-xl border z-20 py-1 animate-fade-up"
                       style={{
-                        background: "var(--color-elevated)",
+                        background: "var(--color-surface-0)",
                         borderColor: "var(--color-border-default)",
                         boxShadow: "var(--shadow-md)",
                       }}
@@ -377,7 +377,7 @@ export default function AdminSubjectsPage() {
                         onClick={() => openEdit(s)}
                         className="flex items-center gap-2.5 px-4 py-2 w-full text-sm"
                         style={{ color: "var(--color-text-secondary)" }}
-                        onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(218,119,86,0.06)")}
+                        onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "var(--color-accent-soft)")}
                         onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "transparent")}
                       >
                         <Edit2 size={13} /> Edit
@@ -386,7 +386,7 @@ export default function AdminSubjectsPage() {
                         href={`/admin/subjects/${s.id}`}
                         className="flex items-center gap-2.5 px-4 py-2 w-full text-sm"
                         style={{ color: "var(--color-text-secondary)" }}
-                        onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(218,119,86,0.06)")}
+                        onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "var(--color-accent-soft)")}
                         onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "transparent")}
                       >
                         <FileText size={13} /> View Detail

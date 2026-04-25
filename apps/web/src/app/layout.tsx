@@ -1,14 +1,21 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { Crimson_Pro, Inter, JetBrains_Mono } from "next/font/google";
 import { Toaster } from "react-hot-toast";
 import { AuthProvider } from "@/lib/auth-context";
 import { ThemeProvider, themeScript } from "@/lib/theme-context";
 import "./globals.css";
 
+const crimsonPro = Crimson_Pro({
+  variable: "--font-heading",
+  subsets: ["latin", "latin-ext", "vietnamese"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
+});
+
 const inter = Inter({
   variable: "--font-sans",
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
+  subsets: ["latin", "latin-ext", "vietnamese"],
+  weight: ["400", "500", "600", "700"],
   display: "swap",
 });
 
@@ -20,7 +27,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const viewport: Viewport = {
-  themeColor: "#171717",
+  themeColor: "#F7F5F0",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -51,7 +58,8 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}
+      className={`${crimsonPro.variable} ${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}
+      data-scroll-behavior="smooth"
       suppressHydrationWarning
     >
       <head>
@@ -60,7 +68,7 @@ export default function RootLayout({
       <body
         className="min-h-full flex flex-col"
         style={{
-          background: "var(--color-base)",
+          background: "var(--color-surface-1)",
           color: "var(--color-text-primary)",
           fontFamily: "var(--font-sans)",
         }}
@@ -75,12 +83,13 @@ export default function RootLayout({
           toastOptions={{
             duration: 4000,
             style: {
-              background: "var(--color-elevated)",
+              background: "var(--color-surface-2)",
               color: "var(--color-text-primary)",
               borderRadius: "var(--radius-md)",
               border: "1px solid var(--color-border-default)",
               fontSize: "14px",
               boxShadow: "var(--shadow-md)",
+              fontFamily: "var(--font-sans)",
             },
           }}
         />
