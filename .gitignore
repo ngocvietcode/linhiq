@@ -13,11 +13,16 @@ dist/
 .env.prod
 deploy/certbot/
 
-# IDE
+# IDE / agent local config
 .vscode/
 .idea/
+.claude/
 *.swp
 *.swo
+
+# Python bytecode (used by .agent skill scripts)
+__pycache__/
+*.pyc
 
 # OS
 .DS_Store
