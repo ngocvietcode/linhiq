@@ -22,4 +22,15 @@ export class AdminAnalyticsController {
   async chatCategories() {
     return this.analytics.chatCategories();
   }
+
+  @Get('tokens')
+  async tokens(@Query('period') period?: string) {
+    const p: Period = period === '30d' || period === 'all' ? period : '7d';
+    return this.analytics.tokens(p);
+  }
+
+  @Get('safety')
+  async safety() {
+    return this.analytics.safety();
+  }
 }

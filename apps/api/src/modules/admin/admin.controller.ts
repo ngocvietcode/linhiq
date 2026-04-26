@@ -10,6 +10,11 @@ import { Roles } from '../../common/decorators/roles.decorator';
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 
+  @Get('health')
+  async getHealth() {
+    return this.adminService.getHealth();
+  }
+
   @Get('settings')
   async getSettings() {
     try {

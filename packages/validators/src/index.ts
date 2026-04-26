@@ -45,10 +45,22 @@ export const registerSchema = z.object({
   role: z.enum(['STUDENT', 'PARENT']).default('STUDENT'),
 });
 
+// Login accepts either an email or a username. We don't enforce email format
+// because students may not have an email and use a username instead.
 export const loginSchema = z.object({
-  email: z.string().email(),
+  identifier: z.string().trim().min(1, 'Bắt buộc nhập email hoặc tên đăng nhập').max(255),
   password: z.string().min(1),
 });
+
+// Username rules — lowercase ASCII to keep things easy for kids to type and
+// avoid case-sensitivity surprises. 3–32 chars, [a-z0-9_-].
+export const usernameSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .min(3, 'Tên đăng nhập tối thiểu 3 ký tự')
+  .max(32, 'Tên đăng nhập tối đa 32 ký tự')
+  .regex(/^[a-z0-9_-]+$/, 'Chỉ dùng chữ thường, số, gạch dưới, gạch ngang');
 
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
@@ -242,6 +254,37 @@ export type SlideBlock = z.infer<typeof slideBlockSchema>;
 export type Slide = z.infer<typeof slideSchema>;
 export type SlideDeck = z.infer<typeof slideDeckSchema>;
 export type SummarizeSlidesInput = z.infer<typeof summarizeSlidesSchema>;
+
+// ── Parent ↔ Child Linking ───────────────
+
+const curriculumEnum = z.enum(['IGCSE', 'A_LEVEL', 'THPT_VN', 'IB', 'AP']);
+
+// Parent creates a child account. Children typically don't have email — we
+// use a username as the primary login. Email is optional (can be added later).
+export const parentCreateChildSchema = z.object({
+  username: usernameSchema,
+  name: z.string().trim().min(2).max(100),
+  password: z.string().min(8, 'Mật khẩu phải có ít nhất 8 ký tự').max(100),
+  email: z.string().email('Email không hợp lệ').optional().or(z.literal('').transform(() => undefined)),
+  curriculum: curriculumEnum.optional(),
+});
+
+// Invite an existing account by email or username. Service resolves the
+// identifier to a user before issuing the code.
+export const parentInviteChildSchema = z.object({
+  childIdentifier: z.string().trim().min(3, 'Bắt buộc nhập email hoặc tên đăng nhập của con').max(255),
+});
+
+export const redeemParentLinkSchema = z.object({
+  code: z
+    .string()
+    .trim()
+    .regex(/^\d{6}$/, 'Mã liên kết phải gồm 6 chữ số'),
+});
+
+export type ParentCreateChildInput = z.infer<typeof parentCreateChildSchema>;
+export type ParentInviteChildInput = z.infer<typeof parentInviteChildSchema>;
+export type RedeemParentLinkInput = z.infer<typeof redeemParentLinkSchema>;
 
 // ── Reader Bookmarks & Notes ─────────────
 

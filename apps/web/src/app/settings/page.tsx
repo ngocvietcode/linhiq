@@ -1,9 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { useTheme, type Accent } from "@/lib/theme-context";
-import { LogOut, Moon, Sun, Bell, Shield, User } from "lucide-react";
+import { LogOut, Moon, Sun, Bell, Shield, User, Users } from "lucide-react";
 import { AppShell } from "@/components/layout/AppShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import toast from "react-hot-toast";
@@ -32,7 +33,9 @@ function SettingsContent() {
         </div>
         <div>
           <p className="font-semibold">{user?.name || "Student"}</p>
-          <p className="text-sm" style={{ color: "var(--color-text-secondary)" }}>{user?.email}</p>
+          <p className="text-sm" style={{ color: "var(--color-text-secondary)" }}>
+            {user?.email || (user?.username ? `@${user.username}` : "")}
+          </p>
           <span
             className="text-xs px-2 py-0.5 rounded mt-1 inline-block"
             style={{ background: "var(--color-accent-soft)", color: "var(--color-accent-text)" }}
@@ -51,17 +54,51 @@ function SettingsContent() {
           Account
         </p>
         <div className="card p-0 overflow-hidden">
-          {[
-            { icon: User, label: "Profile", desc: "Name, email, profile photo" },
-            { icon: Shield, label: "Password & Security", desc: "Change password, 2FA" },
-          ].map(({ icon: Icon, label, desc }, i, arr) => (
-            <button
-              key={label}
-              onClick={() => toast("Feature coming soon", { icon: "🚧" })}
+          <button
+            onClick={() => toast("Feature coming soon", { icon: "🚧" })}
+            className="w-full flex items-center gap-4 px-5 py-4 text-left transition-colors cursor-pointer"
+            style={{ borderBottom: "1px solid var(--color-border-subtle)" }}
+            onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "var(--color-accent-soft)")}
+            onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "transparent")}
+          >
+            <div
+              className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+              style={{ background: "var(--color-surface-0)" }}
+            >
+              <User size={16} style={{ color: "var(--color-text-secondary)" }} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-medium text-sm">Profile</p>
+              <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>Name, email, profile photo</p>
+            </div>
+            <span style={{ color: "var(--color-text-muted)", fontSize: 18 }}>›</span>
+          </button>
+
+          <button
+            onClick={() => toast("Feature coming soon", { icon: "🚧" })}
+            className="w-full flex items-center gap-4 px-5 py-4 text-left transition-colors cursor-pointer"
+            style={{ borderBottom: user?.role === "STUDENT" ? "1px solid var(--color-border-subtle)" : "none" }}
+            onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "var(--color-accent-soft)")}
+            onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "transparent")}
+          >
+            <div
+              className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+              style={{ background: "var(--color-surface-0)" }}
+            >
+              <Shield size={16} style={{ color: "var(--color-text-secondary)" }} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-medium text-sm">Password & Security</p>
+              <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>Change password, 2FA</p>
+            </div>
+            <span style={{ color: "var(--color-text-muted)", fontSize: 18 }}>›</span>
+          </button>
+
+          {user?.role === "STUDENT" && (
+            <Link
+              href="/parent-link"
               className="w-full flex items-center gap-4 px-5 py-4 text-left transition-colors cursor-pointer"
-              style={{
-                borderBottom: i < arr.length - 1 ? "1px solid var(--color-border-subtle)" : "none",
-              }}
+              style={{ textDecoration: "none", color: "inherit" }}
               onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "var(--color-accent-soft)")}
               onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "transparent")}
             >
@@ -69,15 +106,17 @@ function SettingsContent() {
                 className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
                 style={{ background: "var(--color-surface-0)" }}
               >
-                <Icon size={16} style={{ color: "var(--color-text-secondary)" }} />
+                <Users size={16} style={{ color: "var(--color-text-secondary)" }} />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm">{label}</p>
-                <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>{desc}</p>
+                <p className="font-medium text-sm">Liên kết phụ huynh</p>
+                <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+                  Nhập mã 6 chữ số phụ huynh đã đưa
+                </p>
               </div>
               <span style={{ color: "var(--color-text-muted)", fontSize: 18 }}>›</span>
-            </button>
-          ))}
+            </Link>
+          )}
         </div>
       </div>
 

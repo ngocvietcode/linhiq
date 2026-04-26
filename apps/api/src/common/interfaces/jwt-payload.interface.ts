@@ -6,7 +6,7 @@ import type { Request } from 'express';
 
 export interface JwtPayload {
   sub: string;
-  email: string;
+  email: string | null;
   role: string;
   iat?: number;
   exp?: number;

@@ -142,6 +142,134 @@ export class AdminAnalyticsService {
    * life / redirected). Aggregates WeeklyTopicStat + live SessionTopicStat
    * so admins see the same numbers the chat pipeline records.
    */
+  /**
+   * Token usage and estimated cost by model over a period. Costs are rough
+   * estimates per 1K tokens — used for trend monitoring, not billing.
+   */
+  async tokens(period: Period = '7d') {
+    const since = periodStart(period);
+    const where = since
+      ? { createdAt: { gte: since }, tokensUsed: { not: null }, modelUsed: { not: null } }
+      : { tokensUsed: { not: null }, modelUsed: { not: null } };
+
+    const grouped = await this.db.chatMessage.groupBy({
+      by: ['modelUsed'],
+      where,
+      _sum: { tokensUsed: true },
+      _count: { _all: true },
+    });
+
+    // Rough USD-per-1K-token figures (input+output blended). Adjust as
+    // pricing changes — the goal is an order-of-magnitude trend, not invoicing.
+    const COST_PER_1K: Record<string, number> = {
+      'gemini-2.5-flash': 0.00075,
+      'gemini-2.5-pro': 0.0125,
+      'gemini-embedding-001': 0.000025,
+    };
+
+    const byModel = grouped
+      .filter((g) => g.modelUsed)
+      .map((g) => {
+        const tokens = g._sum.tokensUsed ?? 0;
+        const cost = (tokens / 1000) * (COST_PER_1K[g.modelUsed!] ?? 0);
+        return {
+          model: g.modelUsed!,
+          messages: g._count._all,
+          tokens,
+          estCostUsd: Number(cost.toFixed(4)),
+        };
+      })
+      .sort((a, b) => b.tokens - a.tokens);
+
+    const totalTokens = byModel.reduce((s, m) => s + m.tokens, 0);
+    const totalCostUsd = Number(byModel.reduce((s, m) => s + m.estCostUsd, 0).toFixed(4));
+
+    return { period, totalTokens, totalCostUsd, byModel };
+  }
+
+  /**
+   * Safety signals: comparison of redirected/harmful messages this week vs
+   * prior week, plus a category breakdown over the last 7 days. Used to flag
+   * when something starts going wrong without waiting for a human report.
+   */
+  async safety() {
+    const now = new Date();
+    const sevenAgo = new Date(now);
+    sevenAgo.setDate(sevenAgo.getDate() - 7);
+    sevenAgo.setHours(0, 0, 0, 0);
+    const fourteenAgo = new Date(sevenAgo);
+    fourteenAgo.setDate(fourteenAgo.getDate() - 7);
+
+    const [
+      recentTotal,
+      recentRedirected,
+      priorTotal,
+      priorRedirected,
+      categoryBreakdown,
+    ] = await Promise.all([
+      this.db.chatMessage.count({
+        where: { role: 'user', createdAt: { gte: sevenAgo } },
+      }),
+      this.db.chatMessage.count({
+        where: { role: 'user', createdAt: { gte: sevenAgo }, wasRedirected: true },
+      }),
+      this.db.chatMessage.count({
+        where: { role: 'user', createdAt: { gte: fourteenAgo, lt: sevenAgo } },
+      }),
+      this.db.chatMessage.count({
+        where: {
+          role: 'user',
+          createdAt: { gte: fourteenAgo, lt: sevenAgo },
+          wasRedirected: true,
+        },
+      }),
+      this.db.chatMessage.groupBy({
+        by: ['safeCategory'],
+        where: {
+          role: 'user',
+          createdAt: { gte: sevenAgo },
+          safeCategory: { not: null },
+        },
+        _count: { _all: true },
+      }),
+    ]);
+
+    const recentRatio = recentTotal > 0 ? recentRedirected / recentTotal : 0;
+    const priorRatio = priorTotal > 0 ? priorRedirected / priorTotal : 0;
+    const ratioDelta = recentRatio - priorRatio;
+
+    // Concerning content categories — `harmful`, `mature`, `age-boundary` per
+    // TopicCategory enum. Other categories are not safety signals.
+    const concerning = ['harmful', 'mature', 'age-boundary'];
+    const categories = categoryBreakdown.map((g) => ({
+      category: g.safeCategory as string,
+      count: g._count._all,
+      concerning: concerning.includes(g.safeCategory as string),
+    }));
+    const concerningCount = categories
+      .filter((c) => c.concerning)
+      .reduce((s, c) => s + c.count, 0);
+
+    // Alert when redirected ratio jumps >50% relative AND >2% absolute
+    const alertRedirectedSpike =
+      priorRatio > 0 && ratioDelta > 0.02 && recentRatio / priorRatio > 1.5;
+    // Alert if any concerning content appears at all this week
+    const alertConcerningContent = concerningCount > 0;
+
+    return {
+      window: { recentStart: sevenAgo, priorStart: fourteenAgo },
+      recent: { total: recentTotal, redirected: recentRedirected, ratio: recentRatio },
+      prior: { total: priorTotal, redirected: priorRedirected, ratio: priorRatio },
+      ratioDelta,
+      categories,
+      concerningCount,
+      alerts: {
+        redirectedSpike: alertRedirectedSpike,
+        concerningContent: alertConcerningContent,
+      },
+    };
+  }
+
   async chatCategories() {
     const [weekly, live] = await Promise.all([
       this.db.weeklyTopicStat.aggregate({

@@ -12,7 +12,8 @@ import { api } from "@/lib/api";
 
 interface User {
   id: string;
-  email: string;
+  email: string | null;
+  username?: string | null;
   name: string | null;
   role: string;
 }
@@ -21,7 +22,8 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  /** identifier may be email or username — backend accepts either */
+  login: (identifier: string, password: string) => Promise<void>;
   register: (
     email: string,
     password: string,
@@ -73,10 +75,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const login = useCallback(async (email: string, password: string) => {
+  const login = useCallback(async (identifier: string, password: string) => {
     const result = await api<{ user: User; accessToken: string }>("/auth/login", {
       method: "POST",
-      body: { email, password },
+      body: { identifier, password },
     });
     setUser(result.user);
     setToken(result.accessToken);

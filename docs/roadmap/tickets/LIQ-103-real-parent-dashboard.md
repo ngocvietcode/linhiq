@@ -4,11 +4,15 @@ title: Wire parent dashboard vào API thật
 phase: 1
 priority: P0
 estimate: 3d
-status: Backlog
+status: In Review
 depends_on: []
 blocks: []
 tags: [backend, frontend, api]
 ---
+
+## Status (2026-04-26)
+
+Dashboard data, drill-down + báo cáo đã wire xong. Link flow đã ship: parent có thể (a) tạo tài khoản mới cho con + auto-link và (b) sinh mã 6 chữ số mời tài khoản đã có; con redeem mã tại `/parent-link`. Còn nợ duy nhất: weekly email digest. Mở rộng vượt scope ban đầu: chat viewer + alerts page (xem ghi chú dưới).
 
 # LIQ-103 — Real Parent Dashboard
 
@@ -26,16 +30,18 @@ Phụ huynh là người ra quyết định chi tiêu. Mock data = không bao gi
 
 ## Acceptance criteria
 
-- [ ] Endpoint `GET /parent/children` — list children linked qua `ParentChild`
-- [ ] Endpoint `GET /parent/reports/:childId/overview` — stats tuần
-- [ ] Endpoint `GET /parent/reports/:childId/activity?limit=20` — timeline
-- [ ] Endpoint `GET /parent/reports/:childId/subjects` — mastery per subject
-- [ ] `/parent/page.tsx` replace 100% mock bằng real data từ API
-- [ ] Weekly email digest qua Resend/SendGrid (cron Sunday 7pm)
-- [ ] Invite flow: phụ huynh nhập email con → gửi code 6-digit → con nhập code để link
-- [ ] Privacy: phụ huynh KHÔNG xem nội dung message chi tiết (chỉ stats + topic categories)
-- [ ] Only `PARENT` role có quyền truy cập `/parent/*` routes
-- [ ] Fallback UI khi chưa có child linked: "Link your child's account"
+- [x] Endpoint `GET /parent/children` — list children linked qua `ParentChild` (kèm `daysSinceLastStudy`, `inactive`, `studyGoal`)
+- [x] Endpoint stats tuần — implement tại `GET /parent/children/:childId/overview?days=` và `.../report?days=` (filter 7/30/90)
+- [x] Endpoint activity timeline — implement tại `GET /parent/children/:childId/timeline?days=` (mix quiz/mastery/alert/session)
+- [x] Endpoint mastery per subject — bao gồm trong overview + drill-down `GET /parent/children/:childId/subjects/:subjectId` (theo Unit/Topic)
+- [x] `/parent/page.tsx` replace 100% mock bằng real data từ API
+- [ ] Weekly email digest qua Resend/SendGrid (cron Sunday 7pm) — chưa làm
+- [x] Invite flow: parent nhập email con → sinh code 6-digit (hash bằng bcrypt, hết hạn 24h) → con nhập code tại `/parent-link` để link. Có thêm flow tạo account mới: `POST /parent/children` tạo `User`+`StudentProfile`+`ParentChild` trong 1 transaction.
+- [x] Only `PARENT` role có quyền truy cập `/parent/*` routes (Roles guard)
+- [x] Fallback UI khi chưa có child linked: "Hãy liên hệ quản trị viên để liên kết tài khoản"
+- [x] **Mở rộng (P0+P1):** parent có thể xem transcript chat + alerts page cho nội dung redirect / EMOTIONAL / MATURE_SOFT / AGE_BOUNDARY / HARMFUL — yêu cầu trực tiếp từ stakeholder, **đảo lại** AC privacy ban đầu
+- [x] **Mở rộng:** lịch sử quiz, study-goal editor, inactivity banner (≥3 ngày không học)
+- [x] **Mở rộng:** parent notification fan-out — mastery 80%+, streak milestone, concerning chat content (qua `NotificationService.notifyParents`)
 
 ## Technical approach
 
@@ -91,15 +97,29 @@ enum LinkRequestStatus { PENDING APPROVED REJECTED EXPIRED }
 
 ## API design
 
+Đã ship (namespace `/parent/children/:childId/...` thay vì `/parent/reports/:childId/...`):
+
 ```ts
-GET  /parent/children
-GET  /parent/reports/:childId/overview
-GET  /parent/reports/:childId/activity
-GET  /parent/reports/:childId/subjects
-POST /parent/link-requests          { childEmail }
-GET  /me/pending-parent-links       // for child to see
-POST /me/parent-links/:requestId/approve
-POST /me/parent-links/:requestId/reject
+GET   /parent/children
+GET   /parent/children/:childId/overview?days=                  // 7/30/90
+GET   /parent/children/:childId/report?days=
+GET   /parent/children/:childId/sessions?days=&onlyConcerning=  // chat list
+GET   /parent/children/:childId/sessions/:sessionId             // transcript
+GET   /parent/children/:childId/alerts?days=                    // concerning content feed
+GET   /parent/children/:childId/quizzes?limit=                  // quiz history
+GET   /parent/children/:childId/subjects/:subjectId             // unit/topic drill-down
+GET   /parent/children/:childId/timeline?days=                  // mixed events
+PATCH /parent/children/:childId/study-goal                      // { goalMin }
+```
+
+Link flow (đã ship):
+
+```ts
+POST   /parent/children                   // { email, name, password, curriculum } → tạo account + link
+POST   /parent/link-requests              // { childEmail } → sinh code 6 chữ số (hết hạn 24h)
+GET    /parent/link-requests              // list yêu cầu của parent
+DELETE /parent/link-requests/:id          // huỷ yêu cầu
+POST   /me/parent-link/redeem             // { code } → child redeem để liên kết
 ```
 
 ## UI notes

@@ -10,30 +10,49 @@ datasource db {
 }
 
 model User {
-  id              String              @id @default(cuid())
-  email           String              @unique
-  passwordHash    String?
-  googleId        String?             @unique
-  name            String
-  avatarUrl       String?
-  role            Role                @default(STUDENT)
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
-  isActive        Boolean             @default(true)
-  chatSessions    ChatSession[]
-  keyTermsEarned  KeyTermEarned[]
-  childLinks      ParentChild[]       @relation("ChildLinks")
-  parentLinks     ParentChild[]       @relation("ParentLinks")
-  quizAttempts    QuizAttempt[]
-  slideDecks      SlideDeckSnapshot[]
-  studentProfile  StudentProfile?
-  studySessions   StudySession[]
-  readerBookmarks ReaderBookmark[]
-  readerNotes     ReaderNote[]
+  id                  String              @id @default(cuid())
+  email               String?             @unique
+  username            String?             @unique
+  passwordHash        String?
+  googleId            String?             @unique
+  name                String
+  avatarUrl           String?
+  role                Role                @default(STUDENT)
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  isActive            Boolean             @default(true)
+  chatSessions        ChatSession[]
+  keyTermsEarned      KeyTermEarned[]
+  childLinks          ParentChild[]       @relation("ChildLinks")
+  parentLinks         ParentChild[]       @relation("ParentLinks")
+  quizAttempts        QuizAttempt[]
+  slideDecks          SlideDeckSnapshot[]
+  studentProfile      StudentProfile?
+  studySessions       StudySession[]
+  readerBookmarks     ReaderBookmark[]
+  readerNotes         ReaderNote[]
+  notifications       Notification[]
+  parentLinkRequests  ParentLinkRequest[] @relation("ParentLinkRequester")
 
   @@index([email])
+  @@index([username])
   @@index([role])
   @@index([googleId])
+}
+
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  type      String
+  title     String
+  body      String?
+  link      String?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, readAt])
 }
 
 model StudentProfile {
@@ -59,6 +78,29 @@ model ParentChild {
   parent   User     @relation("ParentLinks", fields: [parentId], references: [id])
 
   @@unique([parentId, childId])
+}
+
+model ParentLinkRequest {
+  id              String            @id @default(cuid())
+  parentId        String
+  childIdentifier String
+  codeHash        String
+  status          LinkRequestStatus @default(PENDING)
+  expiresAt       DateTime
+  createdAt       DateTime          @default(now())
+  approvedAt      DateTime?
+  parent          User              @relation("ParentLinkRequester", fields: [parentId], references: [id], onDelete: Cascade)
+
+  @@index([childIdentifier, status])
+  @@index([parentId])
+  @@index([expiresAt])
+}
+
+enum LinkRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  EXPIRED
 }
 
 model Subject {

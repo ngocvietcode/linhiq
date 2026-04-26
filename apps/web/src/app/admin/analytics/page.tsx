@@ -5,7 +5,7 @@ import { useAuth } from "@/lib/auth-context";
 import { api } from "@/lib/api";
 import {
   BarChart2, TrendingUp, Users, MessageSquare,
-  Clock, Activity, RefreshCw
+  Clock, Activity, RefreshCw, AlertTriangle, DollarSign,
 } from "lucide-react";
 
 interface WeekDay { day: string; date: string; sessions: number; messages: number; }
@@ -33,6 +33,22 @@ interface ChatCategories {
   ratios: { academic: number; general: number; hobbies: number; life: number; redirected: number };
 }
 
+interface TokenUsage {
+  period: "7d" | "30d" | "all";
+  totalTokens: number;
+  totalCostUsd: number;
+  byModel: { model: string; messages: number; tokens: number; estCostUsd: number }[];
+}
+
+interface SafetyReport {
+  recent: { total: number; redirected: number; ratio: number };
+  prior:  { total: number; redirected: number; ratio: number };
+  ratioDelta: number;
+  categories: { category: string; count: number; concerning: boolean }[];
+  concerningCount: number;
+  alerts: { redirectedSpike: boolean; concerningContent: boolean };
+}
+
 const CATEGORY_META = [
   { k: "academic" as const,   label: "Academic",   color: "var(--color-accent)" },
   { k: "general"  as const,   label: "General",    color: "var(--color-teal)" },
@@ -45,6 +61,8 @@ export default function AdminAnalyticsPage() {
   const { token } = useAuth();
   const [overview, setOverview] = useState<Overview | null>(null);
   const [categories, setCategories] = useState<ChatCategories | null>(null);
+  const [tokens, setTokens] = useState<TokenUsage | null>(null);
+  const [safety, setSafety] = useState<SafetyReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<"7d" | "30d" | "all">("7d");
 
@@ -52,12 +70,16 @@ export default function AdminAnalyticsPage() {
     if (!token) return;
     setLoading(true);
     try {
-      const [ov, cat] = await Promise.all([
+      const [ov, cat, tok, saf] = await Promise.all([
         api<Overview>(`/admin/analytics/overview?period=${period}`, { token }),
         api<ChatCategories>("/admin/analytics/chat-categories", { token }),
+        api<TokenUsage>(`/admin/analytics/tokens?period=${period}`, { token }),
+        api<SafetyReport>("/admin/analytics/safety", { token }),
       ]);
       setOverview(ov);
       setCategories(cat);
+      setTokens(tok);
+      setSafety(saf);
     } catch (e) {
       console.error(e);
     } finally {
@@ -327,6 +349,126 @@ export default function AdminAnalyticsPage() {
           </div>
         ))}
       </div>
+
+      {/* Safety alerts */}
+      {safety && (safety.alerts.redirectedSpike || safety.alerts.concerningContent) && (
+        <div
+          className="mt-6 rounded-2xl border p-5 flex items-start gap-4"
+          style={{
+            background: "rgba(245,158,11,0.06)",
+            borderColor: "rgba(245,158,11,0.3)",
+          }}
+        >
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+            style={{ background: "rgba(245,158,11,0.18)" }}>
+            <AlertTriangle size={18} style={{ color: "var(--color-warning)" }} />
+          </div>
+          <div className="flex-1">
+            <p className="font-semibold" style={{ color: "var(--color-warning)" }}>
+              Safety alerts active
+            </p>
+            <ul className="mt-2 space-y-1 text-sm" style={{ color: "var(--color-text-secondary)" }}>
+              {safety.alerts.redirectedSpike && (
+                <li>
+                  • Redirected ratio jumped from{" "}
+                  {(safety.prior.ratio * 100).toFixed(1)}% → {(safety.recent.ratio * 100).toFixed(1)}%
+                  {" "}(+{(safety.ratioDelta * 100).toFixed(1)} pts) week-over-week
+                </li>
+              )}
+              {safety.alerts.concerningContent && (
+                <li>
+                  • {safety.concerningCount} message(s) in last 7 days flagged as harmful, mature, or age-boundary
+                </li>
+              )}
+            </ul>
+          </div>
+        </div>
+      )}
+
+      {/* Safety category breakdown */}
+      {safety && safety.categories.length > 0 && (
+        <div
+          className="mt-6 rounded-2xl border"
+          style={{ background: "var(--color-surface)", borderColor: "var(--color-border-subtle)" }}
+        >
+          <div className="px-6 py-4 border-b flex items-center justify-between" style={{ borderColor: "var(--color-border-subtle)" }}>
+            <h2 className="font-semibold">Content Safety (last 7 days)</h2>
+            <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+              {safety.recent.total} messages · {safety.recent.redirected} redirected
+            </span>
+          </div>
+          <div className="p-6 grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {safety.categories.map((c) => (
+              <div
+                key={c.category}
+                className="rounded-xl border p-3"
+                style={{
+                  borderColor: c.concerning ? "rgba(244,63,94,0.3)" : "var(--color-border-subtle)",
+                  background: c.concerning ? "rgba(244,63,94,0.06)" : "var(--color-surface-2)",
+                }}
+              >
+                <p className="text-xs" style={{ color: c.concerning ? "var(--color-danger)" : "var(--color-text-muted)" }}>
+                  {c.category}
+                </p>
+                <p className="text-2xl font-bold mt-1" style={{ color: c.concerning ? "var(--color-danger)" : "var(--color-text-primary)" }}>
+                  {c.count}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Token usage & cost */}
+      {tokens && (
+        <div
+          className="mt-6 rounded-2xl border"
+          style={{ background: "var(--color-surface)", borderColor: "var(--color-border-subtle)" }}
+        >
+          <div className="px-6 py-4 border-b flex items-center justify-between" style={{ borderColor: "var(--color-border-subtle)" }}>
+            <h2 className="font-semibold flex items-center gap-2">
+              <DollarSign size={16} style={{ color: "var(--color-gold)" }} />
+              Token Usage & Estimated Cost
+            </h2>
+            <span className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+              {period === "all" ? "All time" : `Last ${period}`} · estimates only
+            </span>
+          </div>
+          <div className="p-6">
+            <div className="grid grid-cols-2 gap-4 mb-5">
+              <div>
+                <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>Total tokens</p>
+                <p className="text-2xl font-bold">{tokens.totalTokens.toLocaleString()}</p>
+              </div>
+              <div>
+                <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>Estimated cost</p>
+                <p className="text-2xl font-bold">${tokens.totalCostUsd.toFixed(2)}</p>
+              </div>
+            </div>
+            {tokens.byModel.length === 0 ? (
+              <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>
+                No token data recorded for this period.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {tokens.byModel.map((m) => (
+                  <div key={m.model} className="flex items-center justify-between text-sm">
+                    <div>
+                      <p className="font-medium font-mono text-xs">{m.model}</p>
+                      <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+                        {m.messages.toLocaleString()} messages · {m.tokens.toLocaleString()} tokens
+                      </p>
+                    </div>
+                    <span className="font-mono" style={{ color: "var(--color-text-secondary)" }}>
+                      ${m.estCostUsd.toFixed(4)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

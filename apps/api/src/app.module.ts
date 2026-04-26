@@ -15,6 +15,7 @@ import { TextbookModule } from './modules/textbook/textbook.module';
 import { UploadModule } from './modules/upload/upload.module';
 import { SlidesModule } from './modules/slides/slides.module';
 import { ReaderModule } from './modules/reader/reader.module';
+import { NotificationModule } from './modules/notification/notification.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { ReaderModule } from './modules/reader/reader.module';
     UploadModule,
     SlidesModule,
     ReaderModule,
+    NotificationModule,
   ],
 })
 export class AppModule {}

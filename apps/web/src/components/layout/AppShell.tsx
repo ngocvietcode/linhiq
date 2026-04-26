@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { Sidebar } from "./Sidebar";
 import { BottomNav } from "./BottomNav";
+import { NotificationBell } from "../NotificationBell";
 
 interface AppShellProps {
   children: ReactNode;
@@ -81,11 +82,14 @@ export function AppShell({
             <span style={{ fontFamily: "var(--font-heading)", color: "var(--color-accent)" }}>Linh</span>
             <span style={{ color: "var(--color-text-heading)" }}>IQ</span>
           </span>
-          <div
-            className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold"
-            style={{ background: "var(--color-accent-soft)", color: "var(--color-accent)" }}
-          >
-            {user?.name?.[0] || "S"}
+          <div className="flex items-center gap-2">
+            <NotificationBell />
+            <div
+              className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold"
+              style={{ background: "var(--color-accent-soft)", color: "var(--color-accent)" }}
+            >
+              {user?.name?.[0] || "S"}
+            </div>
           </div>
         </header>
 

@@ -18,7 +18,6 @@ interface DashboardStats {
   totalSessions: number;
   totalMessages: number;
   newUsersThisWeek: number;
-  storageUsed: string;
 }
 
 interface RecentUser {
@@ -29,8 +28,27 @@ interface RecentUser {
   createdAt: string;
 }
 
+interface AnalyticsOverview {
+  totalUsers: number;
+  totalSessions: number;
+  totalSubjects: number;
+  activeUsersToday: number;
+  totalMessages: number;
+}
+
+type ServiceStatus = "ok" | "degraded" | "down";
+interface HealthStatus {
+  status: ServiceStatus;
+  checkedAt: string;
+  services: {
+    database: { status: ServiceStatus; latencyMs?: number };
+    llm: { status: ServiceStatus; latencyMs?: number; httpStatus?: number };
+    rag: { status: ServiceStatus; chunks?: number; documents?: number };
+  };
+}
+
 const QUICK_STATS = [
-  { href: "/admin/users",    icon: Users,        label: "Total Users",    key: "totalUsers",    color: "var(--color-accent)", sub: "newUsersThisWeek", subLabel: "new this week" },
+  { href: "/admin/users",    icon: Users,        label: "Active Students", key: "totalUsers",   color: "var(--color-accent)", sub: "newUsersThisWeek", subLabel: "new this week" },
   { href: "/admin/sessions", icon: MessageSquare,label: "Chat Sessions",  key: "totalSessions", color: "var(--color-teal)", sub: "activeToday",       subLabel: "active today" },
   { href: "/admin/subjects", icon: BookOpen,     label: "Subjects",       key: "totalSubjects", color: "var(--color-gold)", sub: null,                subLabel: "" },
   { href: "/admin/analytics",icon: Activity,     label: "Messages",       key: "totalMessages", color: "#F43F5E", sub: null,                subLabel: "" },
@@ -41,15 +59,17 @@ export default function AdminDashboardPage() {
   const router = useRouter();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [recentUsers, setRecentUsers] = useState<RecentUser[]>([]);
+  const [health, setHealth] = useState<HealthStatus | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!token) return;
+    api<HealthStatus>("/admin/health", { token }).then(setHealth).catch(() => setHealth(null));
     Promise.allSettled([
-      api<{ data: any[] }>("/admin/subjects", { token }),
+      api<AnalyticsOverview>("/admin/analytics/overview?period=7d", { token }),
       api<{ data: RecentUser[] }>("/admin/users", { token }),
-    ]).then(([subjectsRes, usersRes]) => {
-      const subjects = subjectsRes.status === "fulfilled" ? subjectsRes.value?.data || [] : [];
+    ]).then(([analyticsRes, usersRes]) => {
+      const analytics = analyticsRes.status === "fulfilled" ? analyticsRes.value : null;
       const users: RecentUser[] = usersRes.status === "fulfilled" ? usersRes.value?.data || [] : [];
 
       const oneWeekAgo = new Date(Date.now() - 7 * 86400 * 1000);
@@ -59,13 +79,12 @@ export default function AdminDashboardPage() {
       );
 
       setStats({
-        totalUsers: users.length,
-        activeToday: Math.floor(users.length * 0.12) || 0,
-        totalSubjects: subjects.length,
-        totalSessions: 0,
-        totalMessages: 0,
+        totalUsers: analytics?.totalUsers ?? 0,
+        activeToday: analytics?.activeUsersToday ?? 0,
+        totalSubjects: analytics?.totalSubjects ?? 0,
+        totalSessions: analytics?.totalSessions ?? 0,
+        totalMessages: analytics?.totalMessages ?? 0,
         newUsersThisWeek: newUsers,
-        storageUsed: "—",
       });
       setRecentUsers(sorted.slice(0, 6));
       setLoading(false);
@@ -269,28 +288,78 @@ export default function AdminDashboardPage() {
           </div>
 
           {/* System status */}
-          <div
-            className="mx-4 mb-4 p-4 rounded-xl border"
-            style={{
-              background: "rgba(34,211,163,0.05)",
-              borderColor: "rgba(34,211,163,0.2)",
-            }}
-          >
-            <div className="flex items-center gap-2 mb-2">
-              <span
-                className="w-2 h-2 rounded-full animate-pulse"
-                style={{ background: "var(--color-success)" }}
-              />
-              <span className="text-sm font-medium" style={{ color: "var(--color-success)" }}>
-                All Systems Operational
-              </span>
-            </div>
-            <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
-              API · Database · AI Provider · RAG Engine
-            </p>
-          </div>
+          <SystemStatus health={health} />
         </div>
       </div>
     </div>
   );
 }
+
+function SystemStatus({ health }: { health: HealthStatus | null }) {
+  const statusColor: Record<ServiceStatus, string> = {
+    ok: "var(--color-success)",
+    degraded: "var(--color-warning)",
+    down: "var(--color-danger)",
+  };
+  const overallLabel: Record<ServiceStatus, string> = {
+    ok: "All Systems Operational",
+    degraded: "Some Services Degraded",
+    down: "Service Outage Detected",
+  };
+
+  if (!health) {
+    return (
+      <div
+        className="mx-4 mb-4 p-4 rounded-xl border"
+        style={{ background: "var(--color-surface-0)", borderColor: "var(--color-border-subtle)" }}
+      >
+        <div className="flex items-center gap-2 mb-2">
+          <span className="w-2 h-2 rounded-full" style={{ background: "var(--color-text-muted)" }} />
+          <span className="text-sm font-medium" style={{ color: "var(--color-text-muted)" }}>
+            Status unavailable
+          </span>
+        </div>
+        <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+          Could not reach /admin/health
+        </p>
+      </div>
+    );
+  }
+
+  const overall = statusColor[health.status];
+  const services = [
+    { key: "database", label: "Database", svc: health.services.database, detail: health.services.database.latencyMs != null ? `${health.services.database.latencyMs}ms` : undefined },
+    { key: "llm", label: "LLM Gateway", svc: health.services.llm, detail: health.services.llm.latencyMs != null ? `${health.services.llm.latencyMs}ms` : undefined },
+    { key: "rag", label: "RAG Engine", svc: health.services.rag, detail: health.services.rag.chunks != null ? `${health.services.rag.chunks} chunks` : undefined },
+  ];
+
+  return (
+    <div
+      className="mx-4 mb-4 p-4 rounded-xl border"
+      style={{ background: `${overall}0d`, borderColor: `${overall}33` }}
+    >
+      <div className="flex items-center gap-2 mb-2">
+        <span
+          className={`w-2 h-2 rounded-full ${health.status === "ok" ? "animate-pulse" : ""}`}
+          style={{ background: overall }}
+        />
+        <span className="text-sm font-medium" style={{ color: overall }}>
+          {overallLabel[health.status]}
+        </span>
+      </div>
+      <div className="space-y-1">
+        {services.map((s) => (
+          <div key={s.key} className="flex items-center justify-between text-xs">
+            <span style={{ color: "var(--color-text-muted)" }}>{s.label}</span>
+            <span className="flex items-center gap-1.5" style={{ color: statusColor[s.svc.status] }}>
+              {s.detail && <span style={{ color: "var(--color-text-muted)" }}>{s.detail}</span>}
+              <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ background: statusColor[s.svc.status] }} />
+              <span className="capitalize">{s.svc.status}</span>
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+

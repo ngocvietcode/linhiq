@@ -9,7 +9,7 @@ import { Eye, EyeOff, ArrowRight, Loader2 } from "lucide-react";
 export default function LoginPage() {
   const router = useRouter();
   const { login } = useAuth();
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
@@ -20,7 +20,7 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
     try {
-      await login(email, password);
+      await login(identifier, password);
       router.push("/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
@@ -60,20 +60,21 @@ export default function LoginPage() {
 
         <div>
           <label
-            htmlFor="email"
+            htmlFor="identifier"
             className="block text-sm font-medium mb-2"
             style={{ color: "var(--color-text-secondary)" }}
           >
-            Email
+            Email hoặc tên đăng nhập
           </label>
           <input
-            id="email"
-            type="email"
+            id="identifier"
+            type="text"
+            autoComplete="username"
             required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            value={identifier}
+            onChange={(e) => setIdentifier(e.target.value)}
             className="input"
-            placeholder="you@example.com"
+            placeholder="you@example.com hoặc username"
           />
         </div>
 

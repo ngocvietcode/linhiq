@@ -76,7 +76,20 @@ export class AuthController {
   @Get('google/callback')
   @UseGuards(PassportAuthGuard('google'))
   async googleCallback(@Req() req: Request, @Res() res: Response) {
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    // FRONTEND_URL is required — falling back silently to localhost would
+    // bounce production users to their own machine after OAuth.
+    const frontendUrl = process.env.FRONTEND_URL;
+    if (!frontendUrl) {
+      if (process.env.NODE_ENV === 'production') {
+        throw new Error('FATAL: FRONTEND_URL environment variable is not configured');
+      }
+      // dev fallback only
+      return this.googleCallbackWithUrl(req, res, 'http://localhost:3000');
+    }
+    return this.googleCallbackWithUrl(req, res, frontendUrl);
+  }
+
+  private async googleCallbackWithUrl(req: Request, res: Response, frontendUrl: string) {
     const profile = req.user as GoogleProfile | undefined;
 
     if (!profile) {

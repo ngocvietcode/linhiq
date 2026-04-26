@@ -22,7 +22,7 @@ describe('ProgressService — updateTopicMastery', () => {
         upsert: jest.fn(),
       },
     };
-    service = new ProgressService(mockDb);
+    service = new ProgressService(mockDb, { create: jest.fn() } as any);
   });
 
   // Helper: simulate a sequence of answers and return the final mastery
@@ -195,7 +195,7 @@ describe('ProgressService — getTopicIdFromChunks', () => {
         findMany: jest.fn(),
       },
     };
-    service = new ProgressService(mockDb);
+    service = new ProgressService(mockDb, { create: jest.fn() } as any);
   });
 
   it('returns null for empty chunk IDs', async () => {

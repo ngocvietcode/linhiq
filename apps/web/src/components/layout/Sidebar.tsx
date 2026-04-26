@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { NAV_ITEMS } from "@/lib/constants";
 import { LogOut } from "lucide-react";
+import { NotificationBell } from "../NotificationBell";
 
 /**
  * Sidebar — "Table of Contents" style navigation
@@ -29,11 +30,12 @@ export function Sidebar() {
   return (
     <aside className="sidebar">
       {/* Logo */}
-      <div className="sidebar-logo">
+      <div className="sidebar-logo flex items-center justify-between">
         <Link href="/dashboard" className="text-lg font-semibold" style={{ textDecoration: "none" }}>
           <span style={{ fontFamily: "var(--font-heading)", color: "var(--color-accent)" }}>Linh</span>
           <span style={{ color: "var(--color-text-heading)" }}>IQ</span>
         </Link>
+        <NotificationBell />
       </div>
 
       {/* Navigation */}

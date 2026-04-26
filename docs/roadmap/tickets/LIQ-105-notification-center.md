@@ -4,11 +4,15 @@ title: Notification Center (Bell icon → real drawer)
 phase: 1
 priority: P0
 estimate: 3d
-status: Backlog
+status: In Progress
 depends_on: []
 blocks: []
 tags: [backend, frontend, db, engagement]
 ---
+
+## Status (2026-04-26)
+
+Bell drawer + DB model + producer hooks (mastery / streak / parent fan-out / chat redirect) đã ship. Còn nợ: filter tabs, cron jobs (streak reminder, exam countdown, inactivity), Web Push, notification preferences settings, type enum chuẩn hoá (hiện dùng string `"success" | "warning"` thay vì enum trong AC).
 
 # LIQ-105 — Notification Center
 
@@ -24,15 +28,16 @@ Seneca, Duolingo đều dùng notification (streak reminder, "you haven't studie
 
 ## Acceptance criteria
 
-- [ ] Bell icon → dropdown drawer (desktop) / bottom sheet (mobile) với danh sách notification
-- [ ] Badge số notification unread
-- [ ] Filter tabs: All / Mentions / System
-- [ ] Click notification → navigate tới related resource, mark as read
-- [ ] "Mark all as read" button
-- [ ] Backend notification types: `STREAK_REMINDER`, `QUIZ_DUE`, `REVIEW_DUE` (depends on LIQ-201), `PARENT_MESSAGE`, `EXAM_COUNTDOWN` (LIQ-204), `ACHIEVEMENT_UNLOCKED` (LIQ-308)
-- [ ] Cron workers để generate notification (streak, exam countdown)
-- [ ] Push notification qua Web Push API (nếu user opt-in)
-- [ ] Settings page: toggle mỗi loại notification on/off
+- [x] Bell icon → dropdown drawer với danh sách notification ([NotificationBell.tsx](../../../apps/web/src/components/NotificationBell.tsx))
+- [x] Badge số notification unread (poll mỗi 60s)
+- [ ] Filter tabs: All / Mentions / System — chưa làm
+- [x] Click notification → navigate tới link, mark as read
+- [x] "Mark all as read" button
+- [ ] Backend notification types enum chuẩn hoá — hiện đang dùng string tự do (`"success"`, `"warning"`); `Notification.type` là `String` chứ chưa phải `NotificationType` enum
+- [x] Producer hooks đã wire: mastery 80%+ và streak milestone trong [progress.service.ts](../../../apps/api/src/modules/progress/progress.service.ts), concerning chat trong [chat.service.ts](../../../apps/api/src/modules/chat/chat.service.ts), parent fan-out qua [`NotificationService.notifyParents`](../../../apps/api/src/modules/notification/notification.service.ts)
+- [ ] Cron workers (streak reminder 18h, exam countdown 8h, inactivity ≥3 ngày) — chưa làm
+- [ ] Push notification qua Web Push API — chưa làm
+- [ ] Settings page: toggle mỗi loại notification on/off (cần `NotificationPreference` model) — chưa làm
 
 ## Technical approach
 

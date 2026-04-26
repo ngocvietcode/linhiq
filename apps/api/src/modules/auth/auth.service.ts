@@ -53,9 +53,13 @@ export class AuthService {
   }
 
   async login(input: LoginInput) {
-    const user = await this.db.user.findUnique({
-      where: { email: input.email },
-    });
+    // identifier may be an email or a username. Email lookup first (more common),
+    // fall back to username so children without email can still sign in.
+    const raw = input.identifier.trim();
+    const isEmail = raw.includes('@');
+    const user = isEmail
+      ? await this.db.user.findUnique({ where: { email: raw.toLowerCase() } })
+      : await this.db.user.findUnique({ where: { username: raw.toLowerCase() } });
 
     if (!user || !user.passwordHash) {
       throw new UnauthorizedException('Invalid credentials');
@@ -204,7 +208,7 @@ export class AuthService {
     }
   }
 
-  private generateAccessToken(userId: string, email: string, role: string): string {
+  private generateAccessToken(userId: string, email: string | null, role: string): string {
     const secret = this.getSecret('JWT_SECRET');
     return jwt.sign(
       { sub: userId, email, role },

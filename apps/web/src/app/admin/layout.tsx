@@ -9,6 +9,7 @@ import {
   Settings, ChevronDown, ChevronRight, LogOut, Shield,
   BarChart2, FileText, Database, Bell, Globe, Menu, X
 } from "lucide-react";
+import { NotificationBell } from "@/components/NotificationBell";
 
 const NAV = [
   {
@@ -238,11 +239,20 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
             >
               <Menu size={20} />
             </button>
-            <span className="text-base font-semibold">
+            <span className="text-base font-semibold flex-1">
               <span style={{ fontFamily: "var(--font-heading)", color: "var(--color-accent)" }}>Linh</span>
               <span style={{ color: "var(--color-text-heading)" }}>IQ</span> Admin
             </span>
+            <NotificationBell />
           </header>
+
+          {/* Desktop top bar (just for the bell) */}
+          <div
+            className="hidden lg:flex sticky top-0 z-10 px-6 py-2 justify-end"
+            style={{ background: "var(--color-surface-1)" }}
+          >
+            <NotificationBell />
+          </div>
 
           {/* Page content */}
           <main className="flex-1">{children}</main>

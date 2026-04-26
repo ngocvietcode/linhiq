@@ -1,4 +1,14 @@
-import { Controller, Get, Query, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpException,
+  HttpStatus,
+  Patch,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { ProgressService } from './progress.service';
 import { AuthGuard } from '../../common/guards/auth.guard';
 import type { RequestWithUser } from '../../common/interfaces/jwt-payload.interface';
@@ -38,5 +48,21 @@ export class ProgressController {
   @Get('summary')
   async getSummary(@Req() req: RequestWithUser) {
     return this.progress.getQuestionsAndAccuracy(req.user.sub);
+  }
+
+  @Get('today')
+  async getDailyGoal(@Req() req: RequestWithUser) {
+    return this.progress.getDailyGoal(req.user.sub);
+  }
+
+  @Patch('study-goal')
+  async updateStudyGoal(
+    @Req() req: RequestWithUser,
+    @Body('goalMin') goalMin: number,
+  ) {
+    if (typeof goalMin !== 'number' || !Number.isFinite(goalMin)) {
+      throw new HttpException('goalMin must be a number', HttpStatus.BAD_REQUEST);
+    }
+    return this.progress.updateStudyGoal(req.user.sub, goalMin);
   }
 }

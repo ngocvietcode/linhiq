@@ -1,9 +1,22 @@
 import { Injectable } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
+import { NotificationService } from '../notification/notification.service';
+
+function ymdLocal(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+const STREAK_MILESTONES = [3, 7, 14, 30, 60, 100];
 
 @Injectable()
 export class ProgressService {
-  constructor(private readonly db: DatabaseService) {}
+  constructor(
+    private readonly db: DatabaseService,
+    private readonly notifications: NotificationService,
+  ) {}
 
   async getSubjects() {
     return this.db.subject.findMany({
@@ -94,6 +107,7 @@ export class ProgressService {
   ) {
     // Minimum number of questions before mastery can reach 100%
     const MIN_QUESTIONS = 5;
+    const MASTERY_THRESHOLD = 0.8;
 
     const existing = await this.db.topicProgress.findUnique({
       where: { userId_topicId: { userId, topicId } },
@@ -107,7 +121,7 @@ export class ProgressService {
     const accuracy = correctAnswers / questionsAsked;
     const masteryLevel = Math.min(1.0, Math.max(0, accuracy * confidence));
 
-    return this.db.topicProgress.upsert({
+    const updated = await this.db.topicProgress.upsert({
       where: { userId_topicId: { userId, topicId } },
       update: {
         questionsAsked: { increment: weight },
@@ -124,6 +138,39 @@ export class ProgressService {
         lastStudiedAt: new Date(),
       },
     });
+
+    const wasBelow = (existing?.masteryLevel ?? 0) < MASTERY_THRESHOLD;
+    if (wasBelow && masteryLevel >= MASTERY_THRESHOLD) {
+      const topic = await this.db.topic.findUnique({
+        where: { id: topicId },
+        select: { name: true, subject: { select: { name: true, id: true } } },
+      });
+      if (topic) {
+        this.notifications
+          .create({
+            userId,
+            type: 'success',
+            title: 'Topic mastered!',
+            body: `You reached 80%+ mastery on "${topic.name}" (${topic.subject.name}).`,
+            link: '/progress',
+          })
+          .catch(() => {});
+
+        const childName = await this.db.user
+          .findUnique({ where: { id: userId }, select: { name: true } })
+          .then((u) => u?.name ?? 'Học sinh');
+        this.notifications
+          .notifyParents(userId, {
+            type: 'success',
+            title: `${childName} đạt mastery môn ${topic.subject.name}`,
+            body: `Vừa đạt 80%+ mastery ở chủ đề "${topic.name}".`,
+            link: `/parent/children/${userId}/subjects/${topic.subject.id}`,
+          })
+          .catch(() => {});
+      }
+    }
+
+    return updated;
   }
 
   /**
@@ -287,6 +334,169 @@ export class ProgressService {
     const accuracy = asked > 0 ? correct / asked : 0;
 
     return { questionsThisWeek, totalAsked: asked, totalCorrect: correct, accuracy };
+  }
+
+  /**
+   * Record a chunk of study activity for the user. Called whenever the chat
+   * exchange completes. Within a 15-minute window we extend the most-recent
+   * StudySession (so a continuous chat session counts as one block); otherwise
+   * we open a new block. Also updates `lastStudyAt` and the daily streak.
+   */
+  async recordStudyActivity(userId: string, subjectId: string | null) {
+    const now = new Date();
+    const WINDOW_MS = 15 * 60 * 1000;
+
+    // Snapshot today's minutes BEFORE this exchange — needed to detect the
+    // moment the student crosses the daily goal.
+    const startOfDay = new Date(now);
+    startOfDay.setHours(0, 0, 0, 0);
+    const before = await this.db.studySession.aggregate({
+      where: { userId, date: { gte: startOfDay } },
+      _sum: { durationMin: true },
+    });
+    const minutesBefore = before._sum.durationMin ?? 0;
+
+    const recent = await this.db.studySession.findFirst({
+      where: { userId },
+      orderBy: { date: 'desc' },
+    });
+
+    let addedMin = 1;
+    if (recent && now.getTime() - recent.date.getTime() < WINDOW_MS) {
+      addedMin = Math.max(1, Math.round((now.getTime() - recent.date.getTime()) / 60_000));
+      await this.db.studySession.update({
+        where: { id: recent.id },
+        data: { durationMin: recent.durationMin + addedMin, date: now },
+      });
+    } else {
+      await this.db.studySession.create({
+        data: { userId, subjectId: subjectId ?? null, durationMin: 1, date: now },
+      });
+    }
+
+    const profile = await this.db.studentProfile.findUnique({
+      where: { userId },
+      select: { studyGoal: true },
+    });
+    const goal = profile?.studyGoal ?? 60;
+    const minutesAfter = minutesBefore + addedMin;
+    if (minutesBefore < goal && minutesAfter >= goal) {
+      this.notifications
+        .create({
+          userId,
+          type: 'success',
+          title: 'Daily goal reached!',
+          body: `You hit your ${goal}-minute study goal today. Keep going!`,
+          link: '/progress',
+        })
+        .catch(() => {});
+    }
+
+    await this.updateStreak(userId, now);
+  }
+
+  private async updateStreak(userId: string, now: Date) {
+    const profile = await this.db.studentProfile.upsert({
+      where: { userId },
+      update: {},
+      create: { userId, streakDays: 0 },
+      select: { streakDays: true, lastStudyAt: true },
+    });
+
+    const todayKey = ymdLocal(now);
+    const lastKey = profile.lastStudyAt ? ymdLocal(profile.lastStudyAt) : null;
+
+    if (lastKey === todayKey) {
+      // Already counted today — only refresh lastStudyAt timestamp
+      await this.db.studentProfile.update({
+        where: { userId },
+        data: { lastStudyAt: now },
+      });
+      return;
+    }
+
+    let newStreak = 1;
+    if (lastKey) {
+      const yesterday = new Date(now);
+      yesterday.setDate(yesterday.getDate() - 1);
+      if (ymdLocal(yesterday) === lastKey) {
+        newStreak = (profile.streakDays || 0) + 1;
+      }
+    }
+    await this.db.studentProfile.update({
+      where: { userId },
+      data: { streakDays: newStreak, lastStudyAt: now },
+    });
+
+    if (STREAK_MILESTONES.includes(newStreak)) {
+      this.notifications
+        .create({
+          userId,
+          type: 'success',
+          title: `${newStreak}-day streak!`,
+          body: `You've studied ${newStreak} days in a row. Don't break the chain.`,
+          link: '/progress',
+        })
+        .catch(() => {});
+
+      const childName = await this.db.user
+        .findUnique({ where: { id: userId }, select: { name: true } })
+        .then((u) => u?.name ?? 'Học sinh');
+      this.notifications
+        .notifyParents(userId, {
+          type: 'success',
+          title: `${childName} có chuỗi ${newStreak} ngày học liên tục`,
+          body: `Cùng động viên con duy trì nhé!`,
+          link: `/parent`,
+        })
+        .catch(() => {});
+    }
+  }
+
+  /**
+   * Today's study progress vs the student's daily goal.
+   * `studyGoal` is the target minutes per day stored on StudentProfile.
+   */
+  async getDailyGoal(userId: string) {
+    const profile = await this.db.studentProfile.upsert({
+      where: { userId },
+      update: {},
+      create: { userId, streakDays: 0 },
+      select: { studyGoal: true, streakDays: true },
+    });
+
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(startOfDay);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const sessions = await this.db.studySession.findMany({
+      where: { userId, date: { gte: startOfDay, lte: endOfDay } },
+      select: { durationMin: true },
+    });
+    const todayMin = sessions.reduce((s, x) => s + x.durationMin, 0);
+
+    const goal = profile.studyGoal || 60;
+    const percent = Math.min(1, todayMin / goal);
+
+    return {
+      goalMin: goal,
+      todayMin,
+      percent,
+      met: todayMin >= goal,
+      streakDays: profile.streakDays,
+    };
+  }
+
+  async updateStudyGoal(userId: string, goalMin: number) {
+    const clamped = Math.max(5, Math.min(480, Math.round(goalMin)));
+    const profile = await this.db.studentProfile.upsert({
+      where: { userId },
+      update: { studyGoal: clamped },
+      create: { userId, studyGoal: clamped, streakDays: 0 },
+      select: { studyGoal: true },
+    });
+    return { goalMin: profile.studyGoal };
   }
 
   /**

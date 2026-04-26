@@ -17,9 +17,9 @@ Status board cho các đề xuất nâng cấp từ market research (2026-04-21)
 |---|---|---|---|---|
 | [LIQ-101](tickets/LIQ-101-ocr-image-tutoring.md) | OCR + Image tutoring (vision pipeline) | 🔴 P0 | 5d | 📋 Backlog |
 | [LIQ-102](tickets/LIQ-102-past-paper-mode.md) | Past Paper Mode (timed exam + mark-scheme grading) | 🔴 P0 | 8d | 📋 Backlog |
-| [LIQ-103](tickets/LIQ-103-real-parent-dashboard.md) | Wire parent dashboard vào API thật | 🔴 P0 | 3d | 📋 Backlog |
+| [LIQ-103](tickets/LIQ-103-real-parent-dashboard.md) | Wire parent dashboard vào API thật | 🔴 P0 | 3d | 👀 In Review |
 | [LIQ-104](tickets/LIQ-104-adaptive-diagnostic.md) | Adaptive diagnostic onboarding | 🔴 P0 | 4d | 📋 Backlog |
-| [LIQ-105](tickets/LIQ-105-notification-center.md) | Notification Center (Bell icon → real drawer) | 🔴 P0 | 3d | 📋 Backlog |
+| [LIQ-105](tickets/LIQ-105-notification-center.md) | Notification Center (Bell icon → real drawer) | 🔴 P0 | 3d | 🚧 In Progress |
 | [LIQ-106](tickets/LIQ-106-sticky-hint-selector.md) | Sticky Hint Level Selector (mobile) | 🔴 P0 | 1d | 📋 Backlog |
 | [LIQ-107](tickets/LIQ-107-mobile-bottomnav-polish.md) | Mobile BottomNav polish + safe-area | 🔴 P0 | 1d | 📋 Backlog |
 
@@ -93,8 +93,8 @@ Nội dung: **Problem → User story → Acceptance criteria → Technical appro
 
 Dành cho người muốn gật tay ngay:
 
-1. LIQ-103 (parent dashboard real data) — 3d
+1. ~~LIQ-103 (parent dashboard real data) — 3d~~ → 👀 In Review (còn email digest + invite flow)
 2. LIQ-207 (progress v2 real data) — 3d
-3. LIQ-105 (notification drawer) — 3d
+3. ~~LIQ-105 (notification drawer) — 3d~~ → 🚧 In Progress (còn cron + Web Push + preferences)
 4. LIQ-205 phần LaTeX + Mermaid — 1d
 5. LIQ-204 exam countdown widget — 1d

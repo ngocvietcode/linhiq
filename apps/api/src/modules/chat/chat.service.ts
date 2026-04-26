@@ -1,10 +1,21 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
+import { NotificationService } from '../notification/notification.service';
 import { ChatMode, HintLevel, TopicCategory } from '@linhiq/database';
+
+const CONCERNING_CATEGORIES: TopicCategory[] = [
+  'EMOTIONAL',
+  'MATURE_SOFT',
+  'AGE_BOUNDARY',
+  'HARMFUL',
+];
 
 @Injectable()
 export class ChatService {
-  constructor(private readonly db: DatabaseService) {}
+  constructor(
+    private readonly db: DatabaseService,
+    private readonly notifications: NotificationService,
+  ) {}
 
   async createSession(userId: string, subjectId?: string) {
     if (subjectId) {
@@ -90,6 +101,26 @@ export class ChatService {
     if (role === 'user' && metadata?.safeCategory) {
       const category = metadata.safeCategory;
       const isRedirected = category === 'AGE_BOUNDARY' || category === 'HARMFUL';
+
+      if (CONCERNING_CATEGORIES.includes(category)) {
+        const session = await this.db.chatSession.findUnique({
+          where: { id: sessionId },
+          select: { userId: true },
+        });
+        if (session) {
+          const childName = await this.db.user
+            .findUnique({ where: { id: session.userId }, select: { name: true } })
+            .then((u) => u?.name ?? 'Học sinh');
+          this.notifications
+            .notifyParents(session.userId, {
+              type: 'warning',
+              title: `${childName} có nội dung chat cần chú ý`,
+              body: `Loại: ${category}. Hãy xem nhanh để hỗ trợ con kịp thời.`,
+              link: `/parent/children/${session.userId}/alerts`,
+            })
+            .catch(() => {});
+        }
+      }
       
       const updateData: any = { totalMsg: { increment: 1 } };
 

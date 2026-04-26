@@ -205,6 +205,11 @@ export class ChatController {
         wasRedirected: metadata?.wasRedirected as boolean | undefined,
         safeCategory: metadata?.safeCategory as unknown as import('@linhiq/database').TopicCategory | undefined,
       });
+
+      // Record engagement time toward daily goal + update streak
+      await this.progress.recordStudyActivity(req.user.sub, session.subjectId ?? null).catch((e) => {
+        this.logger.warn(`recordStudyActivity failed for user ${req.user.sub}: ${e?.message}`);
+      });
     } catch (error) {
       this.logger.error('LLM Stream Error:', error);
       res.write(

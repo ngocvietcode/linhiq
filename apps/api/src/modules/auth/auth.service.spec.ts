@@ -85,7 +85,7 @@ describe('AuthService', () => {
       });
 
       const result = await service.login({
-        email: 'test@example.com',
+        identifier: 'test@example.com',
         password: 'password123',
       });
 
@@ -103,7 +103,7 @@ describe('AuthService', () => {
 
       await expect(
         service.login({
-          email: 'test@example.com',
+          identifier: 'test@example.com',
           password: 'wrongpassword',
         }),
       ).rejects.toThrow(UnauthorizedException);
@@ -114,7 +114,7 @@ describe('AuthService', () => {
 
       await expect(
         service.login({
-          email: 'nobody@example.com',
+          identifier: 'nobody@example.com',
           password: 'password123',
         }),
       ).rejects.toThrow(UnauthorizedException);
